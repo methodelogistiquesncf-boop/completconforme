@@ -1111,3 +1111,29 @@ section.hidden { display: none; }
     overflow: hidden;
     text-overflow: ellipsis;
 }
+/* ── Header user chip ──────────────────────────────────────── */
+/* Ajouter dans style.css, dans la section header/nav          */
+
+.header-user-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent-hi, #e63946);   /* cercle coloré */
+    color: #fff;
+    font-family: var(--mono, monospace);
+    font-size: .85rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    flex-shrink: 0;
+    cursor: default;
+    user-select: none;
+    /* tooltip natif via title="" suffit */
+    transition: opacity .15s;
+}
+
+.header-user-chip:hover {
+    opacity: .85;
+}
