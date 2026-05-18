@@ -94,76 +94,89 @@
                     ⚠️ Mode hors-ligne — les modifications seront synchronisées au retour du réseau.
                 </div>
 
-                <!-- Barre de recherche -->
-                <div class="card">
-                    <p class="card-title">Scanner ou saisir l'emplacement</p>
-                    <div class="search-row">
-                        <input
-                            type="text"
-                            id="input-emplacement"
-                            class="search-input"
-                            placeholder="Ex: A-01-02"
-                            autocomplete="off"
-                            spellcheck="false"
-                        >
-                        <button class="btn-search" id="btn-verifier">Vérifier</button>
-                    </div>
-                    <p class="status-line" id="search-status"></p>
-                </div>
+                <!-- ══════════════════════════════════════
+                     VUE LISTE — kits non contrôlés
+                     ══════════════════════════════════════ -->
+                <div id="view-liste">
 
-                <!-- Chargement -->
-                <div class="card hidden anim-in" id="loading-card">
-                    <div class="loading-wrap">
+                    <!-- Barre de recherche -->
+                    <div class="card">
+                        <p class="card-title">Emplacements à contrôler</p>
+                        <div class="search-row">
+                            <input
+                                type="text"
+                                id="input-emplacement"
+                                class="search-input"
+                                placeholder="Ex: A-01-02"
+                                autocomplete="off"
+                                spellcheck="false"
+                            >
+                            <button class="btn-search" id="btn-verifier">Vérifier</button>
+                        </div>
+                        <p class="status-line" id="search-status"></p>
+                    </div>
+
+                    <!-- Chargement liste -->
+                    <div class="loading-wrap" id="liste-loading">
                         <div class="spinner"></div>
-                        <span>Recherche du kit…</span>
+                        <span>Chargement des emplacements…</span>
                     </div>
+
+                    <!-- Message vide -->
+                    <p class="liste-vide hidden" id="liste-vide">Aucun emplacement à contrôler.</p>
+
+                    <!-- Liste des kits -->
+                    <div id="liste-kits" class="liste-kits"></div>
+
                 </div>
 
-                <!-- ══ CARTE BLOCAGE — emplacement déjà conforme ══ -->
-                <div class="card hidden anim-in blocage-card" id="blocage-card">
-                    <div class="blocage-header">
-                        <span class="blocage-icon">✅</span>
-                        <div>
-                            <p class="blocage-title">Emplacement déjà contrôlé</p>
-                            <p class="blocage-sub">
-                                <strong id="blocage-emp">—</strong> · Kit <strong id="blocage-kit">—</strong>
-                            </p>
-                            <p class="blocage-date">Validé le <span id="blocage-date">—</span></p>
-                            <p class="blocage-date">Par <span id="blocage-email" class="blocage-email-val">—</span></p>
-                        </div>
-                    </div>
-                    <div class="blocage-actions">
-                        <button class="btn-action btn-histo" id="btn-voir-histo">
-                            🕒 Voir dans l'historique
-                        </button>
-                        <button class="btn-action btn-forcer" id="btn-forcer-controle">
-                            🔄 Re-contrôler quand même
-                        </button>
-                    </div>
-                </div>
+                <!-- ══════════════════════════════════════
+                     VUE DÉTAIL — pièces du kit sélectionné
+                     ══════════════════════════════════════ -->
+                <div id="view-detail" class="hidden">
 
-                <!-- Fiche Kit -->
-                <div class="card hidden anim-in" id="kit-card">
-                    <div class="kit-header">
-                        <div>
-                            <span class="kit-id-badge" id="kit-badge">—</span>
-                            <h2 class="kit-name" id="kit-nom">—</h2>
-                            <p class="kit-location">📍 Emplacement : <strong id="kit-emp">—</strong></p>
-                            <p class="kit-engin" id="kit-engin"></p>
+                    <!-- Barre de navigation retour -->
+                    <div class="detail-nav">
+                        <button class="btn-retour" id="btn-retour">
+                            ← Retour
+                        </button>
+                        <div class="detail-nav-ids">
+                            <span class="detail-emp-badge" id="detail-emp-badge">—</span>
+                            <span class="detail-kit-badge" id="detail-kit-badge">—</span>
                         </div>
                     </div>
 
-                    <p class="card-title">Composition théorique à valider</p>
-                    <div class="comp-list" id="comp-list"></div>
-
-                    <div class="btn-actions">
-                        <button class="btn-action btn-conforme" id="btn-conforme">
-                            ✅ Kit complet &amp; conforme
-                        </button>
-                        <button class="btn-action btn-incomplet" id="btn-incomplet">
-                            ⚠️ Signaler des éléments manquants
-                        </button>
+                    <!-- Chargement détail -->
+                    <div class="card hidden anim-in" id="detail-loading-card">
+                        <div class="loading-wrap">
+                            <div class="spinner"></div>
+                            <span>Chargement du kit…</span>
+                        </div>
                     </div>
+
+                    <!-- Fiche Kit -->
+                    <div class="card hidden anim-in" id="detail-kit-card">
+                        <div class="kit-header">
+                            <div>
+                                <h2 class="kit-name" id="detail-nom">—</h2>
+                                <p class="kit-location">📍 Emplacement : <strong id="detail-emp">—</strong></p>
+                                <p class="kit-engin" id="detail-engin"></p>
+                            </div>
+                        </div>
+
+                        <p class="card-title">Composition théorique à valider</p>
+                        <div class="comp-list" id="comp-list"></div>
+
+                        <div class="btn-actions">
+                            <button class="btn-action btn-conforme" id="btn-conforme">
+                                ✅ Kit complet &amp; conforme
+                            </button>
+                            <button class="btn-action btn-incomplet" id="btn-incomplet">
+                                ⚠️ Signaler des éléments manquants
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
 
             </section>
@@ -176,7 +189,6 @@
                 <div class="card">
                     <p class="card-title">Historique des contrôles</p>
 
-                    <!-- Barre de filtres -->
                     <div class="histo-toolbar">
                         <input
                             type="text"
@@ -192,16 +204,13 @@
                         </select>
                     </div>
 
-                    <!-- Chargement -->
                     <div class="loading-wrap" id="histo-loading">
                         <div class="spinner"></div>
                         <span>Chargement de l'historique…</span>
                     </div>
 
-                    <!-- Message vide -->
                     <p class="histo-empty hidden" id="histo-empty">Aucun contrôle enregistré.</p>
 
-                    <!-- Liste -->
                     <div id="histo-list" class="histo-list"></div>
                 </div>
 
@@ -212,7 +221,6 @@
             <!-- ════════════════════════════════════════ -->
             <section id="sec-admin" class="hidden">
 
-                <!-- Auth Gate (PIN) -->
                 <div class="card" id="admin-auth">
                     <div class="auth-gate">
                         <span class="auth-icon">🔐</span>
@@ -229,7 +237,6 @@
                     </div>
                 </div>
 
-                <!-- Interface admin réelle -->
                 <div id="admin-content" class="hidden" style="display:flex;flex-direction:column;gap:1rem;">
 
                     <div class="card">
@@ -256,7 +263,6 @@
                         <div class="admin-status" id="admin-status"></div>
                     </div>
 
-                    <!-- Format attendu -->
                     <div class="card">
                         <p class="card-title">Format de fichier attendu</p>
                         <div style="overflow-x:auto;">
