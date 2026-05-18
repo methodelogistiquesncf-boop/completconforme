@@ -71,6 +71,7 @@
         <header>
             <div class="header-inner">
                 <div class="logo">Complet<span>Conforme</span></div>
+                <div class="header-user" id="header-user"></div>
                 <nav>
                     <button class="tab-btn active" id="tab-terrain">📱 Terrain</button>
                     <button class="tab-btn" id="tab-historique">🕒 Historique</button>
@@ -95,7 +96,7 @@
                 </div>
 
                 <!-- ══════════════════════════════════════
-                     VUE LISTE — kits non contrôlés
+                     VUE LISTE — niveau 1 : kits non conformes (global)
                      ══════════════════════════════════════ -->
                 <div id="view-liste">
 
@@ -125,20 +126,47 @@
                     <!-- Message vide -->
                     <p class="liste-vide hidden" id="liste-vide">Aucun emplacement à contrôler.</p>
 
-                    <!-- Liste des kits -->
+                    <!-- Liste des kits non conformes -->
                     <div id="liste-kits" class="liste-kits"></div>
 
                 </div>
 
                 <!-- ══════════════════════════════════════
-                     VUE DÉTAIL — pièces du kit sélectionné
+                     VUE KITS — niveau 2 : tous les kits d'un emplacement
+                     ══════════════════════════════════════ -->
+                <div id="view-kits" class="hidden">
+
+                    <!-- Barre de navigation retour vers liste -->
+                    <div class="detail-nav">
+                        <button class="btn-retour" id="btn-retour-liste">
+                            ← Liste
+                        </button>
+                        <h2 class="kits-emp-title" id="kits-emp-title">📍 —</h2>
+                    </div>
+
+                    <!-- Chargement kits de l'emplacement -->
+                    <div class="loading-wrap" id="kits-emp-loading">
+                        <div class="spinner"></div>
+                        <span>Chargement des kits…</span>
+                    </div>
+
+                    <!-- Message vide -->
+                    <p class="liste-vide hidden" id="kits-emp-vide">Aucun kit trouvé pour cet emplacement.</p>
+
+                    <!-- Liste des kits de l'emplacement -->
+                    <div id="kits-emp-list" class="liste-kits"></div>
+
+                </div>
+
+                <!-- ══════════════════════════════════════
+                     VUE DETAIL — niveau 3 : pièces d'un kit
                      ══════════════════════════════════════ -->
                 <div id="view-detail" class="hidden">
 
-                    <!-- Barre de navigation retour -->
+                    <!-- Barre de navigation retour vers kits de l'emplacement -->
                     <div class="detail-nav">
-                        <button class="btn-retour" id="btn-retour">
-                            ← Retour
+                        <button class="btn-retour" id="btn-retour-kits">
+                            ← Kits
                         </button>
                         <div class="detail-nav-ids">
                             <span class="detail-emp-badge" id="detail-emp-badge">—</span>
@@ -237,7 +265,7 @@
                     </div>
                 </div>
 
-                <div id="admin-content" class="hidden" style="display:flex;flex-direction:column;gap:1rem;">
+                <div id="admin-content" class="hidden" style="display:none;flex-direction:column;gap:1rem;">
 
                     <div class="card">
                         <p class="card-title">Import de données — Fichier maître</p>
