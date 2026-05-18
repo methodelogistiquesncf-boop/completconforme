@@ -1,15 +1,15 @@
 :root {
-    --bg:        #0d0f14;
-    --surface:   #161921;
-    --border:    #252836;
-    --border-hi: #353a50;
-    --text:      #e8eaf0;
-    --muted:     #6b7094;
-    --accent:    #4f8ef7;
-    --accent-hi: #7aaaff;
-    --green:     #2dd97a;
-    --amber:     #f5a623;
-    --red:       #f25c5c;
+    --bg:        #F5F0EB;
+    --surface:   #FDFAF7;
+    --border:    #E8DDD4;
+    --border-hi: #D4C8BC;
+    --text:      #2C2438;
+    --muted:     #9A8FA0;
+    --accent:    #C8465A;
+    --accent-hi: #E05870;
+    --green:     #5BAF85;
+    --amber:     #D4924A;
+    --red:       #C8465A;
     --mono:      'JetBrains Mono', monospace;
     --sans:      'DM Sans', sans-serif;
     --radius:    12px;
@@ -597,3 +597,33 @@ section.hidden { display: none; }
     color: #fff;
 }
 .toast-confirm:hover { filter: brightness(1.15); }
+
+/* Adapte les fonds sombres devenus clairs */
+.search-input,
+.field-input,
+.pin-input {
+    background: #EDE7DF;
+    color: var(--text);
+}
+
+.comp-item {
+    background: #EDE7DF;
+}
+
+.progress-wrap {
+    background: #EDE7DF;
+}
+
+.btn-conforme {
+    color: #fff;
+}
+
+.comp-item.checked .comp-name {
+    color: var(--muted);
+}
+
+/* Spinner adapté */
+.spinner {
+    border-color: var(--border-hi);
+    border-top-color: var(--accent);
+}
