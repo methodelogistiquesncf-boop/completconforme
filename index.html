@@ -36,16 +36,21 @@
                 >
             </div>
 
-            <div class="field-group">
-                <label for="login-pwd">Mot de passe</label>
-                <input
-                    type="password"
-                    id="login-pwd"
-                    class="field-input"
-                    placeholder="••••••••"
-                    autocomplete="current-password"
-                >
-            </div>
+<div class="field-group">
+    <label for="login-pwd">Mot de passe</label>
+    <div class="pwd-wrapper">
+        <input
+            type="password"
+            id="login-pwd"
+            class="field-input"
+            placeholder="••••••••"
+            autocomplete="current-password"
+        >
+        <button type="button" id="toggle-pwd" class="btn-toggle-pwd" title="Afficher/Masquer">
+            👁
+        </button>
+    </div>
+</div>
 
             <div class="login-error" id="login-error"></div>
 
