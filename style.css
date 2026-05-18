@@ -405,7 +405,7 @@ section.hidden { display: none; }
 
     main { padding: 2rem 3rem; }
 
-    /* Vue liste : panneau recherche épinglé à gauche + liste à droite */
+    /* Vue liste : panneau recherche épinglé à gauche + résultats à droite */
     #view-liste {
         display: flex;
         flex-direction: row;
@@ -418,11 +418,12 @@ section.hidden { display: none; }
         position: sticky;
         top: calc(var(--header-h) + 2rem);
     }
-    #liste-loading,
-    #liste-vide,
-    #liste-kits {
+    .liste-results {
         flex: 1;
         min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: .5rem;
     }
 
     /* Vue détail : composants en grille 2 colonnes */
