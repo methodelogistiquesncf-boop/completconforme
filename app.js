@@ -587,8 +587,6 @@ async function traiterFichier(file) {
             const wb     = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
             const sheet  = wb.Sheets[wb.SheetNames[0]];
             const lignes = XLSX.utils.sheet_to_json(sheet);
-                 console.log("Colonnes détectées :", Object.keys(lignes[0] || {}));
-console.log("Première ligne :", lignes[0]);
 
             if (!lignes.length) throw new Error("Aucune donnée exploitable dans le fichier.");
 
@@ -598,13 +596,17 @@ console.log("Première ligne :", lignes[0]);
 
             const kitsIndex = {};
             lignes.forEach(l => {
+                // ── Normalisation des clés (supprime espaces parasites) ────
+                const row = {};
+                Object.keys(l).forEach(k => { row[k.trim()] = l[k]; });
+
                 // ── Lecture colonnes nouveau format ─────────────────────────
-                const engin      = String(l['Engin']            || l['engin']           || '').trim();
-                const codeKit    = String(l['Code kit']         || l['code_kit']        || l['Code_kit'] || '').trim();
-                const nomKit     = String(l['designations kit'] || l['designation_kit'] || l['nom_kit']  || 'Kit sans nom').trim();
-                const emplacement= String(l['emplacement']      || l['Emplacement']     || '').trim();
-                const nomComp    = String(l['designation article'] || l['designations article'] || l['composant'] || '').trim();
-                const quantite   = Number(l['quantite'] || l['Quantite'] || l['quantité'] || 1);
+                const engin      = String(row['Engin']            || row['engin']           || '').trim();
+                const codeKit    = String(row['Code kit']         || row['code_kit']        || row['Code_kit'] || '').trim();
+                const nomKit     = String(row['designations kit'] || row['designation_kit'] || row['nom_kit']  || 'Kit sans nom').trim();
+                const emplacement= String(row['emplacement']      || row['Emplacement']     || '').trim();
+                const nomComp    = String(row['designation article'] || row['designations article'] || row['composant'] || '').trim();
+                const quantite   = Number(row['quantite'] || row['Quantite'] || row['quantité'] || 1);
 
                 if (!engin || !codeKit) return; // ligne incomplète, ignorée
 
