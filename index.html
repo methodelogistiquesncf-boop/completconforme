@@ -83,6 +83,23 @@
             </div>
         </header>
 
+        <!-- BODY : sidebar (desktop) + contenu -->
+        <div class="app-body">
+
+            <!-- SIDEBAR — visible uniquement sur desktop ≥ 900px -->
+            <aside class="sidebar">
+                <span class="sidebar-label">Navigation</span>
+                <button class="sidebar-btn active" id="sidebar-terrain">
+                    <span class="sb-icon">📱</span> Terrain
+                </button>
+                <button class="sidebar-btn" id="sidebar-historique">
+                    <span class="sb-icon">🕒</span> Historique
+                </button>
+                <button class="sidebar-btn" id="sidebar-admin">
+                    <span class="sb-icon">⚙️</span> Admin
+                </button>
+            </aside>
+
         <main>
 
             <!-- ════════════════════════════════════════ -->
@@ -270,7 +287,7 @@
                     <div class="card">
                         <p class="card-title">Import de données — Fichier maître</p>
                         <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
-                            Déposez un fichier global (.xlsx ou .csv). Les kits déjà présents dans la bdd
+                            Déposez un fichier global (.xlsx ou .csv). Les kits déjà présents dans Firebase
                             <strong style="color:var(--text)">ne seront pas écrasés</strong>.
                         </p>
 
@@ -339,8 +356,36 @@
             </section>
 
         </main>
+        </div><!-- /.app-body -->
     </div>
 
     <script type="module" src="app.js"></script>
+    <script>
+        /* Synchronisation sidebar desktop ↔ onglets header mobile */
+        (function() {
+            const pairs = [
+                ['sidebar-terrain',    'tab-terrain',    'terrain'],
+                ['sidebar-historique', 'tab-historique', 'historique'],
+                ['sidebar-admin',      'tab-admin',      'admin'],
+            ];
+            pairs.forEach(([sbId, tabId]) => {
+                const sbBtn  = document.getElementById(sbId);
+                const tabBtn = document.getElementById(tabId);
+                if (!sbBtn || !tabBtn) return;
+                sbBtn.addEventListener('click', () => {
+                    tabBtn.click();
+                    pairs.forEach(([id]) => document.getElementById(id)?.classList.remove('active'));
+                    sbBtn.classList.add('active');
+                });
+            });
+            /* Quand on clique un tab-btn mobile, on met à jour la sidebar */
+            pairs.forEach(([sbId, tabId]) => {
+                document.getElementById(tabId)?.addEventListener('click', () => {
+                    pairs.forEach(([id]) => document.getElementById(id)?.classList.remove('active'));
+                    document.getElementById(sbId)?.classList.add('active');
+                });
+            });
+        })();
+    </script>
 </body>
 </html>
