@@ -1,12 +1,13 @@
 import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, enableIndexedDbPersistence,
          doc, setDoc, getDoc, getDocs,
-         collection, updateDoc }                   from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+         collection, updateDoc, query, where,
+         orderBy }                               from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword,
-         signOut, onAuthStateChanged }             from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+         signOut, onAuthStateChanged }           from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ⚠️  CONFIGURATION — Remplacez avec vos vraies coordonnées Firebase
+// CONFIGURATION Firebase
 // ─────────────────────────────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyAkhB59fG7oNtRfhb_0xeuW9PYmaUT9KRk",
@@ -28,7 +29,7 @@ try {
     console.warn("[Offline] Persistance indisponible :", err.code);
 }
 
-// ─── ADMIN PIN (section admin dans l'app) ────────────────────────────────────
+// ─── ADMIN PIN ────────────────────────────────────────────────────────────────
 const ADMIN_PIN = "1234";
 
 // ─── ÉTAT GLOBAL ─────────────────────────────────────────────────────────────
@@ -38,11 +39,8 @@ let currentKitId = "";
 // ─── REFS DOM ─────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-// Pages
 const loginPage    = $('login-page');
 const appEl        = $('app');
-
-// Login form
 const loginEmail   = $('login-email');
 const loginPwd     = $('login-pwd');
 const btnLogin     = $('btn-login');
@@ -50,13 +48,13 @@ const loginError   = $('login-error');
 const btnLogout    = $('btn-logout');
 const headerUser   = $('header-user');
 
-// Tabs
 const tabTerrain   = $('tab-terrain');
 const tabAdmin     = $('tab-admin');
+const tabHistorique= $('tab-historique');
 const secTerrain   = $('sec-terrain');
 const secAdmin     = $('sec-admin');
+const secHistorique= $('sec-historique');
 
-// Terrain
 const offlineBanner= $('offline-banner');
 const inputEmp     = $('input-emplacement');
 const btnVerifier  = $('btn-verifier');
@@ -65,7 +63,6 @@ const loadingCard  = $('loading-card');
 const kitCard      = $('kit-card');
 const compList     = $('comp-list');
 
-// Admin
 const pinInputs    = document.querySelectorAll('.pin-input');
 const pinError     = $('pin-error');
 const adminAuth    = $('admin-auth');
@@ -77,17 +74,19 @@ const progressArea = $('progress-area');
 const progressBar  = $('progress-bar');
 const progressLabel= $('progress-label');
 
+const histoList    = $('histo-list');
+const histoLoading = $('histo-loading');
+const histoEmpty   = $('histo-empty');
+const histoSearch  = $('histo-search');
+const histoFilter  = $('histo-filter');
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Observateur de session — affiche login ou app selon l'état
 onAuthStateChanged(auth, user => {
-    if (user) {
-        showApp(user);
-    } else {
-        showLogin();
-    }
+    if (user) showApp(user);
+    else       showLogin();
 });
 
 function showLogin() {
@@ -104,20 +103,13 @@ function showApp(user) {
     if (headerUser) headerUser.textContent = user.email;
 }
 
-// Connexion
 btnLogin.addEventListener('click', async () => {
     const email = loginEmail.value.trim();
     const pwd   = loginPwd.value;
-
-    if (!email || !pwd) {
-        showLoginError("Veuillez remplir tous les champs.");
-        return;
-    }
-
+    if (!email || !pwd) { showLoginError("Veuillez remplir tous les champs."); return; }
     btnLogin.disabled = true;
     btnLogin.textContent = "Connexion…";
     loginError.classList.remove('visible');
-
     try {
         await signInWithEmailAndPassword(auth, email, pwd);
     } catch (err) {
@@ -128,14 +120,13 @@ btnLogin.addEventListener('click', async () => {
     }
 });
 
-// Permettre la touche Entrée sur les champs de login
 [loginEmail, loginPwd].forEach(el => {
     el.addEventListener('keydown', e => { if (e.key === 'Enter') btnLogin.click(); });
 });
 
-// Déconnexion
-btnLogout.addEventListener('click', () => {
-    showConfirmToast("Se déconnecter ?", () => signOut(auth));
+btnLogout.addEventListener('click', async () => {
+    const confirmed = await showConfirmToast("Se déconnecter ?");
+    if (confirmed) signOut(auth);
 });
 
 function showLoginError(msg) {
@@ -143,7 +134,6 @@ function showLoginError(msg) {
     loginError.classList.add('visible');
 }
 
-// Messages Firebase lisibles en français
 function firebaseAuthMessage(code) {
     const map = {
         'auth/invalid-email':          "Adresse e-mail invalide.",
@@ -157,7 +147,7 @@ function firebaseAuthMessage(code) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// OFFLINE DETECTION
+// OFFLINE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function updateOnlineBanner() {
@@ -171,15 +161,19 @@ updateOnlineBanner();
 // NAVIGATION ONGLETS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-tabTerrain.addEventListener('click', () => showTab('terrain'));
-tabAdmin.addEventListener('click',   () => showTab('admin'));
+tabTerrain.addEventListener('click',    () => showTab('terrain'));
+tabAdmin.addEventListener('click',      () => showTab('admin'));
+tabHistorique.addEventListener('click', () => showTab('historique'));
 
 function showTab(tab) {
-    const isTerrain = tab === 'terrain';
-    tabTerrain.classList.toggle('active', isTerrain);
-    tabAdmin.classList.toggle('active', !isTerrain);
-    secTerrain.classList.toggle('hidden', !isTerrain);
-    secAdmin.classList.toggle('hidden', isTerrain);
+    tabTerrain.classList.toggle('active',    tab === 'terrain');
+    tabAdmin.classList.toggle('active',      tab === 'admin');
+    tabHistorique.classList.toggle('active', tab === 'historique');
+    secTerrain.classList.toggle('hidden',    tab !== 'terrain');
+    secAdmin.classList.toggle('hidden',      tab !== 'admin');
+    secHistorique.classList.toggle('hidden', tab !== 'historique');
+
+    if (tab === 'historique') chargerHistorique();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -205,8 +199,22 @@ async function chargerEmplacement() {
             throw new Error(`Emplacement « ${empId} » vide ou inconnu.`);
         }
 
+        const empData = empSnap.data();
+
+        // ── BLOCAGE : emplacement déjà validé conforme ──────────────────────
+        if (empData.statut_conformite === "Conforme") {
+            const date = empData.derniere_verification
+                ? new Date(empData.derniere_verification).toLocaleString('fr-FR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                  })
+                : "date inconnue";
+            showBlocageConforme(empId, empData.id_kit_stocke, date);
+            return;
+        }
+
         currentEmpId = empId;
-        currentKitId = empSnap.data().id_kit_stocke;
+        currentKitId = empData.id_kit_stocke;
 
         const kitSnap = await getDoc(doc(db, "nomenclature_kits", currentKitId));
         if (!kitSnap.exists()) {
@@ -223,29 +231,79 @@ async function chargerEmplacement() {
     }
 }
 
+// ── Carte de blocage pour emplacements déjà conformes ─────────────────────────
+function showBlocageConforme(empId, kitId, date) {
+    const blocage = $('blocage-card');
+    $('blocage-emp').textContent  = empId;
+    $('blocage-kit').textContent  = kitId;
+    $('blocage-date').textContent = date;
+    blocage.classList.remove('hidden');
+
+    // Bouton "Voir dans l'historique"
+    $('btn-voir-histo').onclick = () => {
+        blocage.classList.add('hidden');
+        inputEmp.value = '';
+        showTab('historique');
+        // Pré-remplir la recherche
+        histoSearch.value = empId;
+        chargerHistorique();
+    };
+
+    // Bouton "Re-contrôler quand même"
+    $('btn-forcer-controle').onclick = async () => {
+        blocage.classList.add('hidden');
+
+        loadingCard.classList.remove('hidden');
+        btnVerifier.disabled = true;
+        try {
+            currentEmpId = empId;
+            currentKitId = kitId;
+            const kitSnap = await getDoc(doc(db, "nomenclature_kits", kitId));
+            if (!kitSnap.exists()) throw new Error(`Fiche du kit « ${kitId} » introuvable.`);
+            afficherKit(kitId, kitSnap.data(), empId);
+        } catch (err) {
+            searchStatus.textContent = '⚠️ ' + err.message;
+        } finally {
+            loadingCard.classList.add('hidden');
+            btnVerifier.disabled = false;
+        }
+    };
+}
+
 function afficherKit(idKit, data, empId) {
     $('kit-badge').textContent = idKit;
     $('kit-nom').textContent   = data.nom_du_kit;
     $('kit-emp').textContent   = empId;
 
-    compList.innerHTML = ''; // vider les anciens résultats
+    compList.innerHTML = '';
 
-    data.composants.forEach(comp => {
+    (data.composants || []).forEach(comp => {
         const item = document.createElement('div');
         item.className = 'comp-item';
         item.dataset.required = comp.quantite_requise;
         item.innerHTML = `
             <div class="comp-left">
-                <div class="comp-status-icon">...</div>
+                <div class="comp-status-icon">
+                    <svg class="icon-ok" width="12" height="9" viewBox="0 0 12 9" fill="none">
+                        <path d="M1 4L4.5 7.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <svg class="icon-ko" width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M1 1L9 9M9 1L1 9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
                 <span class="comp-name">${comp.nom}</span>
             </div>
             <span class="comp-qty-required">${comp.quantite_requise}</span>
-            <input type="number" class="qty-input" min="0" placeholder="—">
+            <input
+                type="number"
+                class="qty-input"
+                min="0"
+                placeholder="—"
+                aria-label="Quantité comptée"
+            >
         `;
         const input = item.querySelector('.qty-input');
-        input.addEventListener('input', () =>
-            evaluerItem(item, input, comp.quantite_requise)
-        );
+        input.addEventListener('input', () => evaluerItem(item, input, comp.quantite_requise));
         compList.appendChild(item);
     });
 
@@ -279,13 +337,13 @@ async function valider(statut) {
     const items = [...compList.querySelectorAll('.comp-item')];
 
     if (statut === "Conforme") {
+        const nonConformes  = items.filter(i => i.classList.contains('non-conforme'));
         const nonRenseignes = items.filter(i =>
             !i.classList.contains('checked') && !i.classList.contains('non-conforme')
         );
-        const nonConformes = items.filter(i => i.classList.contains('non-conforme'));
 
         if (nonConformes.length > 0) {
-            showToast(`❌ ${nonConformes.length} article(s) ont une quantité incorrecte. Corrigez avant de valider.`, 'error');
+            showToast(`❌ ${nonConformes.length} article(s) en quantité incorrecte.`, 'error');
             return;
         }
         if (nonRenseignes.length > 0) {
@@ -293,7 +351,6 @@ async function valider(statut) {
         }
     }
 
-    // Prépare le détail des écarts pour Firestore
     const details = items.map(item => {
         const input    = item.querySelector('.qty-input');
         const required = parseInt(item.dataset.required, 10);
@@ -312,7 +369,8 @@ async function valider(statut) {
         showToast(`✅ Statut « ${statut} » enregistré.`, 'success');
         setTimeout(() => {
             kitCard.classList.add('hidden');
-            inputEmp.value       = '';
+            $('blocage-card')?.classList.add('hidden');
+            inputEmp.value           = '';
             searchStatus.textContent = '';
             currentEmpId = '';
             currentKitId = '';
@@ -325,7 +383,117 @@ async function valider(statut) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LOGIQUE ADMIN — AUTH PIN
+// HISTORIQUE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let histoData = []; // cache local pour le filtrage
+
+async function chargerHistorique() {
+    histoList.innerHTML    = '';
+    histoLoading.classList.remove('hidden');
+    histoEmpty.classList.add('hidden');
+
+    try {
+        const snap = await getDocs(collection(db, "emplacements"));
+        histoData = [];
+
+        snap.forEach(d => {
+            const data = d.data();
+            // On n'affiche que les emplacements qui ont été vérifiés au moins une fois
+            if (data.derniere_verification) {
+                histoData.push({ id: d.id, ...data });
+            }
+        });
+
+        // Trier du plus récent au plus ancien
+        histoData.sort((a, b) =>
+            new Date(b.derniere_verification) - new Date(a.derniere_verification)
+        );
+
+        renderHistorique(histoData);
+
+    } catch (err) {
+        histoLoading.classList.add('hidden');
+        histoEmpty.textContent = '⚠️ Erreur de chargement : ' + err.message;
+        histoEmpty.classList.remove('hidden');
+    }
+}
+
+function renderHistorique(liste) {
+    histoLoading.classList.add('hidden');
+    histoList.innerHTML = '';
+
+    const filterVal  = histoFilter?.value  || 'tous';
+    const searchVal  = (histoSearch?.value || '').trim().toUpperCase();
+
+    const filtered = liste.filter(emp => {
+        const matchSearch = !searchVal ||
+            emp.id.includes(searchVal) ||
+            (emp.id_kit_stocke || '').toUpperCase().includes(searchVal);
+        const matchFilter = filterVal === 'tous' || emp.statut_conformite === filterVal;
+        return matchSearch && matchFilter;
+    });
+
+    if (!filtered.length) {
+        histoEmpty.classList.remove('hidden');
+        histoEmpty.textContent = 'Aucun résultat trouvé.';
+        return;
+    }
+
+    histoEmpty.classList.add('hidden');
+
+    filtered.forEach(emp => {
+        const date = emp.derniere_verification
+            ? new Date(emp.derniere_verification).toLocaleString('fr-FR', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+              })
+            : '—';
+
+        const statut   = emp.statut_conformite || 'Non vérifié';
+        const isOk     = statut === 'Conforme';
+        const isKo     = statut === 'Incomplet';
+
+        const detail   = emp.detail_verification || [];
+        const manquants = detail.filter(c =>
+            c.quantite_comptee !== null &&
+            c.quantite_comptee !== c.quantite_requise
+        );
+
+        const row = document.createElement('div');
+        row.className = `histo-item ${isOk ? 'histo-ok' : isKo ? 'histo-ko' : ''}`;
+        row.innerHTML = `
+            <div class="histo-main">
+                <div class="histo-left">
+                    <span class="histo-badge ${isOk ? 'badge-ok' : isKo ? 'badge-ko' : 'badge-neutral'}">
+                        ${isOk ? '✅' : isKo ? '⚠️' : '—'} ${statut}
+                    </span>
+                    <div class="histo-ids">
+                        <span class="histo-emp">${emp.id}</span>
+                        <span class="histo-kit">${emp.id_kit_stocke || '—'}</span>
+                    </div>
+                </div>
+                <div class="histo-date">${date}</div>
+            </div>
+            ${manquants.length ? `
+            <div class="histo-detail">
+                ${manquants.map(c => `
+                    <span class="histo-ecart">
+                        ${c.nom} : <strong>${c.quantite_comptee}</strong>/${c.quantite_requise}
+                    </span>
+                `).join('')}
+            </div>` : ''}
+        `;
+        histoList.appendChild(row);
+    });
+}
+
+// Filtrage dynamique
+histoSearch?.addEventListener('input',  () => renderHistorique(histoData));
+histoFilter?.addEventListener('change', () => renderHistorique(histoData));
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN — AUTH PIN
 // ═══════════════════════════════════════════════════════════════════════════════
 
 pinInputs.forEach((input, i) => {
@@ -353,7 +521,7 @@ $('btn-pin').addEventListener('click', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LOGIQUE ADMIN — IMPORT EXCEL
+// ADMIN — IMPORT EXCEL
 // ═══════════════════════════════════════════════════════════════════════════════
 
 dropZone.addEventListener('dragover', e => {
@@ -438,7 +606,6 @@ async function traiterFichier(file) {
             let ecrits = 0;
             for (const idKit of nouveauxIds) {
                 const data = kitsIndex[idKit];
-
                 await setDoc(doc(db, "nomenclature_kits", idKit), data);
 
                 if (data.emplacement_theorique !== 'Non assigné') {
@@ -474,12 +641,18 @@ async function traiterFichier(file) {
         }
     };
 }
-// Toggle visibilité mot de passe
+
+// ─── TOGGLE MOT DE PASSE ──────────────────────────────────────────────────────
 document.getElementById('toggle-pwd').addEventListener('click', () => {
     const isPassword = loginPwd.type === 'password';
     loginPwd.type = isPassword ? 'text' : 'password';
     document.getElementById('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TOASTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
 function showConfirmToast(message) {
     return new Promise(resolve => {
         const existing = document.getElementById('custom-toast');
@@ -508,7 +681,6 @@ function showConfirmToast(message) {
     });
 }
 
-// Toast simple (info / succès / erreur)
 function showToast(message, type = 'info') {
     const existing = document.getElementById('simple-toast');
     if (existing) existing.remove();
