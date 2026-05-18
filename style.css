@@ -398,58 +398,34 @@ section.hidden { display: none; }
 }
 
 /* ═══════════════════════════════════════════════════════
-   DESKTOP LARGE ≥ 1280px — grille 2 colonnes dans main
+   DESKTOP LARGE ≥ 1280px
    ═══════════════════════════════════════════════════════ */
 @media (min-width: 1280px) {
     :root { --sidebar-w: 260px; }
 
-    main {
-        padding: 2rem 3rem;
-    }
+    main { padding: 2rem 3rem; }
 
-    /* La vue liste bénéficie d'un layout 2 colonnes :
-       card recherche à gauche, liste à droite */
+    /* Vue liste : panneau recherche épinglé à gauche + liste à droite */
     #view-liste {
-        display: grid;
-        grid-template-columns: 320px 1fr;
-        grid-template-rows: auto auto 1fr;
-        gap: 1.25rem;
-        align-items: start;
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 1.5rem;
     }
-    #view-liste .card {
-        grid-column: 1;
-        grid-row: 1;
+    #view-liste > .card {
+        width: 300px;
+        flex-shrink: 0;
         position: sticky;
         top: calc(var(--header-h) + 2rem);
     }
-    #liste-loading {
-        grid-column: 2;
-        grid-row: 1;
-    }
-    #liste-vide {
-        grid-column: 2;
-        grid-row: 1;
-    }
+    #liste-loading,
+    #liste-vide,
     #liste-kits {
-        grid-column: 2;
-        grid-row: 1 / span 3;
+        flex: 1;
+        min-width: 0;
     }
 
-    /* Vue kits : colonne fixe + liste */
-    #view-kits {
-        display: grid;
-        grid-template-columns: 320px 1fr;
-        gap: 1.25rem;
-        align-items: start;
-    }
-    #view-kits .detail-nav {
-        grid-column: 1 / -1;
-    }
-    #kits-emp-loading, #kits-emp-vide, #kits-emp-list {
-        grid-column: 1 / -1;
-    }
-
-    /* Vue détail : composants en grille */
+    /* Vue détail : composants en grille 2 colonnes */
     .comp-list {
         display: grid;
         grid-template-columns: 1fr 1fr;
