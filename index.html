@@ -117,7 +117,7 @@
                      ══════════════════════════════════════ -->
                 <div id="view-liste">
 
-                    <!-- Barre de recherche -->
+                    <!-- Panneau gauche : recherche -->
                     <div class="card">
                         <p class="card-title">Emplacements à contrôler</p>
                         <div class="search-row">
@@ -134,17 +134,22 @@
                         <p class="status-line" id="search-status"></p>
                     </div>
 
-                    <!-- Chargement liste -->
-                    <div class="loading-wrap" id="liste-loading">
-                        <div class="spinner"></div>
-                        <span>Chargement des emplacements…</span>
-                    </div>
+                    <!-- Panneau droit : résultats -->
+                    <div class="liste-results">
 
-                    <!-- Message vide -->
-                    <p class="liste-vide hidden" id="liste-vide">Aucun emplacement à contrôler.</p>
+                        <!-- Chargement liste -->
+                        <div class="loading-wrap" id="liste-loading">
+                            <div class="spinner"></div>
+                            <span>Chargement des emplacements…</span>
+                        </div>
 
-                    <!-- Liste des kits non conformes -->
-                    <div id="liste-kits" class="liste-kits"></div>
+                        <!-- Message vide -->
+                        <p class="liste-vide hidden" id="liste-vide">Aucun emplacement à contrôler.</p>
+
+                        <!-- Liste des kits non conformes -->
+                        <div id="liste-kits" class="liste-kits"></div>
+
+                    </div><!-- /.liste-results -->
 
                 </div>
 
