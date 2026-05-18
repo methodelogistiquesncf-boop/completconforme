@@ -587,6 +587,8 @@ async function traiterFichier(file) {
             const wb     = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
             const sheet  = wb.Sheets[wb.SheetNames[0]];
             const lignes = XLSX.utils.sheet_to_json(sheet);
+                 console.log("Colonnes détectées :", Object.keys(lignes[0] || {}));
+console.log("Première ligne :", lignes[0]);
 
             if (!lignes.length) throw new Error("Aucune donnée exploitable dans le fichier.");
 
