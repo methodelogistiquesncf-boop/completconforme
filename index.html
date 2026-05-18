@@ -36,21 +36,21 @@
                 >
             </div>
 
-<div class="field-group">
-    <label for="login-pwd">Mot de passe</label>
-    <div class="pwd-wrapper">
-        <input
-            type="password"
-            id="login-pwd"
-            class="field-input"
-            placeholder="••••••••"
-            autocomplete="current-password"
-        >
-        <button type="button" id="toggle-pwd" class="btn-toggle-pwd" title="Afficher/Masquer">
-            👁
-        </button>
-    </div>
-</div>
+            <div class="field-group">
+                <label for="login-pwd">Mot de passe</label>
+                <div class="pwd-wrapper">
+                    <input
+                        type="password"
+                        id="login-pwd"
+                        class="field-input"
+                        placeholder="••••••••"
+                        autocomplete="current-password"
+                    >
+                    <button type="button" id="toggle-pwd" class="btn-toggle-pwd" title="Afficher/Masquer">
+                        👁
+                    </button>
+                </div>
+            </div>
 
             <div class="login-error" id="login-error"></div>
 
@@ -73,6 +73,7 @@
                 <div class="logo">LOGI<span>KIT</span> PRO</div>
                 <nav>
                     <button class="tab-btn active" id="tab-terrain">📱 Terrain</button>
+                    <button class="tab-btn" id="tab-historique">🕒 Historique</button>
                     <button class="tab-btn" id="tab-admin">⚙️ Admin</button>
                     <button class="btn-logout" id="btn-logout" title="Se déconnecter">
                         Déconnexion
@@ -118,6 +119,28 @@
                     </div>
                 </div>
 
+                <!-- ══ CARTE BLOCAGE — emplacement déjà conforme ══ -->
+                <div class="card hidden anim-in blocage-card" id="blocage-card">
+                    <div class="blocage-header">
+                        <span class="blocage-icon">✅</span>
+                        <div>
+                            <p class="blocage-title">Emplacement déjà contrôlé</p>
+                            <p class="blocage-sub">
+                                <strong id="blocage-emp">—</strong> · Kit <strong id="blocage-kit">—</strong>
+                            </p>
+                            <p class="blocage-date">Validé le <span id="blocage-date">—</span></p>
+                        </div>
+                    </div>
+                    <div class="blocage-actions">
+                        <button class="btn-action btn-histo" id="btn-voir-histo">
+                            🕒 Voir dans l'historique
+                        </button>
+                        <button class="btn-action btn-forcer" id="btn-forcer-controle">
+                            🔄 Re-contrôler quand même
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Fiche Kit -->
                 <div class="card hidden anim-in" id="kit-card">
                     <div class="kit-header">
@@ -144,6 +167,45 @@
             </section>
 
             <!-- ════════════════════════════════════════ -->
+            <!--           SECTION HISTORIQUE            -->
+            <!-- ════════════════════════════════════════ -->
+            <section id="sec-historique" class="hidden">
+
+                <div class="card">
+                    <p class="card-title">Historique des contrôles</p>
+
+                    <!-- Barre de filtres -->
+                    <div class="histo-toolbar">
+                        <input
+                            type="text"
+                            id="histo-search"
+                            class="histo-search-input"
+                            placeholder="Rechercher un emplacement ou kit…"
+                            autocomplete="off"
+                        >
+                        <select id="histo-filter" class="histo-filter-select">
+                            <option value="tous">Tous les statuts</option>
+                            <option value="Conforme">Conforme</option>
+                            <option value="Incomplet">Incomplet</option>
+                        </select>
+                    </div>
+
+                    <!-- Chargement -->
+                    <div class="loading-wrap" id="histo-loading">
+                        <div class="spinner"></div>
+                        <span>Chargement de l'historique…</span>
+                    </div>
+
+                    <!-- Message vide -->
+                    <p class="histo-empty hidden" id="histo-empty">Aucun contrôle enregistré.</p>
+
+                    <!-- Liste -->
+                    <div id="histo-list" class="histo-list"></div>
+                </div>
+
+            </section>
+
+            <!-- ════════════════════════════════════════ -->
             <!--            SECTION ADMIN                 -->
             <!-- ════════════════════════════════════════ -->
             <section id="sec-admin" class="hidden">
@@ -165,7 +227,7 @@
                     </div>
                 </div>
 
-                <!-- Interface admin réelle (cachée jusqu'à auth PIN) -->
+                <!-- Interface admin réelle -->
                 <div id="admin-content" class="hidden" style="display:flex;flex-direction:column;gap:1rem;">
 
                     <div class="card">
