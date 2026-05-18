@@ -135,7 +135,7 @@ btnLogin.addEventListener('click', async () => {
 
 // Déconnexion
 btnLogout.addEventListener('click', () => {
-    if (confirm("Se déconnecter ?")) signOut(auth);
+    showConfirmToast("Se déconnecter ?", () => signOut(auth));
 });
 
 function showLoginError(msg) {
@@ -441,3 +441,32 @@ document.getElementById('toggle-pwd').addEventListener('click', () => {
     loginPwd.type = isPassword ? 'text' : 'password';
     document.getElementById('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
 });
+function showConfirmToast(message, onConfirm) {
+    const existing = document.getElementById('custom-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'custom-toast';
+    toast.innerHTML = `
+        <span class="toast-msg">${message}</span>
+        <div class="toast-actions">
+            <button class="toast-btn toast-cancel">Annuler</button>
+            <button class="toast-btn toast-confirm">Déconnecter</button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+
+    // Apparition
+    requestAnimationFrame(() => toast.classList.add('visible'));
+
+    const remove = () => {
+        toast.classList.remove('visible');
+        setTimeout(() => toast.remove(), 300);
+    };
+
+    toast.querySelector('.toast-cancel').addEventListener('click', remove);
+    toast.querySelector('.toast-confirm').addEventListener('click', () => {
+        remove();
+        onConfirm();
+    });
+}
