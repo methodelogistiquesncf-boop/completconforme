@@ -435,3 +435,9 @@ async function traiterFichier(file) {
         }
     };
 }
+// Toggle visibilité mot de passe
+document.getElementById('toggle-pwd').addEventListener('click', () => {
+    const isPassword = loginPwd.type === 'password';
+    loginPwd.type = isPassword ? 'text' : 'password';
+    document.getElementById('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
+});
