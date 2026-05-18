@@ -126,7 +126,10 @@ function showApp(user) {
     loginPage.style.display = 'none';
     appEl.classList.add('visible');
     const headerUser = $('header-user');
-    if (headerUser) headerUser.textContent = user.email;
+    if (headerUser) {
+    headerUser.textContent = user.email.charAt(0).toUpperCase();
+    headerUser.title = user.email;
+}
 }
 
 btnLogin.addEventListener('click', async () => {
