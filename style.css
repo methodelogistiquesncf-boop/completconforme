@@ -627,3 +627,101 @@ section.hidden { display: none; }
     border-color: var(--border-hi);
     border-top-color: var(--accent);
 }
+/* ─── QUANTITÉ COMPTÉE ────────────────────────────────── */
+.comp-item {
+    cursor: default; /* retire le curseur pointer */
+}
+
+.comp-right {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    flex-shrink: 0;
+}
+
+.qty-input {
+    width: 3.2rem;
+    text-align: center;
+    background: var(--bg);
+    border: 1px solid var(--border-hi);
+    border-radius: 8px;
+    padding: .35rem .4rem;
+    font-family: var(--mono);
+    font-size: .9rem;
+    font-weight: 700;
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+    -moz-appearance: textfield;
+}
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.qty-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(200,70,90,.15);
+}
+
+.comp-qty-sep      { font-size: .8rem; color: var(--muted); }
+.comp-qty-required {
+    font-family: var(--mono);
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--muted);
+    min-width: 1rem;
+}
+
+/* ─── ICÔNE DE STATUT ─────────────────────────────────── */
+.comp-status-icon {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border-hi);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background .2s, border-color .2s;
+}
+.icon-ok, .icon-ko { display: none; }
+
+/* Conforme */
+.comp-item.checked .comp-status-icon {
+    background: var(--green);
+    border-color: var(--green);
+}
+.comp-item.checked .icon-ok { display: block; }
+.comp-item.checked .comp-name { color: var(--muted); text-decoration: line-through; }
+.comp-item.checked .qty-input {
+    border-color: var(--green);
+    color: var(--green);
+}
+
+/* Non conforme */
+.comp-item.non-conforme .comp-status-icon {
+    background: var(--red);
+    border-color: var(--red);
+}
+.comp-item.non-conforme .icon-ko { display: block; }
+.comp-item.non-conforme .comp-name { color: var(--red); }
+.comp-item.non-conforme .qty-input {
+    border-color: var(--red);
+    color: var(--red);
+}
+
+/* ─── TOAST SIMPLE ────────────────────────────────────── */
+.simple-toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    border-radius: var(--radius-lg);
+    padding: .85rem 1.5rem;
+    font-size: .88rem;
+    font-weight: 700;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity .25s, transform .25s;
+    pointer-events: none;
+    white-space: nowrap;
+}
+.simple-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast-success { background: var(--green);  color: #fff; }
+.toast-error   { background: var(--red);    color: #fff; }
+.toast-info    { background: var(--accent); color: #fff; }
