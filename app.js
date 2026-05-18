@@ -9,12 +9,12 @@ import { getAuth, signInWithEmailAndPassword,
 // ⚠️  CONFIGURATION — Remplacez avec vos vraies coordonnées Firebase
 // ─────────────────────────────────────────────────────────────────────────────
 const firebaseConfig = {
-    apiKey:            "VOTRE_API_KEY",
-    authDomain:        "VOTRE_PROJECT_ID.firebaseapp.com",
-    projectId:         "VOTRE_PROJECT_ID",
-    storageBucket:     "VOTRE_PROJECT_ID.appspot.com",
-    messagingSenderId: "VOTRE_SENDER_ID",
-    appId:             "VOTRE_APP_ID"
+  apiKey: "AIzaSyAkhB59fG7oNtRfhb_0xeuW9PYmaUT9KRk",
+  authDomain: "completconforme.firebaseapp.com",
+  projectId: "completconforme",
+  storageBucket: "completconforme.firebasestorage.app",
+  messagingSenderId: "595620033926",
+  appId: "1:595620033926:web:64dcfd0b141040146a2807"
 };
 
 const app  = initializeApp(firebaseConfig);
