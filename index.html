@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogiKit Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ════════════════════════════════════════════════ -->
+    <!--              PAGE DE CONNEXION                   -->
+    <!-- ════════════════════════════════════════════════ -->
+    <div id="login-page" style="display:none;">
+        <div class="login-card">
+
+            <div class="login-logo">LOGI<span>KIT</span> PRO</div>
+
+            <div class="login-title">
+                <h2>Connexion</h2>
+                <p>Accédez à votre espace de gestion des kits</p>
+            </div>
+
+            <div class="field-group">
+                <label for="login-email">Adresse e-mail</label>
+                <input
+                    type="email"
+                    id="login-email"
+                    class="field-input"
+                    placeholder="vous@exemple.com"
+                    autocomplete="email"
+                    spellcheck="false"
+                >
+            </div>
+
+            <div class="field-group">
+                <label for="login-pwd">Mot de passe</label>
+                <input
+                    type="password"
+                    id="login-pwd"
+                    class="field-input"
+                    placeholder="••••••••"
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <div class="login-error" id="login-error"></div>
+
+            <button class="btn-login" id="btn-login">Se connecter →</button>
+
+            <hr class="login-divider">
+            <p class="login-footer">Connexion sécurisée via Firebase Authentication</p>
+
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════ -->
+    <!--          APPLICATION (visible après auth)        -->
+    <!-- ════════════════════════════════════════════════ -->
+    <div id="app">
+
+        <!-- HEADER -->
+        <header>
+            <div class="header-inner">
+                <div class="logo">LOGI<span>KIT</span> PRO</div>
+                <nav>
+                    <button class="tab-btn active" id="tab-terrain">📱 Terrain</button>
+                    <button class="tab-btn" id="tab-admin">⚙️ Admin</button>
+                    <button class="btn-logout" id="btn-logout" title="Se déconnecter">
+                        Déconnexion
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <main>
+
+            <!-- ════════════════════════════════════════ -->
+            <!--           SECTION TERRAIN               -->
+            <!-- ════════════════════════════════════════ -->
+            <section id="sec-terrain">
+
+                <!-- Bannière offline -->
+                <div class="offline-banner" id="offline-banner">
+                    ⚠️ Mode hors-ligne — les modifications seront synchronisées au retour du réseau.
+                </div>
+
+                <!-- Barre de recherche -->
+                <div class="card">
+                    <p class="card-title">Scanner ou saisir l'emplacement</p>
+                    <div class="search-row">
+                        <input
+                            type="text"
+                            id="input-emplacement"
+                            class="search-input"
+                            placeholder="Ex: A-01-02"
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                        <button class="btn-search" id="btn-verifier">Vérifier</button>
+                    </div>
+                    <p class="status-line" id="search-status"></p>
+                </div>
+
+                <!-- Chargement -->
+                <div class="card hidden anim-in" id="loading-card">
+                    <div class="loading-wrap">
+                        <div class="spinner"></div>
+                        <span>Recherche du kit…</span>
+                    </div>
+                </div>
+
+                <!-- Fiche Kit -->
+                <div class="card hidden anim-in" id="kit-card">
+                    <div class="kit-header">
+                        <div>
+                            <span class="kit-id-badge" id="kit-badge">—</span>
+                            <h2 class="kit-name" id="kit-nom">—</h2>
+                            <p class="kit-location">📍 Emplacement : <strong id="kit-emp">—</strong></p>
+                        </div>
+                    </div>
+
+                    <p class="card-title">Composition théorique à valider</p>
+                    <div class="comp-list" id="comp-list"></div>
+
+                    <div class="btn-actions">
+                        <button class="btn-action btn-conforme" id="btn-conforme">
+                            ✅ Kit complet &amp; conforme
+                        </button>
+                        <button class="btn-action btn-incomplet" id="btn-incomplet">
+                            ⚠️ Signaler des éléments manquants
+                        </button>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ════════════════════════════════════════ -->
+            <!--            SECTION ADMIN                 -->
+            <!-- ════════════════════════════════════════ -->
+            <section id="sec-admin" class="hidden">
+
+                <!-- Auth Gate (PIN) -->
+                <div class="card" id="admin-auth">
+                    <div class="auth-gate">
+                        <span class="auth-icon">🔐</span>
+                        <p class="auth-title">Accès administrateur</p>
+                        <p class="auth-sub">Entrez votre code PIN à 4 chiffres pour déverrouiller les outils d'import.</p>
+                        <div class="pin-row" id="pin-row">
+                            <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                            <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                            <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                            <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                        </div>
+                        <p class="pin-error" id="pin-error"></p>
+                        <button class="btn-pin-validate" id="btn-pin">Déverrouiller</button>
+                    </div>
+                </div>
+
+                <!-- Interface admin réelle (cachée jusqu'à auth PIN) -->
+                <div id="admin-content" class="hidden" style="display:flex;flex-direction:column;gap:1rem;">
+
+                    <div class="card">
+                        <p class="card-title">Import de données — Fichier maître</p>
+                        <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
+                            Déposez un fichier global (.xlsx ou .csv). Les kits déjà présents dans Firebase
+                            <strong style="color:var(--text)">ne seront pas écrasés</strong>.
+                        </p>
+
+                        <div class="drop-zone" id="drop-zone">
+                            <input type="file" id="file-input" accept=".xlsx,.xls,.csv">
+                            <span class="drop-icon">📂</span>
+                            <p class="drop-title">Glisser-déposer ou cliquer pour parcourir</p>
+                            <p class="drop-sub">Fichiers .xlsx ou .csv uniquement</p>
+                        </div>
+
+                        <div id="progress-area" class="hidden" style="margin-top:1rem;">
+                            <div class="progress-wrap">
+                                <div class="progress-bar" id="progress-bar"></div>
+                            </div>
+                            <p class="progress-label" id="progress-label">0 / 0 kits traités…</p>
+                        </div>
+
+                        <div class="admin-status" id="admin-status"></div>
+                    </div>
+
+                    <!-- Format attendu -->
+                    <div class="card">
+                        <p class="card-title">Format de fichier attendu</p>
+                        <div style="overflow-x:auto;">
+                            <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
+                                <thead>
+                                    <tr style="border-bottom:1px solid var(--border);">
+                                        <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">id_kit</th>
+                                        <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">nom_kit</th>
+                                        <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">emplacement</th>
+                                        <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">composant</th>
+                                        <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">quantite</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom:1px solid var(--border);">
+                                        <td style="padding:.5rem .75rem;font-family:var(--mono);color:var(--accent-hi);">KIT-001</td>
+                                        <td style="padding:.5rem .75rem;">Kit Sécurité</td>
+                                        <td style="padding:.5rem .75rem;">A-01-02</td>
+                                        <td style="padding:.5rem .75rem;">Extincteur CO₂</td>
+                                        <td style="padding:.5rem .75rem;text-align:center;">2</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:.5rem .75rem;font-family:var(--mono);color:var(--accent-hi);">KIT-001</td>
+                                        <td style="padding:.5rem .75rem;">Kit Sécurité</td>
+                                        <td style="padding:.5rem .75rem;">A-01-02</td>
+                                        <td style="padding:.5rem .75rem;">Trousse premiers secours</td>
+                                        <td style="padding:.5rem .75rem;text-align:center;">1</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
