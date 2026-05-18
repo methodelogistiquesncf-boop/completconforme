@@ -725,3 +725,26 @@ section.hidden { display: none; }
 .toast-success { background: var(--green);  color: #fff; }
 .toast-error   { background: var(--red);    color: #fff; }
 .toast-info    { background: var(--accent); color: #fff; }
+
+/* ─── EN-TÊTES TABLEAU COMPOSANTS ────────────────────── */
+.comp-header {
+    display: grid;
+    grid-template-columns: 1fr 6rem 6rem 4.5rem;
+    align-items: center;
+    padding: .3rem 1rem .6rem;
+    gap: .5rem;
+}
+
+.comp-header span {
+    font-family: var(--mono);
+    font-size: .62rem;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.comp-header-theorique,
+.comp-header-reelle,
+.comp-header-statut {
+    text-align: center;
+}
