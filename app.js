@@ -1,8 +1,7 @@
 import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, enableIndexedDbPersistence,
          doc, setDoc, getDoc, getDocs,
-         collection, updateDoc, query, where,
-         orderBy }                               from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+         collection }                            from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword,
          signOut, onAuthStateChanged }           from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -22,14 +21,12 @@ const app  = initializeApp(firebaseConfig);
 const db   = getFirestore(app);
 const auth = getAuth(app);
 
-// ─── PERSISTENCE OFFLINE ──────────────────────────────────────────────────────
 try {
     await enableIndexedDbPersistence(db);
 } catch (err) {
     console.warn("[Offline] Persistance indisponible :", err.code);
 }
 
-// ─── ADMIN PIN ────────────────────────────────────────────────────────────────
 const ADMIN_PIN = "1234";
 
 // ─── ÉTAT GLOBAL ─────────────────────────────────────────────────────────────
@@ -39,30 +36,31 @@ let currentKitId = "";
 // ─── REFS DOM ─────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-const loginPage    = $('login-page');
-const appEl        = $('app');
-const loginEmail   = $('login-email');
-const loginPwd     = $('login-pwd');
-const btnLogin     = $('btn-login');
-const loginError   = $('login-error');
-const btnLogout    = $('btn-logout');
-const headerUser   = $('header-user');
+// Auth
+const loginPage  = $('login-page');
+const appEl      = $('app');
+const loginEmail = $('login-email');
+const loginPwd   = $('login-pwd');
+const btnLogin   = $('btn-login');
+const loginError = $('login-error');
+const btnLogout  = $('btn-logout');
 
-const tabTerrain   = $('tab-terrain');
-const tabAdmin     = $('tab-admin');
-const tabHistorique= $('tab-historique');
-const secTerrain   = $('sec-terrain');
-const secAdmin     = $('sec-admin');
-const secHistorique= $('sec-historique');
+// Onglets
+const tabTerrain    = $('tab-terrain');
+const tabAdmin      = $('tab-admin');
+const tabHistorique = $('tab-historique');
+const secTerrain    = $('sec-terrain');
+const secAdmin      = $('sec-admin');
+const secHistorique = $('sec-historique');
 
-const offlineBanner= $('offline-banner');
-const compList     = $('comp-list');
+const offlineBanner = $('offline-banner');
 
-// ── Vues terrain ──────────────────────────────────────────────────────────────
-const viewListe    = $('view-liste');
-const viewDetail   = $('view-detail');
+// Vues terrain
+const viewListe  = $('view-liste');
+const viewKits   = $('view-kits');
+const viewDetail = $('view-detail');
 
-// ── Vue liste ─────────────────────────────────────────────────────────────────
+// Vue liste niveau 1
 const inputEmp     = $('input-emplacement');
 const btnVerifier  = $('btn-verifier');
 const searchStatus = $('search-status');
@@ -70,17 +68,25 @@ const listeLoading = $('liste-loading');
 const listeVide    = $('liste-vide');
 const listeKits    = $('liste-kits');
 
-// ── Vue détail ────────────────────────────────────────────────────────────────
-const btnRetour    = $('btn-retour');
-const detailEmpBadge = $('detail-emp-badge');
-const detailKitBadge = $('detail-kit-badge');
-const detailNom      = $('detail-nom');
-const detailEmp      = $('detail-emp');
-const detailEngin    = $('detail-engin');
+// Vue kits niveau 2
+const btnRetourListe = $('btn-retour-liste');
+const kitsEmpTitle   = $('kits-emp-title');
+const kitsEmpLoading = $('kits-emp-loading');
+const kitsEmpVide    = $('kits-emp-vide');
+const kitsEmpList    = $('kits-emp-list');
+
+// Vue détail niveau 3
+const btnRetourKits     = $('btn-retour-kits');
+const detailEmpBadge    = $('detail-emp-badge');
+const detailKitBadge    = $('detail-kit-badge');
+const detailNom         = $('detail-nom');
+const detailEmp         = $('detail-emp');
+const detailEngin       = $('detail-engin');
 const detailLoadingCard = $('detail-loading-card');
 const detailKitCard     = $('detail-kit-card');
+const compList          = $('comp-list');
 
-// ── Admin ─────────────────────────────────────────────────────────────────────
+// Admin
 const pinInputs    = document.querySelectorAll('.pin-input');
 const pinError     = $('pin-error');
 const adminAuth    = $('admin-auth');
@@ -92,7 +98,7 @@ const progressArea = $('progress-area');
 const progressBar  = $('progress-bar');
 const progressLabel= $('progress-label');
 
-// ── Historique ────────────────────────────────────────────────────────────────
+// Historique
 const histoList    = $('histo-list');
 const histoLoading = $('histo-loading');
 const histoEmpty   = $('histo-empty');
@@ -104,7 +110,7 @@ const histoFilter  = $('histo-filter');
 // ═══════════════════════════════════════════════════════════════════════════════
 
 onAuthStateChanged(auth, user => {
-    if (user) showApp(user);
+    if (user) { showApp(user); chargerListeKits(); }
     else       showLogin();
 });
 
@@ -119,6 +125,7 @@ function showLogin() {
 function showApp(user) {
     loginPage.style.display = 'none';
     appEl.classList.add('visible');
+    const headerUser = $('header-user');
     if (headerUser) headerUser.textContent = user.email;
 }
 
@@ -126,7 +133,7 @@ btnLogin.addEventListener('click', async () => {
     const email = loginEmail.value.trim();
     const pwd   = loginPwd.value;
     if (!email || !pwd) { showLoginError("Veuillez remplir tous les champs."); return; }
-    btnLogin.disabled = true;
+    btnLogin.disabled    = true;
     btnLogin.textContent = "Connexion…";
     loginError.classList.remove('visible');
     try {
@@ -134,18 +141,17 @@ btnLogin.addEventListener('click', async () => {
     } catch (err) {
         showLoginError(firebaseAuthMessage(err.code));
     } finally {
-        btnLogin.disabled = false;
+        btnLogin.disabled    = false;
         btnLogin.textContent = "Se connecter →";
     }
 });
 
-[loginEmail, loginPwd].forEach(el => {
-    el.addEventListener('keydown', e => { if (e.key === 'Enter') btnLogin.click(); });
-});
+[loginEmail, loginPwd].forEach(el =>
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') btnLogin.click(); })
+);
 
 btnLogout.addEventListener('click', async () => {
-    const confirmed = await showConfirmToast("Se déconnecter ?");
-    if (confirmed) signOut(auth);
+    if (await showConfirmToast("Se déconnecter ?")) signOut(auth);
 });
 
 function showLoginError(msg) {
@@ -160,7 +166,7 @@ function firebaseAuthMessage(code) {
         'auth/wrong-password':         "Mot de passe incorrect.",
         'auth/too-many-requests':      "Trop de tentatives. Réessayez plus tard.",
         'auth/network-request-failed': "Erreur réseau. Vérifiez votre connexion.",
-        'auth/invalid-credential':     "Identifiants invalides. Vérifiez votre e-mail et mot de passe.",
+        'auth/invalid-credential':     "Identifiants invalides.",
     };
     return map[code] || "Erreur de connexion (" + code + ").";
 }
@@ -193,51 +199,81 @@ function showTab(tab) {
     secHistorique.classList.toggle('hidden', tab !== 'historique');
 
     if (tab === 'historique') chargerHistorique();
-    if (tab === 'terrain')    { afficherVueListe(); chargerListeKits(); }
+    if (tab === 'terrain')   { afficherVue('liste'); chargerListeKits(); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TERRAIN — VUE LISTE
+// NAVIGATION VUES TERRAIN (3 niveaux)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-let tousLesEmplacements = []; // cache pour le filtrage local
-
-function afficherVueListe() {
-    viewListe.classList.remove('hidden');
-    viewDetail.classList.add('hidden');
+function afficherVue(vue) {
+    viewListe.classList.toggle('hidden',  vue !== 'liste');
+    viewKits.classList.toggle('hidden',   vue !== 'kits');
+    viewDetail.classList.toggle('hidden', vue !== 'detail');
 }
 
-function afficherVueDetail() {
-    viewListe.classList.add('hidden');
-    viewDetail.classList.remove('hidden');
-}
+btnRetourListe?.addEventListener('click', () => {
+    afficherVue('liste');
+    chargerListeKits();
+});
+
+btnRetourKits?.addEventListener('click', () => {
+    afficherVue('kits');
+    chargerKitsEmplacement(currentEmpId);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NIVEAU 1 — LISTE GLOBALE DES KITS NON CONFORMES
+// Structure : emplacements/{empId}/kits/{kitId}
+// Chaque ligne = un kit (pas un emplacement)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let tousLesKits = [];
 
 async function chargerListeKits() {
     listeLoading.classList.remove('hidden');
     listeVide.classList.add('hidden');
-    listeKits.innerHTML = '';
+    listeKits.innerHTML     = '';
     searchStatus.textContent = '';
 
     try {
-        const snap = await getDocs(collection(db, "emplacements"));
-        tousLesEmplacements = [];
+        const empSnap = await getDocs(collection(db, "emplacements"));
+        tousLesKits   = [];
 
-        snap.forEach(d => {
-            const data = d.data();
-            // On ne liste que les non contrôlés (Non vérifié ou Incomplet)
-            if (data.statut_conformite !== "Conforme") {
-                tousLesEmplacements.push({ id: d.id, ...data });
-            }
+        const promises = empSnap.docs.map(async empDoc => {
+            const empId    = empDoc.id;
+            const kitsSnap = await getDocs(collection(db, "emplacements", empId, "kits"));
+            kitsSnap.forEach(kitDoc => {
+                const data = kitDoc.data();
+                if (data.statut_conformite !== "Conforme") {
+                    tousLesKits.push({
+                        empId,
+                        kitId:             kitDoc.id,
+                        statut_conformite: data.statut_conformite || "Non vérifié",
+                        nom_du_kit:        data.nom_du_kit        || kitDoc.id,
+                        engin:             data.engin             || "",
+                        code_kit:          data.code_kit          || "",
+                    });
+                }
+            });
         });
 
-        // Tri alphabétique par emplacement
-        tousLesEmplacements.sort((a, b) => a.id.localeCompare(b.id));
+        await Promise.all(promises);
 
-        renderListeKits(tousLesEmplacements);
+        // Tri : Incomplet en premier, puis Non vérifié, puis alpha
+        tousLesKits.sort((a, b) => {
+            const ordre = { "Incomplet": 0, "Non vérifié": 1 };
+            const oa = ordre[a.statut_conformite] ?? 2;
+            const ob = ordre[b.statut_conformite] ?? 2;
+            if (oa !== ob) return oa - ob;
+            return a.empId.localeCompare(b.empId);
+        });
+
+        renderListeKits(tousLesKits);
 
     } catch (err) {
         listeLoading.classList.add('hidden');
-        searchStatus.textContent = '⚠️ Erreur de chargement : ' + err.message;
+        searchStatus.textContent = '⚠️ Erreur : ' + err.message;
     }
 }
 
@@ -246,11 +282,11 @@ function renderListeKits(liste) {
     listeKits.innerHTML = '';
 
     const searchVal = (inputEmp?.value || '').trim().toUpperCase();
-
-    const filtered = searchVal
-        ? liste.filter(emp =>
-            emp.id.includes(searchVal) ||
-            (emp.id_kit_stocke || '').toUpperCase().includes(searchVal)
+    const filtered  = searchVal
+        ? liste.filter(k =>
+            k.empId.includes(searchVal) ||
+            k.kitId.toUpperCase().includes(searchVal) ||
+            (k.engin || '').toUpperCase().includes(searchVal)
           )
         : liste;
 
@@ -258,165 +294,172 @@ function renderListeKits(liste) {
         listeVide.classList.remove('hidden');
         listeVide.textContent = searchVal
             ? `Aucun résultat pour « ${searchVal} ».`
-            : 'Tous les emplacements sont conformes. 🎉';
+            : 'Tous les kits sont conformes. 🎉';
         return;
     }
 
     listeVide.classList.add('hidden');
 
-    filtered.forEach(emp => {
-        const idParts  = emp.id_kit_stocke ? emp.id_kit_stocke.split('_') : [];
-        const engin    = idParts.length >= 1 ? idParts[0] : '—';
-        const codeKit  = idParts.length >= 2 ? idParts.slice(1).join('_') : (emp.id_kit_stocke || '—');
-        const statut   = emp.statut_conformite || 'Non vérifié';
-        const isKo     = statut === 'Incomplet';
+    // Séparateurs par emplacement
+    let lastEmp = null;
+    filtered.forEach(k => {
+        if (k.empId !== lastEmp) {
+            const sep = document.createElement('div');
+            sep.className = 'liste-emp-sep';
+            sep.innerHTML = `<span class="liste-emp-label">📍 ${k.empId}</span>`;
+            listeKits.appendChild(sep);
+            lastEmp = k.empId;
+        }
 
-        const card = document.createElement('div');
+        const isKo  = k.statut_conformite === 'Incomplet';
+        const card  = document.createElement('div');
         card.className = 'kit-liste-item' + (isKo ? ' kit-liste-ko' : '');
         card.innerHTML = `
             <div class="kit-liste-left">
-                <span class="kit-liste-emp">${emp.id}</span>
                 <div class="kit-liste-meta">
-                    <span class="kit-liste-engin-badge">${engin}</span>
-                    <span class="kit-liste-code">${codeKit}</span>
+                    ${k.engin ? `<span class="kit-liste-engin-badge">${k.engin}</span>` : ''}
+                    <span class="kit-liste-code">${k.code_kit || k.kitId}</span>
                 </div>
+                <span class="kit-liste-nom">${k.nom_du_kit}</span>
             </div>
             <div class="kit-liste-right">
-                ${isKo
-                    ? '<span class="kit-liste-statut ko">⚠️ Incomplet</span>'
-                    : '<span class="kit-liste-statut pending">À contrôler</span>'
-                }
+                <span class="kit-liste-statut ${isKo ? 'ko' : 'pending'}">
+                    ${isKo ? '⚠️ Incomplet' : '· À contrôler'}
+                </span>
                 <span class="kit-liste-arrow">›</span>
             </div>
         `;
-        card.addEventListener('click', () => ouvrirDetailKit(emp.id, emp.id_kit_stocke));
+        card.addEventListener('click', () => ouvrirDetailKit(k.empId, k.kitId));
         listeKits.appendChild(card);
     });
 }
 
-// Filtrage dynamique sur la barre de recherche
-inputEmp?.addEventListener('input', () => renderListeKits(tousLesEmplacements));
-
-// Bouton "Vérifier" — recherche directe par emplacement
-btnVerifier?.addEventListener('click', () => {
-    const empId = inputEmp.value.trim().toUpperCase();
-    if (!empId) { chargerListeKits(); return; }
-    const found = tousLesEmplacements.find(e => e.id === empId);
-    if (found) {
-        ouvrirDetailKit(found.id, found.id_kit_stocke);
-    } else {
-        // Peut-être conforme (non dans la liste) — on tente Firebase
-        ouvrirDetailKitDepuisFirebase(empId);
-    }
-});
-
+inputEmp?.addEventListener('input',  () => renderListeKits(tousLesKits));
+btnVerifier?.addEventListener('click', () => renderListeKits(tousLesKits));
 inputEmp?.addEventListener('keydown', e => { if (e.key === 'Enter') btnVerifier.click(); });
 
-// ─── Ouverture vue détail depuis la liste (données déjà disponibles) ──────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// NIVEAU 2 — TOUS LES KITS D'UN EMPLACEMENT (avec leur statut individuel)
+// Accessible via le bouton "← Retour" depuis le détail
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function chargerKitsEmplacement(empId) {
+    currentEmpId = empId;
+    afficherVue('kits');
+
+    kitsEmpTitle.textContent = `📍 ${empId}`;
+    kitsEmpLoading.classList.remove('hidden');
+    kitsEmpVide.classList.add('hidden');
+    kitsEmpList.innerHTML = '';
+
+    try {
+        const kitsSnap = await getDocs(collection(db, "emplacements", empId, "kits"));
+        const kits = [];
+        kitsSnap.forEach(d => kits.push({ kitId: d.id, ...d.data() }));
+
+        kitsEmpLoading.classList.add('hidden');
+
+        if (!kits.length) {
+            kitsEmpVide.classList.remove('hidden');
+            kitsEmpVide.textContent = 'Aucun kit trouvé pour cet emplacement.';
+            return;
+        }
+
+        kits.sort((a, b) => a.kitId.localeCompare(b.kitId));
+
+        kits.forEach(k => {
+            const statut = k.statut_conformite || 'Non vérifié';
+            const isOk   = statut === 'Conforme';
+            const isKo   = statut === 'Incomplet';
+
+            const card = document.createElement('div');
+            card.className = 'kit-liste-item'
+                + (isOk ? ' kit-liste-ok' : isKo ? ' kit-liste-ko' : '');
+            card.innerHTML = `
+                <div class="kit-liste-left">
+                    <div class="kit-liste-meta">
+                        ${k.engin ? `<span class="kit-liste-engin-badge">${k.engin}</span>` : ''}
+                        <span class="kit-liste-code">${k.code_kit || k.kitId}</span>
+                    </div>
+                    <span class="kit-liste-nom">${k.nom_du_kit || k.kitId}</span>
+                    ${k.derniere_verification ? `<span class="kit-liste-date">🕒 ${
+                        new Date(k.derniere_verification).toLocaleString('fr-FR', {
+                            day:'2-digit', month:'2-digit', year:'numeric',
+                            hour:'2-digit', minute:'2-digit'
+                        })
+                    }</span>` : ''}
+                </div>
+                <div class="kit-liste-right">
+                    <span class="kit-liste-statut ${isOk ? 'ok' : isKo ? 'ko' : 'pending'}">
+                        ${isOk ? '✅ Conforme' : isKo ? '⚠️ Incomplet' : '· À contrôler'}
+                    </span>
+                    <span class="kit-liste-arrow">›</span>
+                </div>
+            `;
+            card.addEventListener('click', () => ouvrirDetailKit(empId, k.kitId));
+            kitsEmpList.appendChild(card);
+        });
+
+    } catch (err) {
+        kitsEmpLoading.classList.add('hidden');
+        showToast('⚠️ ' + err.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NIVEAU 3 — DÉTAIL PIÈCES D'UN KIT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 async function ouvrirDetailKit(empId, kitId) {
     currentEmpId = empId;
     currentKitId = kitId;
 
-    afficherVueDetail();
+    afficherVue('detail');
     detailLoadingCard.classList.remove('hidden');
     detailKitCard.classList.add('hidden');
 
     try {
-        const kitSnap = await getDoc(doc(db, "nomenclature_kits", kitId));
-        if (!kitSnap.exists()) throw new Error(`Fiche du kit « ${kitId} » introuvable.`);
-        afficherDetailKit(kitId, kitSnap.data(), empId);
-    } catch (err) {
-        detailLoadingCard.classList.add('hidden');
-        showToast('⚠️ ' + err.message, 'error');
-        afficherVueListe();
-    }
-}
+        // Statut et métadonnées depuis la sous-collection
+        const kitDocSnap = await getDoc(doc(db, "emplacements", empId, "kits", kitId));
+        // Composants depuis nomenclature_kits
+        const nomSnap    = await getDoc(doc(db, "nomenclature_kits", kitId));
+        if (!nomSnap.exists()) throw new Error(`Nomenclature du kit « ${kitId} » introuvable.`);
 
-// ─── Ouverture depuis recherche directe (emplacement potentiellement conforme) ─
-async function ouvrirDetailKitDepuisFirebase(empId) {
-    afficherVueDetail();
-    detailLoadingCard.classList.remove('hidden');
-    detailKitCard.classList.add('hidden');
+        const kitData = kitDocSnap.exists() ? kitDocSnap.data() : {};
+        const nomData = nomSnap.data();
 
-    try {
-        const empSnap = await getDoc(doc(db, "emplacements", empId));
-        if (!empSnap.exists() || !empSnap.data().id_kit_stocke) {
-            throw new Error(`Emplacement « ${empId} » vide ou inconnu.`);
-        }
-
-        const empData = empSnap.data();
-
-        // Emplacement déjà conforme → on informe et on propose
-        if (empData.statut_conformite === "Conforme") {
-            detailLoadingCard.classList.add('hidden');
-            afficherVueListe();
-            const date = empData.derniere_verification
-                ? new Date(empData.derniere_verification).toLocaleString('fr-FR', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                  })
-                : "date inconnue";
-            const reforcer = await showConfirmToast(
-                `✅ ${empId} déjà conforme (${date}). Re-contrôler quand même ?`
-            );
-            if (!reforcer) return;
-            // L'utilisateur veut forcer → on rouvre en détail
-            currentEmpId = empId;
-            currentKitId = empData.id_kit_stocke;
-            afficherVueDetail();
-            detailLoadingCard.classList.remove('hidden');
-            detailKitCard.classList.add('hidden');
-            const kitSnap = await getDoc(doc(db, "nomenclature_kits", currentKitId));
-            if (!kitSnap.exists()) throw new Error(`Fiche du kit « ${currentKitId} » introuvable.`);
-            afficherDetailKit(currentKitId, kitSnap.data(), empId);
-            return;
-        }
-
-        currentEmpId = empId;
-        currentKitId = empData.id_kit_stocke;
-        const kitSnap = await getDoc(doc(db, "nomenclature_kits", currentKitId));
-        if (!kitSnap.exists()) throw new Error(`Fiche du kit « ${currentKitId} » introuvable.`);
-        afficherDetailKit(currentKitId, kitSnap.data(), empId);
+        afficherDetailKit(kitId, { ...nomData, ...kitData }, empId);
 
     } catch (err) {
         detailLoadingCard.classList.add('hidden');
-        afficherVueListe();
         showToast('⚠️ ' + err.message, 'error');
+        afficherVue('liste');
     }
 }
 
-// ─── Bouton retour ────────────────────────────────────────────────────────────
-btnRetour?.addEventListener('click', () => {
-    afficherVueListe();
-    chargerListeKits(); // rafraîchit la liste (au cas où une validation vient d'être faite)
-});
-
-// ─── Affichage du détail du kit ───────────────────────────────────────────────
-function afficherDetailKit(idKit, data, empId) {
+function afficherDetailKit(kitId, data, empId) {
     detailLoadingCard.classList.add('hidden');
 
-    // En-tête
     detailEmpBadge.textContent = empId;
-    detailKitBadge.textContent = idKit;
-    detailNom.textContent      = data.nom_du_kit;
+    detailKitBadge.textContent = kitId;
+    detailNom.textContent      = data.nom_du_kit || kitId;
     detailEmp.textContent      = empId;
     if (detailEngin) {
         detailEngin.textContent = data.engin
-            ? `🚂 Engin : ${data.engin}  ·  Code : ${data.code_kit}`
-            : '';
+            ? `🚂 Engin : ${data.engin}  ·  Code : ${data.code_kit}` : '';
     }
 
-    // Liste des composants
     compList.innerHTML = '';
     (data.composants || []).forEach(comp => {
         const item = document.createElement('div');
-        item.className = 'comp-item';
+        item.className        = 'comp-item';
         item.dataset.required = comp.quantite_requise;
         item.innerHTML = `
             <div class="comp-left">
                 <div class="comp-status-icon">
                     <svg class="icon-ok" width="12" height="9" viewBox="0 0 12 9" fill="none">
-                        <path d="M1 4L4.5 7.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M1 4L4.5 7.5L11 1" stroke="white" stroke-width="2"
+                              stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                     <svg class="icon-ko" width="10" height="10" viewBox="0 0 10 10" fill="none">
                         <path d="M1 1L9 9M9 1L1 9" stroke="white" stroke-width="2" stroke-linecap="round"/>
@@ -425,13 +468,8 @@ function afficherDetailKit(idKit, data, empId) {
                 <span class="comp-name">${comp.nom}</span>
             </div>
             <span class="comp-qty-required">${comp.quantite_requise}</span>
-            <input
-                type="number"
-                class="qty-input"
-                min="0"
-                placeholder="—"
-                aria-label="Quantité comptée"
-            >
+            <input type="number" class="qty-input" min="0" placeholder="—"
+                   aria-label="Quantité comptée">
         `;
         const input = item.querySelector('.qty-input');
         input.addEventListener('input', () => evaluerItem(item, input, comp.quantite_requise));
@@ -443,17 +481,12 @@ function afficherDetailKit(idKit, data, empId) {
 
 function evaluerItem(item, input, required) {
     const val = input.value.trim();
-    if (val === '') {
-        item.classList.remove('checked', 'non-conforme');
-        return;
-    }
+    if (val === '') { item.classList.remove('checked', 'non-conforme'); return; }
     const counted = parseInt(val, 10);
     if (counted === required) {
-        item.classList.add('checked');
-        item.classList.remove('non-conforme');
+        item.classList.add('checked'); item.classList.remove('non-conforme');
     } else {
-        item.classList.add('non-conforme');
-        item.classList.remove('checked');
+        item.classList.add('non-conforme'); item.classList.remove('checked');
     }
 }
 
@@ -463,7 +496,7 @@ $('btn-conforme').addEventListener('click',  () => valider("Conforme"));
 $('btn-incomplet').addEventListener('click', () => valider("Incomplet"));
 
 async function valider(statut) {
-    if (!currentEmpId) return;
+    if (!currentEmpId || !currentKitId) return;
 
     const items = [...compList.querySelectorAll('.comp-item')];
 
@@ -472,39 +505,44 @@ async function valider(statut) {
         const nonRenseignes = items.filter(i =>
             !i.classList.contains('checked') && !i.classList.contains('non-conforme')
         );
-
         if (nonConformes.length > 0) {
             showToast(`❌ ${nonConformes.length} article(s) en quantité incorrecte.`, 'error');
             return;
         }
         if (nonRenseignes.length > 0) {
-            if (!await showConfirmToast(`${nonRenseignes.length} article(s) non renseignés. Valider quand même ?`)) return;
+            if (!await showConfirmToast(
+                `${nonRenseignes.length} article(s) non renseignés. Valider quand même ?`
+            )) return;
         }
     }
 
-    const details = items.map(item => {
-        const input    = item.querySelector('.qty-input');
-        const required = parseInt(item.dataset.required, 10);
-        const counted  = input.value !== '' ? parseInt(input.value, 10) : null;
-        const name     = item.querySelector('.comp-name').textContent;
-        return { nom: name, quantite_requise: required, quantite_comptee: counted };
-    });
+    const details = items.map(item => ({
+        nom:              item.querySelector('.comp-name').textContent,
+        quantite_requise: parseInt(item.dataset.required, 10),
+        quantite_comptee: item.querySelector('.qty-input').value !== ''
+                              ? parseInt(item.querySelector('.qty-input').value, 10)
+                              : null,
+    }));
 
     try {
-        await updateDoc(doc(db, "emplacements", currentEmpId), {
-            statut_conformite:     statut,
-            derniere_verification: new Date().toISOString(),
-            verificateur_email:    auth.currentUser?.email || 'inconnu',
-            detail_verification:   details
-        });
+        // Écriture dans emplacements/{empId}/kits/{kitId}
+        await setDoc(
+            doc(db, "emplacements", currentEmpId, "kits", currentKitId),
+            {
+                statut_conformite:     statut,
+                derniere_verification: new Date().toISOString(),
+                verificateur_email:    auth.currentUser?.email || 'inconnu',
+                detail_verification:   details,
+            },
+            { merge: true }
+        );
 
         showToast(`✅ Statut « ${statut} » enregistré.`, 'success');
         setTimeout(() => {
             currentEmpId = '';
             currentKitId = '';
-            inputEmp.value = '';
-            afficherVueListe();
-            chargerListeKits(); // rafraîchit : le kit disparaît si conforme
+            afficherVue('liste');
+            chargerListeKits();
         }, 1500);
 
     } catch (err) {
@@ -513,36 +551,40 @@ async function valider(statut) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// HISTORIQUE
+// HISTORIQUE — lit les sous-collections kits de chaque emplacement
 // ═══════════════════════════════════════════════════════════════════════════════
 
 let histoData = [];
 
 async function chargerHistorique() {
-    histoList.innerHTML    = '';
+    histoList.innerHTML = '';
     histoLoading.classList.remove('hidden');
     histoEmpty.classList.add('hidden');
 
     try {
-        const snap = await getDocs(collection(db, "emplacements"));
+        const empSnap = await getDocs(collection(db, "emplacements"));
         histoData = [];
 
-        snap.forEach(d => {
-            const data = d.data();
-            if (data.derniere_verification) {
-                histoData.push({ id: d.id, ...data });
-            }
+        const promises = empSnap.docs.map(async empDoc => {
+            const empId    = empDoc.id;
+            const kitsSnap = await getDocs(collection(db, "emplacements", empId, "kits"));
+            kitsSnap.forEach(kitDoc => {
+                const data = kitDoc.data();
+                if (data.derniere_verification) {
+                    histoData.push({ empId, kitId: kitDoc.id, ...data });
+                }
+            });
         });
 
+        await Promise.all(promises);
         histoData.sort((a, b) =>
             new Date(b.derniere_verification) - new Date(a.derniere_verification)
         );
-
         renderHistorique(histoData);
 
     } catch (err) {
         histoLoading.classList.add('hidden');
-        histoEmpty.textContent = '⚠️ Erreur de chargement : ' + err.message;
+        histoEmpty.textContent = '⚠️ Erreur : ' + err.message;
         histoEmpty.classList.remove('hidden');
     }
 }
@@ -551,14 +593,15 @@ function renderHistorique(liste) {
     histoLoading.classList.add('hidden');
     histoList.innerHTML = '';
 
-    const filterVal  = histoFilter?.value  || 'tous';
-    const searchVal  = (histoSearch?.value || '').trim().toUpperCase();
+    const filterVal = histoFilter?.value  || 'tous';
+    const searchVal = (histoSearch?.value || '').trim().toUpperCase();
 
-    const filtered = liste.filter(emp => {
+    const filtered = liste.filter(k => {
         const matchSearch = !searchVal ||
-            emp.id.includes(searchVal) ||
-            (emp.id_kit_stocke || '').toUpperCase().includes(searchVal);
-        const matchFilter = filterVal === 'tous' || emp.statut_conformite === filterVal;
+            k.empId.includes(searchVal) ||
+            k.kitId.toUpperCase().includes(searchVal) ||
+            (k.engin || '').toUpperCase().includes(searchVal);
+        const matchFilter = filterVal === 'tous' || k.statut_conformite === filterVal;
         return matchSearch && matchFilter;
     });
 
@@ -570,30 +613,17 @@ function renderHistorique(liste) {
 
     histoEmpty.classList.add('hidden');
 
-    filtered.forEach(emp => {
-        const date = emp.derniere_verification
-            ? new Date(emp.derniere_verification).toLocaleString('fr-FR', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-              })
-            : '—';
-
-        const statut   = emp.statut_conformite || 'Non vérifié';
+    filtered.forEach(k => {
+        const date     = new Date(k.derniere_verification).toLocaleString('fr-FR', {
+            day:'2-digit', month:'2-digit', year:'numeric',
+            hour:'2-digit', minute:'2-digit'
+        });
+        const statut   = k.statut_conformite || 'Non vérifié';
         const isOk     = statut === 'Conforme';
         const isKo     = statut === 'Incomplet';
-
-        const detail   = emp.detail_verification || [];
-        const manquants = detail.filter(c =>
-            c.quantite_comptee !== null &&
-            c.quantite_comptee !== c.quantite_requise
+        const manquants = (k.detail_verification || []).filter(c =>
+            c.quantite_comptee !== null && c.quantite_comptee !== c.quantite_requise
         );
-
-        const verificateur = emp.verificateur_email || '—';
-
-        const idParts  = emp.id_kit_stocke ? emp.id_kit_stocke.split('_') : [];
-        const enginTag = idParts.length >= 2
-            ? `<span class="histo-engin">${idParts[0]}</span>`
-            : '';
 
         const row = document.createElement('div');
         row.className = `histo-item ${isOk ? 'histo-ok' : isKo ? 'histo-ko' : ''}`;
@@ -604,16 +634,17 @@ function renderHistorique(liste) {
                         ${isOk ? '✅' : isKo ? '⚠️' : '—'} ${statut}
                     </span>
                     <div class="histo-ids">
-                        <span class="histo-emp">${emp.id}</span>
+                        <span class="histo-emp">${k.empId}</span>
                         <div class="histo-kit-row">
-                            ${enginTag}
-                            <span class="histo-kit">${emp.id_kit_stocke || '—'}</span>
+                            ${k.engin ? `<span class="histo-engin">${k.engin}</span>` : ''}
+                            <span class="histo-kit">${k.kitId}</span>
                         </div>
+                        <span class="histo-kit-nom">${k.nom_du_kit || ''}</span>
                     </div>
                 </div>
                 <div class="histo-meta">
                     <span class="histo-date">🕒 ${date}</span>
-                    <span class="histo-agent">👤 ${verificateur}</span>
+                    <span class="histo-agent">👤 ${k.verificateur_email || '—'}</span>
                 </div>
             </div>
             ${manquants.length ? `
@@ -662,13 +693,11 @@ $('btn-pin').addEventListener('click', () => {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ADMIN — IMPORT EXCEL
+// Nouvelle structure : emplacements/{empId}/kits/{kitId}
 // ═══════════════════════════════════════════════════════════════════════════════
 
-dropZone.addEventListener('dragover', e => {
-    e.preventDefault();
-    dropZone.classList.add('dragover');
-});
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop', e => {
     e.preventDefault();
     dropZone.classList.remove('dragover');
@@ -682,20 +711,19 @@ fileInput.addEventListener('change', e => {
 
 function setStatus(msg, type = 'info') {
     adminStatus.textContent = msg;
-    adminStatus.className = `admin-status ${type}`;
+    adminStatus.className   = `admin-status ${type}`;
 }
 
 async function traiterFichier(file) {
     const ext = file.name.split('.').pop().toLowerCase();
     if (!['xlsx', 'xls', 'csv'].includes(ext)) {
-        setStatus('Format invalide. Utilisez .xlsx ou .csv uniquement.', 'error');
-        return;
+        setStatus('Format invalide. Utilisez .xlsx ou .csv.', 'error'); return;
     }
 
     progressArea.classList.remove('hidden');
-    progressBar.style.width = '0%';
+    progressBar.style.width   = '0%';
     progressLabel.textContent = 'Lecture du fichier…';
-    setStatus('Analyse du fichier en cours…', 'info');
+    setStatus('Analyse en cours…', 'info');
 
     const reader = new FileReader();
     reader.readAsArrayBuffer(file);
@@ -707,88 +735,88 @@ async function traiterFichier(file) {
             const sheet  = wb.Sheets[wb.SheetNames[0]];
             const lignes = XLSX.utils.sheet_to_json(sheet);
 
-            if (!lignes.length) throw new Error("Aucune donnée exploitable dans le fichier.");
+            if (!lignes.length) throw new Error("Aucune donnée exploitable.");
 
-            setStatus('Lecture des kits existants sur Firebase…', 'info');
-            const snap = await getDocs(collection(db, "nomenclature_kits"));
-            const kitsExistants = new Set(snap.docs.map(d => d.id));
-
-            const kitsIndex = {};
+            // Index : empId → kitId → { engin, code_kit, nom_du_kit, composants[] }
+            const index = {};
             lignes.forEach(l => {
                 const row = {};
                 Object.keys(l).forEach(k => { row[k.trim()] = l[k]; });
 
-                const engin      = String(row['Engin']            || row['engin']           || '').trim();
-                const codeKit    = String(row['Code kit']         || row['code_kit']        || row['Code_kit'] || '').trim();
-                const nomKit     = String(row['designations kit'] || row['designation_kit'] || row['nom_kit']  || 'Kit sans nom').trim();
-                const emplacement= String(row['emplacement']      || row['Emplacement']     || '').trim();
-                const nomComp    = String(row['designation article'] || row['designations article'] || row['composant'] || '').trim();
-                const quantite   = Number(row['quantite'] || row['Quantite'] || row['quantité'] || 1);
+                const engin       = String(row['Engin']            || row['engin']    || '').trim();
+                const codeKit     = String(row['Code kit']         || row['code_kit'] || '').trim();
+                const nomKit      = String(row['designations kit'] || row['nom_kit']  || 'Kit sans nom').trim();
+                const emplacement = String(row['emplacement']      || row['Emplacement'] || '').trim();
+                const nomComp     = String(row['designation article'] || row['designations article'] || '').trim();
+                const quantite    = Number(row['quantite'] || row['Quantite'] || row['quantité'] || 1);
 
-                if (!engin || !codeKit) return;
+                if (!engin || !codeKit || !emplacement) return;
 
-                const id = `${engin}_${codeKit}`;
-
-                if (!kitsIndex[id]) {
-                    kitsIndex[id] = {
-                        engin,
-                        code_kit:              codeKit,
-                        nom_du_kit:            nomKit,
-                        emplacement_theorique: emplacement || 'Non assigné',
-                        composants: []
+                const kitId = `${engin}_${codeKit}`;
+                if (!index[emplacement])        index[emplacement] = {};
+                if (!index[emplacement][kitId]) {
+                    index[emplacement][kitId] = {
+                        engin, code_kit: codeKit, nom_du_kit: nomKit, composants: []
                     };
                 }
                 if (nomComp) {
-                    kitsIndex[id].composants.push({
-                        nom:              nomComp,
-                        quantite_requise: quantite || 1
+                    index[emplacement][kitId].composants.push({
+                        nom: nomComp, quantite_requise: quantite || 1
                     });
                 }
             });
 
-            const nouveauxIds = Object.keys(kitsIndex).filter(id => !kitsExistants.has(id));
-            const ignores     = Object.keys(kitsIndex).length - nouveauxIds.length;
-            const total       = nouveauxIds.length;
+            // Compter le total
+            let totalKits = 0;
+            Object.values(index).forEach(kits => { totalKits += Object.keys(kits).length; });
 
-            if (!total) {
-                progressArea.classList.add('hidden');
-                setStatus(`Rien à importer : les ${ignores} kit(s) du fichier existent déjà.`, 'info');
-                return;
-            }
+            setStatus('Vérification des données existantes…', 'info');
+            let ecrits = 0, ignores = 0;
 
-            let ecrits = 0;
-            for (const idKit of nouveauxIds) {
-                const data = kitsIndex[idKit];
-                await setDoc(doc(db, "nomenclature_kits", idKit), data);
+            for (const [empId, kits] of Object.entries(index)) {
+                // Document emplacement (conteneur)
+                await setDoc(doc(db, "emplacements", empId), { id: empId }, { merge: true });
 
-                if (data.emplacement_theorique !== 'Non assigné') {
-                    await setDoc(
-                        doc(db, "emplacements", data.emplacement_theorique),
-                        {
-                            id_kit_stocke:        idKit,
+                for (const [kitId, kitData] of Object.entries(kits)) {
+                    const kitRef  = doc(db, "emplacements", empId, "kits", kitId);
+                    const kitSnap = await getDoc(kitRef);
+
+                    if (kitSnap.exists()) {
+                        ignores++;
+                    } else {
+                        // Sous-collection : données du kit + statut initial
+                        await setDoc(kitRef, {
+                            ...kitData,
                             statut_conformite:    "Non vérifié",
-                            derniere_mise_a_jour: new Date().toISOString()
-                        },
-                        { merge: true }
-                    );
-                }
+                            derniere_mise_a_jour: new Date().toISOString(),
+                        });
 
-                ecrits++;
-                const pct = Math.round((ecrits / total) * 100);
-                progressBar.style.width = pct + '%';
-                progressLabel.textContent = `${ecrits} / ${total} kits traités…`;
-                setStatus(`Import en cours… ${pct}%`, 'info');
+                        // Nomenclature partagée (composants) — sans écraser
+                        const nomRef  = doc(db, "nomenclature_kits", kitId);
+                        const nomSnap = await getDoc(nomRef);
+                        if (!nomSnap.exists()) await setDoc(nomRef, kitData);
+
+                        ecrits++;
+                    }
+
+                    const done = ecrits + ignores;
+                    const pct  = Math.round((done / totalKits) * 100);
+                    progressBar.style.width   = pct + '%';
+                    progressLabel.textContent = `${done} / ${totalKits} kits traités…`;
+                    setStatus(`Import en cours… ${pct}%`, 'info');
+                }
             }
 
             progressBar.style.width = '100%';
             setStatus(
-                `✅ Import terminé. ${ecrits} kit(s) ajouté(s)${ignores ? `, ${ignores} ignoré(s) car déjà présent(s)` : ''}.`,
+                `✅ Import terminé — ${ecrits} kit(s) ajouté(s)` +
+                `${ignores ? `, ${ignores} ignoré(s) déjà présent(s)` : ''}.`,
                 'success'
             );
 
         } catch (err) {
             console.error(err);
-            setStatus('❌ Échec de l\'import : ' + err.message, 'error');
+            setStatus('❌ Échec : ' + err.message, 'error');
         } finally {
             fileInput.value = '';
         }
@@ -796,10 +824,10 @@ async function traiterFichier(file) {
 }
 
 // ─── TOGGLE MOT DE PASSE ──────────────────────────────────────────────────────
-document.getElementById('toggle-pwd').addEventListener('click', () => {
+$('toggle-pwd').addEventListener('click', () => {
     const isPassword = loginPwd.type === 'password';
     loginPwd.type = isPassword ? 'text' : 'password';
-    document.getElementById('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
+    $('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -808,7 +836,7 @@ document.getElementById('toggle-pwd').addEventListener('click', () => {
 
 function showConfirmToast(message) {
     return new Promise(resolve => {
-        const existing = document.getElementById('custom-toast');
+        const existing = $('custom-toast');
         if (existing) existing.remove();
 
         const toast = document.createElement('div');
@@ -823,23 +851,22 @@ function showConfirmToast(message) {
         document.body.appendChild(toast);
         requestAnimationFrame(() => toast.classList.add('visible'));
 
-        const remove = (val) => {
+        const remove = val => {
             toast.classList.remove('visible');
             setTimeout(() => toast.remove(), 300);
             resolve(val);
         };
-
         toast.querySelector('.toast-cancel').addEventListener('click',  () => remove(false));
         toast.querySelector('.toast-confirm').addEventListener('click', () => remove(true));
     });
 }
 
 function showToast(message, type = 'info') {
-    const existing = document.getElementById('simple-toast');
+    const existing = $('simple-toast');
     if (existing) existing.remove();
 
     const toast = document.createElement('div');
-    toast.id = 'simple-toast';
+    toast.id        = 'simple-toast';
     toast.className = `simple-toast toast-${type}`;
     toast.textContent = message;
     document.body.appendChild(toast);
@@ -849,8 +876,3 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
-
-// ─── INIT : charger la liste au démarrage (une fois authentifié) ───────────────
-onAuthStateChanged(auth, user => {
-    if (user) chargerListeKits();
-});
