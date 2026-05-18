@@ -272,9 +272,14 @@ function showBlocageConforme(empId, kitId, date, email) {
 }
 
 function afficherKit(idKit, data, empId) {
-    $('kit-badge').textContent = idKit;
-    $('kit-nom').textContent   = data.nom_du_kit;
-    $('kit-emp').textContent   = empId;
+    $('kit-badge').textContent  = idKit;
+    $('kit-nom').textContent    = data.nom_du_kit;
+    $('kit-emp').textContent    = empId;
+    // Engin et code_kit (stockés sur le document kit)
+    const enginEl = $('kit-engin');
+    if (enginEl) enginEl.textContent = data.engin
+        ? `🚂 Engin : ${data.engin}  ·  Code : ${data.code_kit}`
+        : '';
 
     compList.innerHTML = '';
 
@@ -464,6 +469,12 @@ function renderHistorique(liste) {
 
         const verificateur = emp.verificateur_email || '—';
 
+        // Extraire engin et code_kit depuis l'ID concaténé (format: ENGIN_CODEKIT)
+        const idParts  = emp.id_kit_stocke ? emp.id_kit_stocke.split('_') : [];
+        const enginTag = idParts.length >= 2
+            ? `<span class="histo-engin">${idParts[0]}</span>`
+            : '';
+
         const row = document.createElement('div');
         row.className = `histo-item ${isOk ? 'histo-ok' : isKo ? 'histo-ko' : ''}`;
         row.innerHTML = `
@@ -474,7 +485,10 @@ function renderHistorique(liste) {
                     </span>
                     <div class="histo-ids">
                         <span class="histo-emp">${emp.id}</span>
-                        <span class="histo-kit">${emp.id_kit_stocke || '—'}</span>
+                        <div class="histo-kit-row">
+                            ${enginTag}
+                            <span class="histo-kit">${emp.id_kit_stocke || '—'}</span>
+                        </div>
                     </div>
                 </div>
                 <div class="histo-meta">
@@ -582,20 +596,32 @@ async function traiterFichier(file) {
 
             const kitsIndex = {};
             lignes.forEach(l => {
-                const id = String(l.id_kit || '').trim();
-                if (!id) return;
+                // ── Lecture colonnes nouveau format ─────────────────────────
+                const engin      = String(l['Engin']            || l['engin']           || '').trim();
+                const codeKit    = String(l['Code kit']         || l['code_kit']        || l['Code_kit'] || '').trim();
+                const nomKit     = String(l['designations kit'] || l['designation_kit'] || l['nom_kit']  || 'Kit sans nom').trim();
+                const emplacement= String(l['emplacement']      || l['Emplacement']     || '').trim();
+                const nomComp    = String(l['designation article'] || l['designations article'] || l['composant'] || '').trim();
+                const quantite   = Number(l['quantite'] || l['Quantite'] || l['quantité'] || 1);
+
+                if (!engin || !codeKit) return; // ligne incomplète, ignorée
+
+                // ── ID = Engin_CodeKit ──────────────────────────────────────
+                const id = `${engin}_${codeKit}`;
+
                 if (!kitsIndex[id]) {
                     kitsIndex[id] = {
-                        nom_du_kit:            String(l.nom_kit || 'Kit sans nom').trim(),
-                        emplacement_theorique: String(l.emplacement || '').trim() || 'Non assigné',
+                        engin,
+                        code_kit:              codeKit,
+                        nom_du_kit:            nomKit,
+                        emplacement_theorique: emplacement || 'Non assigné',
                         composants: []
                     };
                 }
-                const nomComp = String(l.composant || '').trim();
                 if (nomComp) {
                     kitsIndex[id].composants.push({
                         nom:              nomComp,
-                        quantite_requise: Number(l.quantite) || 1
+                        quantite_requise: quantite || 1
                     });
                 }
             });
