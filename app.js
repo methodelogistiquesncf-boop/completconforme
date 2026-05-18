@@ -228,14 +228,28 @@ function afficherKit(idKit, data, empId) {
     $('kit-nom').textContent   = data.nom_du_kit;
     $('kit-emp').textContent   = empId;
 
-    compList.innerHTML = `
-        <div class="comp-header">
-            <span class="comp-header-designation">Désignation</span>
-            <span class="comp-header-theorique">Qté théorique</span>
-            <span class="comp-header-reelle">Qté réelle</span>
-            <span class="comp-header-statut">Statut</span>
+    compList.item.innerHTML = `
+    <div class="comp-left">
+        <div class="comp-status-icon">
+            <svg class="icon-ok" width="12" height="9" viewBox="0 0 12 9" fill="none">
+                <path d="M1 4L4.5 7.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg class="icon-ko" width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M1 1L9 9M9 1L1 9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </svg>
         </div>
-    `;
+        <span class="comp-name">${comp.nom}</span>
+    </div>
+    <span class="comp-qty-required">${comp.quantite_requise}</span>
+    <input
+        type="number"
+        class="qty-input"
+        min="0"
+        placeholder="—"
+        aria-label="Quantité comptée"
+    >
+    <div class="comp-status-icon-right"></div>
+`;
             <div class="comp-left">
                 <div class="comp-status-icon">
                     <svg class="icon-ok"  width="12" height="9" viewBox="0 0 12 9" fill="none">
