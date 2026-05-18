@@ -232,23 +232,57 @@ function afficherKit(idKit, data, empId) {
     data.composants.forEach((comp, idx) => {
         const item = document.createElement('div');
         item.className = 'comp-item';
-        item.dataset.idx = idx;
+        item.dataset.idx      = idx;
+        item.dataset.required = comp.quantite_requise;
+
         item.innerHTML = `
             <div class="comp-left">
-                <div class="comp-checkbox-visual">
-                    <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
+                <div class="comp-status-icon">
+                    <svg class="icon-ok"  width="12" height="9" viewBox="0 0 12 9" fill="none">
                         <path d="M1 4L4.5 7.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <svg class="icon-ko" width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M1 1L9 9M9 1L1 9" stroke="white" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                 </div>
                 <span class="comp-name">${comp.nom}</span>
             </div>
-            <span class="comp-qty">× ${comp.quantite_requise}</span>
+            <div class="comp-right">
+                <input
+                    type="number"
+                    class="qty-input"
+                    min="0"
+                    placeholder="—"
+                    aria-label="Quantité comptée"
+                >
+                <span class="comp-qty-sep">/</span>
+                <span class="comp-qty-required">${comp.quantite_requise}</span>
+            </div>
         `;
-        item.addEventListener('click', () => item.classList.toggle('checked'));
+
+        const input = item.querySelector('.qty-input');
+        input.addEventListener('input', () => evaluerItem(item, input, comp.quantite_requise));
+
         compList.appendChild(item);
     });
 
     kitCard.classList.remove('hidden');
+}
+
+function evaluerItem(item, input, required) {
+    const val = input.value.trim();
+    if (val === '') {
+        item.classList.remove('checked', 'non-conforme');
+        return;
+    }
+    const counted = parseInt(val, 10);
+    if (counted === required) {
+        item.classList.add('checked');
+        item.classList.remove('non-conforme');
+    } else {
+        item.classList.add('non-conforme');
+        item.classList.remove('checked');
+    }
 }
 
 // ─── VALIDATION ───────────────────────────────────────────────────────────────
@@ -259,29 +293,51 @@ $('btn-incomplet').addEventListener('click', () => valider("Incomplet"));
 async function valider(statut) {
     if (!currentEmpId) return;
 
+    const items = [...compList.querySelectorAll('.comp-item')];
+
     if (statut === "Conforme") {
-        const items     = compList.querySelectorAll('.comp-item');
-        const toutCoche = [...items].every(i => i.classList.contains('checked'));
-        if (!toutCoche && !confirm("Certains composants ne sont pas cochés. Valider quand même comme conforme ?")) return;
+        const nonRenseignes = items.filter(i =>
+            !i.classList.contains('checked') && !i.classList.contains('non-conforme')
+        );
+        const nonConformes = items.filter(i => i.classList.contains('non-conforme'));
+
+        if (nonConformes.length > 0) {
+            showToast(`❌ ${nonConformes.length} article(s) ont une quantité incorrecte. Corrigez avant de valider.`, 'error');
+            return;
+        }
+        if (nonRenseignes.length > 0) {
+            if (!await showConfirmToast(`${nonRenseignes.length} article(s) non renseignés. Valider quand même ?`)) return;
+        }
     }
+
+    // Prépare le détail des écarts pour Firestore
+    const details = items.map(item => {
+        const input    = item.querySelector('.qty-input');
+        const required = parseInt(item.dataset.required, 10);
+        const counted  = input.value !== '' ? parseInt(input.value, 10) : null;
+        const name     = item.querySelector('.comp-name').textContent;
+        return { nom: name, quantite_requise: required, quantite_comptee: counted };
+    });
 
     try {
         await updateDoc(doc(db, "emplacements", currentEmpId), {
-            statut_conformite:    statut,
-            derniere_verification: new Date().toISOString()
+            statut_conformite:     statut,
+            derniere_verification: new Date().toISOString(),
+            detail_verification:   details
         });
 
-        alert(`✅ Statut « ${statut} » enregistré.`);
-
-        kitCard.classList.add('hidden');
-        inputEmp.value = '';
-        searchStatus.textContent = '';
-        currentEmpId = '';
-        currentKitId = '';
-        inputEmp.focus();
+        showToast(`✅ Statut « ${statut} » enregistré.`, 'success');
+        setTimeout(() => {
+            kitCard.classList.add('hidden');
+            inputEmp.value       = '';
+            searchStatus.textContent = '';
+            currentEmpId = '';
+            currentKitId = '';
+            inputEmp.focus();
+        }, 1500);
 
     } catch (err) {
-        alert('Erreur d\'enregistrement : ' + err.message);
+        showToast('Erreur d\'enregistrement : ' + err.message, 'error');
     }
 }
 
@@ -441,32 +497,47 @@ document.getElementById('toggle-pwd').addEventListener('click', () => {
     loginPwd.type = isPassword ? 'text' : 'password';
     document.getElementById('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
 });
-function showConfirmToast(message, onConfirm) {
-    const existing = document.getElementById('custom-toast');
+function showConfirmToast(message) {
+    return new Promise(resolve => {
+        const existing = document.getElementById('custom-toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.id = 'custom-toast';
+        toast.innerHTML = `
+            <span class="toast-msg">${message}</span>
+            <div class="toast-actions">
+                <button class="toast-btn toast-cancel">Annuler</button>
+                <button class="toast-btn toast-confirm">Confirmer</button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('visible'));
+
+        const remove = (val) => {
+            toast.classList.remove('visible');
+            setTimeout(() => toast.remove(), 300);
+            resolve(val);
+        };
+
+        toast.querySelector('.toast-cancel').addEventListener('click',  () => remove(false));
+        toast.querySelector('.toast-confirm').addEventListener('click', () => remove(true));
+    });
+}
+
+// Toast simple (info / succès / erreur)
+function showToast(message, type = 'info') {
+    const existing = document.getElementById('simple-toast');
     if (existing) existing.remove();
 
     const toast = document.createElement('div');
-    toast.id = 'custom-toast';
-    toast.innerHTML = `
-        <span class="toast-msg">${message}</span>
-        <div class="toast-actions">
-            <button class="toast-btn toast-cancel">Annuler</button>
-            <button class="toast-btn toast-confirm">Déconnecter</button>
-        </div>
-    `;
+    toast.id = 'simple-toast';
+    toast.className = `simple-toast toast-${type}`;
+    toast.textContent = message;
     document.body.appendChild(toast);
-
-    // Apparition
     requestAnimationFrame(() => toast.classList.add('visible'));
-
-    const remove = () => {
+    setTimeout(() => {
         toast.classList.remove('visible');
         setTimeout(() => toast.remove(), 300);
-    };
-
-    toast.querySelector('.toast-cancel').addEventListener('click', remove);
-    toast.querySelector('.toast-confirm').addEventListener('click', () => {
-        remove();
-        onConfirm();
-    });
+    }, 3000);
 }
