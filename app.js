@@ -56,13 +56,31 @@ const secAdmin     = $('sec-admin');
 const secHistorique= $('sec-historique');
 
 const offlineBanner= $('offline-banner');
+const compList     = $('comp-list');
+
+// ── Vues terrain ──────────────────────────────────────────────────────────────
+const viewListe    = $('view-liste');
+const viewDetail   = $('view-detail');
+
+// ── Vue liste ─────────────────────────────────────────────────────────────────
 const inputEmp     = $('input-emplacement');
 const btnVerifier  = $('btn-verifier');
 const searchStatus = $('search-status');
-const loadingCard  = $('loading-card');
-const kitCard      = $('kit-card');
-const compList     = $('comp-list');
+const listeLoading = $('liste-loading');
+const listeVide    = $('liste-vide');
+const listeKits    = $('liste-kits');
 
+// ── Vue détail ────────────────────────────────────────────────────────────────
+const btnRetour    = $('btn-retour');
+const detailEmpBadge = $('detail-emp-badge');
+const detailKitBadge = $('detail-kit-badge');
+const detailNom      = $('detail-nom');
+const detailEmp      = $('detail-emp');
+const detailEngin    = $('detail-engin');
+const detailLoadingCard = $('detail-loading-card');
+const detailKitCard     = $('detail-kit-card');
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
 const pinInputs    = document.querySelectorAll('.pin-input');
 const pinError     = $('pin-error');
 const adminAuth    = $('admin-auth');
@@ -74,6 +92,7 @@ const progressArea = $('progress-area');
 const progressBar  = $('progress-bar');
 const progressLabel= $('progress-label');
 
+// ── Historique ────────────────────────────────────────────────────────────────
 const histoList    = $('histo-list');
 const histoLoading = $('histo-loading');
 const histoEmpty   = $('histo-empty');
@@ -174,115 +193,221 @@ function showTab(tab) {
     secHistorique.classList.toggle('hidden', tab !== 'historique');
 
     if (tab === 'historique') chargerHistorique();
+    if (tab === 'terrain')    { afficherVueListe(); chargerListeKits(); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LOGIQUE TERRAIN
+// TERRAIN — VUE LISTE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-btnVerifier.addEventListener('click', chargerEmplacement);
-inputEmp.addEventListener('keydown', e => { if (e.key === 'Enter') chargerEmplacement(); });
+let tousLesEmplacements = []; // cache pour le filtrage local
 
-async function chargerEmplacement() {
-    const empId = inputEmp.value.trim().toUpperCase();
-    if (!empId) return;
+function afficherVueListe() {
+    viewListe.classList.remove('hidden');
+    viewDetail.classList.add('hidden');
+}
 
-    kitCard.classList.add('hidden');
+function afficherVueDetail() {
+    viewListe.classList.add('hidden');
+    viewDetail.classList.remove('hidden');
+}
+
+async function chargerListeKits() {
+    listeLoading.classList.remove('hidden');
+    listeVide.classList.add('hidden');
+    listeKits.innerHTML = '';
     searchStatus.textContent = '';
-    loadingCard.classList.remove('hidden');
-    btnVerifier.disabled = true;
+
+    try {
+        const snap = await getDocs(collection(db, "emplacements"));
+        tousLesEmplacements = [];
+
+        snap.forEach(d => {
+            const data = d.data();
+            // On ne liste que les non contrôlés (Non vérifié ou Incomplet)
+            if (data.statut_conformite !== "Conforme") {
+                tousLesEmplacements.push({ id: d.id, ...data });
+            }
+        });
+
+        // Tri alphabétique par emplacement
+        tousLesEmplacements.sort((a, b) => a.id.localeCompare(b.id));
+
+        renderListeKits(tousLesEmplacements);
+
+    } catch (err) {
+        listeLoading.classList.add('hidden');
+        searchStatus.textContent = '⚠️ Erreur de chargement : ' + err.message;
+    }
+}
+
+function renderListeKits(liste) {
+    listeLoading.classList.add('hidden');
+    listeKits.innerHTML = '';
+
+    const searchVal = (inputEmp?.value || '').trim().toUpperCase();
+
+    const filtered = searchVal
+        ? liste.filter(emp =>
+            emp.id.includes(searchVal) ||
+            (emp.id_kit_stocke || '').toUpperCase().includes(searchVal)
+          )
+        : liste;
+
+    if (!filtered.length) {
+        listeVide.classList.remove('hidden');
+        listeVide.textContent = searchVal
+            ? `Aucun résultat pour « ${searchVal} ».`
+            : 'Tous les emplacements sont conformes. 🎉';
+        return;
+    }
+
+    listeVide.classList.add('hidden');
+
+    filtered.forEach(emp => {
+        const idParts  = emp.id_kit_stocke ? emp.id_kit_stocke.split('_') : [];
+        const engin    = idParts.length >= 1 ? idParts[0] : '—';
+        const codeKit  = idParts.length >= 2 ? idParts.slice(1).join('_') : (emp.id_kit_stocke || '—');
+        const statut   = emp.statut_conformite || 'Non vérifié';
+        const isKo     = statut === 'Incomplet';
+
+        const card = document.createElement('div');
+        card.className = 'kit-liste-item' + (isKo ? ' kit-liste-ko' : '');
+        card.innerHTML = `
+            <div class="kit-liste-left">
+                <span class="kit-liste-emp">${emp.id}</span>
+                <div class="kit-liste-meta">
+                    <span class="kit-liste-engin-badge">${engin}</span>
+                    <span class="kit-liste-code">${codeKit}</span>
+                </div>
+            </div>
+            <div class="kit-liste-right">
+                ${isKo
+                    ? '<span class="kit-liste-statut ko">⚠️ Incomplet</span>'
+                    : '<span class="kit-liste-statut pending">À contrôler</span>'
+                }
+                <span class="kit-liste-arrow">›</span>
+            </div>
+        `;
+        card.addEventListener('click', () => ouvrirDetailKit(emp.id, emp.id_kit_stocke));
+        listeKits.appendChild(card);
+    });
+}
+
+// Filtrage dynamique sur la barre de recherche
+inputEmp?.addEventListener('input', () => renderListeKits(tousLesEmplacements));
+
+// Bouton "Vérifier" — recherche directe par emplacement
+btnVerifier?.addEventListener('click', () => {
+    const empId = inputEmp.value.trim().toUpperCase();
+    if (!empId) { chargerListeKits(); return; }
+    const found = tousLesEmplacements.find(e => e.id === empId);
+    if (found) {
+        ouvrirDetailKit(found.id, found.id_kit_stocke);
+    } else {
+        // Peut-être conforme (non dans la liste) — on tente Firebase
+        ouvrirDetailKitDepuisFirebase(empId);
+    }
+});
+
+inputEmp?.addEventListener('keydown', e => { if (e.key === 'Enter') btnVerifier.click(); });
+
+// ─── Ouverture vue détail depuis la liste (données déjà disponibles) ──────────
+async function ouvrirDetailKit(empId, kitId) {
+    currentEmpId = empId;
+    currentKitId = kitId;
+
+    afficherVueDetail();
+    detailLoadingCard.classList.remove('hidden');
+    detailKitCard.classList.add('hidden');
+
+    try {
+        const kitSnap = await getDoc(doc(db, "nomenclature_kits", kitId));
+        if (!kitSnap.exists()) throw new Error(`Fiche du kit « ${kitId} » introuvable.`);
+        afficherDetailKit(kitId, kitSnap.data(), empId);
+    } catch (err) {
+        detailLoadingCard.classList.add('hidden');
+        showToast('⚠️ ' + err.message, 'error');
+        afficherVueListe();
+    }
+}
+
+// ─── Ouverture depuis recherche directe (emplacement potentiellement conforme) ─
+async function ouvrirDetailKitDepuisFirebase(empId) {
+    afficherVueDetail();
+    detailLoadingCard.classList.remove('hidden');
+    detailKitCard.classList.add('hidden');
 
     try {
         const empSnap = await getDoc(doc(db, "emplacements", empId));
-
         if (!empSnap.exists() || !empSnap.data().id_kit_stocke) {
             throw new Error(`Emplacement « ${empId} » vide ou inconnu.`);
         }
 
         const empData = empSnap.data();
 
-        // ── BLOCAGE : emplacement déjà validé conforme ──────────────────────
+        // Emplacement déjà conforme → on informe et on propose
         if (empData.statut_conformite === "Conforme") {
+            detailLoadingCard.classList.add('hidden');
+            afficherVueListe();
             const date = empData.derniere_verification
                 ? new Date(empData.derniere_verification).toLocaleString('fr-FR', {
                     day: '2-digit', month: '2-digit', year: 'numeric',
                     hour: '2-digit', minute: '2-digit'
                   })
                 : "date inconnue";
-            showBlocageConforme(empId, empData.id_kit_stocke, date, empData.verificateur_email);
+            const reforcer = await showConfirmToast(
+                `✅ ${empId} déjà conforme (${date}). Re-contrôler quand même ?`
+            );
+            if (!reforcer) return;
+            // L'utilisateur veut forcer → on rouvre en détail
+            currentEmpId = empId;
+            currentKitId = empData.id_kit_stocke;
+            afficherVueDetail();
+            detailLoadingCard.classList.remove('hidden');
+            detailKitCard.classList.add('hidden');
+            const kitSnap = await getDoc(doc(db, "nomenclature_kits", currentKitId));
+            if (!kitSnap.exists()) throw new Error(`Fiche du kit « ${currentKitId} » introuvable.`);
+            afficherDetailKit(currentKitId, kitSnap.data(), empId);
             return;
         }
 
         currentEmpId = empId;
         currentKitId = empData.id_kit_stocke;
-
         const kitSnap = await getDoc(doc(db, "nomenclature_kits", currentKitId));
-        if (!kitSnap.exists()) {
-            throw new Error(`Fiche technique du kit « ${currentKitId} » introuvable.`);
-        }
-
-        afficherKit(currentKitId, kitSnap.data(), empId);
+        if (!kitSnap.exists()) throw new Error(`Fiche du kit « ${currentKitId} » introuvable.`);
+        afficherDetailKit(currentKitId, kitSnap.data(), empId);
 
     } catch (err) {
-        searchStatus.textContent = '⚠️ ' + err.message;
-    } finally {
-        loadingCard.classList.add('hidden');
-        btnVerifier.disabled = false;
+        detailLoadingCard.classList.add('hidden');
+        afficherVueListe();
+        showToast('⚠️ ' + err.message, 'error');
     }
 }
 
-// ── Carte de blocage pour emplacements déjà conformes ─────────────────────────
-function showBlocageConforme(empId, kitId, date, email) {
-    const blocage = $('blocage-card');
-    $('blocage-emp').textContent   = empId;
-    $('blocage-kit').textContent   = kitId;
-    $('blocage-date').textContent  = date;
-    $('blocage-email').textContent = email || '—';
-    blocage.classList.remove('hidden');
+// ─── Bouton retour ────────────────────────────────────────────────────────────
+btnRetour?.addEventListener('click', () => {
+    afficherVueListe();
+    chargerListeKits(); // rafraîchit la liste (au cas où une validation vient d'être faite)
+});
 
-    // Bouton "Voir dans l'historique"
-    $('btn-voir-histo').onclick = () => {
-        blocage.classList.add('hidden');
-        inputEmp.value = '';
-        showTab('historique');
-        // Pré-remplir la recherche
-        histoSearch.value = empId;
-        chargerHistorique();
-    };
+// ─── Affichage du détail du kit ───────────────────────────────────────────────
+function afficherDetailKit(idKit, data, empId) {
+    detailLoadingCard.classList.add('hidden');
 
-    // Bouton "Re-contrôler quand même"
-    $('btn-forcer-controle').onclick = async () => {
-        blocage.classList.add('hidden');
+    // En-tête
+    detailEmpBadge.textContent = empId;
+    detailKitBadge.textContent = idKit;
+    detailNom.textContent      = data.nom_du_kit;
+    detailEmp.textContent      = empId;
+    if (detailEngin) {
+        detailEngin.textContent = data.engin
+            ? `🚂 Engin : ${data.engin}  ·  Code : ${data.code_kit}`
+            : '';
+    }
 
-        loadingCard.classList.remove('hidden');
-        btnVerifier.disabled = true;
-        try {
-            currentEmpId = empId;
-            currentKitId = kitId;
-            const kitSnap = await getDoc(doc(db, "nomenclature_kits", kitId));
-            if (!kitSnap.exists()) throw new Error(`Fiche du kit « ${kitId} » introuvable.`);
-            afficherKit(kitId, kitSnap.data(), empId);
-        } catch (err) {
-            searchStatus.textContent = '⚠️ ' + err.message;
-        } finally {
-            loadingCard.classList.add('hidden');
-            btnVerifier.disabled = false;
-        }
-    };
-}
-
-function afficherKit(idKit, data, empId) {
-    $('kit-badge').textContent  = idKit;
-    $('kit-nom').textContent    = data.nom_du_kit;
-    $('kit-emp').textContent    = empId;
-    // Engin et code_kit (stockés sur le document kit)
-    const enginEl = $('kit-engin');
-    if (enginEl) enginEl.textContent = data.engin
-        ? `🚂 Engin : ${data.engin}  ·  Code : ${data.code_kit}`
-        : '';
-
+    // Liste des composants
     compList.innerHTML = '';
-
     (data.composants || []).forEach(comp => {
         const item = document.createElement('div');
         item.className = 'comp-item';
@@ -313,7 +438,7 @@ function afficherKit(idKit, data, empId) {
         compList.appendChild(item);
     });
 
-    kitCard.classList.remove('hidden');
+    detailKitCard.classList.remove('hidden');
 }
 
 function evaluerItem(item, input, required) {
@@ -375,13 +500,11 @@ async function valider(statut) {
 
         showToast(`✅ Statut « ${statut} » enregistré.`, 'success');
         setTimeout(() => {
-            kitCard.classList.add('hidden');
-            $('blocage-card')?.classList.add('hidden');
-            inputEmp.value           = '';
-            searchStatus.textContent = '';
             currentEmpId = '';
             currentKitId = '';
-            inputEmp.focus();
+            inputEmp.value = '';
+            afficherVueListe();
+            chargerListeKits(); // rafraîchit : le kit disparaît si conforme
         }, 1500);
 
     } catch (err) {
@@ -393,7 +516,7 @@ async function valider(statut) {
 // HISTORIQUE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-let histoData = []; // cache local pour le filtrage
+let histoData = [];
 
 async function chargerHistorique() {
     histoList.innerHTML    = '';
@@ -406,13 +529,11 @@ async function chargerHistorique() {
 
         snap.forEach(d => {
             const data = d.data();
-            // On n'affiche que les emplacements qui ont été vérifiés au moins une fois
             if (data.derniere_verification) {
                 histoData.push({ id: d.id, ...data });
             }
         });
 
-        // Trier du plus récent au plus ancien
         histoData.sort((a, b) =>
             new Date(b.derniere_verification) - new Date(a.derniere_verification)
         );
@@ -469,7 +590,6 @@ function renderHistorique(liste) {
 
         const verificateur = emp.verificateur_email || '—';
 
-        // Extraire engin et code_kit depuis l'ID concaténé (format: ENGIN_CODEKIT)
         const idParts  = emp.id_kit_stocke ? emp.id_kit_stocke.split('_') : [];
         const enginTag = idParts.length >= 2
             ? `<span class="histo-engin">${idParts[0]}</span>`
@@ -509,7 +629,6 @@ function renderHistorique(liste) {
     });
 }
 
-// Filtrage dynamique
 histoSearch?.addEventListener('input',  () => renderHistorique(histoData));
 histoFilter?.addEventListener('change', () => renderHistorique(histoData));
 
@@ -596,11 +715,9 @@ async function traiterFichier(file) {
 
             const kitsIndex = {};
             lignes.forEach(l => {
-                // ── Normalisation des clés (supprime espaces parasites) ────
                 const row = {};
                 Object.keys(l).forEach(k => { row[k.trim()] = l[k]; });
 
-                // ── Lecture colonnes nouveau format ─────────────────────────
                 const engin      = String(row['Engin']            || row['engin']           || '').trim();
                 const codeKit    = String(row['Code kit']         || row['code_kit']        || row['Code_kit'] || '').trim();
                 const nomKit     = String(row['designations kit'] || row['designation_kit'] || row['nom_kit']  || 'Kit sans nom').trim();
@@ -608,9 +725,8 @@ async function traiterFichier(file) {
                 const nomComp    = String(row['designation article'] || row['designations article'] || row['composant'] || '').trim();
                 const quantite   = Number(row['quantite'] || row['Quantite'] || row['quantité'] || 1);
 
-                if (!engin || !codeKit) return; // ligne incomplète, ignorée
+                if (!engin || !codeKit) return;
 
-                // ── ID = Engin_CodeKit ──────────────────────────────────────
                 const id = `${engin}_${codeKit}`;
 
                 if (!kitsIndex[id]) {
@@ -733,3 +849,8 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+// ─── INIT : charger la liste au démarrage (une fois authentifié) ───────────────
+onAuthStateChanged(auth, user => {
+    if (user) chargerListeKits();
+});
