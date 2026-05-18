@@ -209,7 +209,7 @@ async function chargerEmplacement() {
                     hour: '2-digit', minute: '2-digit'
                   })
                 : "date inconnue";
-            showBlocageConforme(empId, empData.id_kit_stocke, date);
+            showBlocageConforme(empId, empData.id_kit_stocke, date, empData.verificateur_email);
             return;
         }
 
@@ -232,11 +232,12 @@ async function chargerEmplacement() {
 }
 
 // ── Carte de blocage pour emplacements déjà conformes ─────────────────────────
-function showBlocageConforme(empId, kitId, date) {
+function showBlocageConforme(empId, kitId, date, email) {
     const blocage = $('blocage-card');
-    $('blocage-emp').textContent  = empId;
-    $('blocage-kit').textContent  = kitId;
-    $('blocage-date').textContent = date;
+    $('blocage-emp').textContent   = empId;
+    $('blocage-kit').textContent   = kitId;
+    $('blocage-date').textContent  = date;
+    $('blocage-email').textContent = email || '—';
     blocage.classList.remove('hidden');
 
     // Bouton "Voir dans l'historique"
@@ -363,6 +364,7 @@ async function valider(statut) {
         await updateDoc(doc(db, "emplacements", currentEmpId), {
             statut_conformite:     statut,
             derniere_verification: new Date().toISOString(),
+            verificateur_email:    auth.currentUser?.email || 'inconnu',
             detail_verification:   details
         });
 
@@ -460,6 +462,8 @@ function renderHistorique(liste) {
             c.quantite_comptee !== c.quantite_requise
         );
 
+        const verificateur = emp.verificateur_email || '—';
+
         const row = document.createElement('div');
         row.className = `histo-item ${isOk ? 'histo-ok' : isKo ? 'histo-ko' : ''}`;
         row.innerHTML = `
@@ -473,7 +477,10 @@ function renderHistorique(liste) {
                         <span class="histo-kit">${emp.id_kit_stocke || '—'}</span>
                     </div>
                 </div>
-                <div class="histo-date">${date}</div>
+                <div class="histo-meta">
+                    <span class="histo-date">🕒 ${date}</span>
+                    <span class="histo-agent">👤 ${verificateur}</span>
+                </div>
             </div>
             ${manquants.length ? `
             <div class="histo-detail">
