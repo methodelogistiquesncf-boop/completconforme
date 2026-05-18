@@ -228,14 +228,14 @@ function afficherKit(idKit, data, empId) {
     $('kit-nom').textContent   = data.nom_du_kit;
     $('kit-emp').textContent   = empId;
 
-    compList.innerHTML = '';
-    data.composants.forEach((comp, idx) => {
-        const item = document.createElement('div');
-        item.className = 'comp-item';
-        item.dataset.idx      = idx;
-        item.dataset.required = comp.quantite_requise;
-
-        item.innerHTML = `
+    compList.innerHTML = `
+        <div class="comp-header">
+            <span class="comp-header-designation">Désignation</span>
+            <span class="comp-header-theorique">Qté théorique</span>
+            <span class="comp-header-reelle">Qté réelle</span>
+            <span class="comp-header-statut">Statut</span>
+        </div>
+    `;
             <div class="comp-left">
                 <div class="comp-status-icon">
                     <svg class="icon-ok"  width="12" height="9" viewBox="0 0 12 9" fill="none">
