@@ -2,15 +2,17 @@
 // COMPLET CONFORME — Service Worker
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'completconforme-v2';
+const CACHE_NAME = 'completconforme-v3'; // ← bump pour invalider l'ancien cache
 
-// Chemins RELATIFS — fonctionne quel que soit le sous-dossier de déploiement
 const PRECACHE_ASSETS = [
     './',
     './index.html',
     './style.css',
     './app.js',
     './manifest.json',
+    './icons/favicon-16x16.png',
+    './icons/favicon-32x32.png',
+    './icons/apple-touch-icon.png',
     './icons/icon-192x192.png',
     './icons/icon-512x512.png',
 ];
