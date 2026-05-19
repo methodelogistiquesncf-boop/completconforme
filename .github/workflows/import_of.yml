@@ -11,11 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. Récupération du repo ────────────────────────────────────────────
+      # ── 1. Récupération du repo ──────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2          # nécessaire pour git diff-tree sur le commit courant
 
-      # ── 2. Python ─────────────────────────────────────────────────────────
+      # ── 2. Python ───────────────────────────────────────────────────────
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -26,24 +28,38 @@ jobs:
           pip install --quiet \
             openpyxl pandas firebase-admin
 
-      # ── 3. Détection du fichier ajouté ────────────────────────────────────
+      # ── 3. Détection du fichier ajouté ──────────────────────────────────
       - name: Identifier le fichier importé
         id: detect
         run: |
           FILE=$(git diff-tree --no-commit-id -r --name-only ${{ github.sha }} \
-                 | grep '^imports/pending/' | head -1)
-          echo "file=$FILE" >> "$GITHUB_OUTPUT"
-          echo "Fichier détecté : $FILE"
+                 | grep '^imports/pending/' | grep -v '\.gitkeep' | head -1)
+          if [ -z "$FILE" ]; then
+            echo "Aucun fichier à traiter (gitkeep ou autre)."
+            echo "file=" >> "$GITHUB_OUTPUT"
+          else
+            echo "file=$FILE" >> "$GITHUB_OUTPUT"
+            echo "Fichier détecté : $FILE"
+          fi
 
-      # ── 4. Traitement Python ──────────────────────────────────────────────
+      # ── 4. Annulation si aucun fichier pertinent ─────────────────────────
+      - name: Vérifier qu'un fichier a été détecté
+        if: steps.detect.outputs.file == ''
+        run: |
+          echo "Aucun fichier .xlsx/.csv dans imports/pending/ — pipeline arrêté."
+          exit 0
+
+      # ── 5. Traitement Python ─────────────────────────────────────────────
       - name: Importer dans Firestore
+        if: steps.detect.outputs.file != ''
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           IMPORT_FILE: ${{ steps.detect.outputs.file }}
         run: python scripts/import_of.py
 
-      # ── 5. Archivage du fichier traité ────────────────────────────────────
+      # ── 6. Archivage du fichier traité ───────────────────────────────────
       - name: Archiver le fichier traité
+        if: steps.detect.outputs.file != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
