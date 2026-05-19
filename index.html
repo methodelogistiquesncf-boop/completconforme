@@ -10,17 +10,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="CompletConf">
 
-<!-- Manifest PWA -->
 <link rel="manifest" href="./manifest.json">
-
-<!-- Icônes -->
 <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-    <title>Complet Conforme</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="style.css">
+
+<title>Complet Conforme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -39,29 +37,16 @@
 
             <div class="field-group">
                 <label for="login-email">Adresse e-mail</label>
-                <input
-                    type="email"
-                    id="login-email"
-                    class="field-input"
-                    placeholder="vous@exemple.com"
-                    autocomplete="email"
-                    spellcheck="false"
-                >
+                <input type="email" id="login-email" class="field-input"
+                       placeholder="vous@exemple.com" autocomplete="email" spellcheck="false">
             </div>
 
             <div class="field-group">
                 <label for="login-pwd">Mot de passe</label>
                 <div class="pwd-wrapper">
-                    <input
-                        type="password"
-                        id="login-pwd"
-                        class="field-input"
-                        placeholder="••••••••"
-                        autocomplete="current-password"
-                    >
-                    <button type="button" id="toggle-pwd" class="btn-toggle-pwd" title="Afficher/Masquer">
-                        👁
-                    </button>
+                    <input type="password" id="login-pwd" class="field-input"
+                           placeholder="••••••••" autocomplete="current-password">
+                    <button type="button" id="toggle-pwd" class="btn-toggle-pwd" title="Afficher/Masquer">👁</button>
                 </div>
             </div>
 
@@ -90,9 +75,7 @@
                     <button class="tab-btn" id="tab-profil">👤 Profil</button>
                     <button class="tab-btn" id="tab-admin">⚙️ Admin</button>
                     <div class="header-user-chip" id="header-user" title="Utilisateur connecté"></div>
-                    <button class="btn-logout" id="btn-logout" title="Se déconnecter">
-                        Déconnexion
-                    </button>
+                    <button class="btn-logout" id="btn-logout" title="Se déconnecter">Déconnexion</button>
                 </nav>
             </div>
         </header>
@@ -117,597 +100,427 @@
                 </button>
             </aside>
 
-        <main>
+            <main>
 
-            <!-- ════════════════════════════════════════ -->
-            <!--           SECTION TERRAIN               -->
-            <!-- ════════════════════════════════════════ -->
-            <section id="sec-terrain">
+                <!-- ════════════════════════════════════════ -->
+                <!--           SECTION TERRAIN               -->
+                <!-- ════════════════════════════════════════ -->
+                <section id="sec-terrain">
 
-                <!-- Bannière offline -->
-                <div class="offline-banner" id="offline-banner">
-                    ⚠️ Mode hors-ligne — les modifications seront synchronisées au retour du réseau.
-                </div>
-
-                <!-- ══════════════════════════════════════
-                     VUE LISTE — niveau 1 : kits non conformes (global)
-                     ══════════════════════════════════════ -->
-                <div id="view-liste">
-
-                    <!-- Panneau gauche : recherche -->
-                    <div class="card">
-                        <p class="card-title">Emplacements à contrôler</p>
-                        <div class="search-row">
-                            <input
-                                type="text"
-                                id="input-emplacement"
-                                class="search-input"
-                                placeholder="Ex: ETKI.001.01"
-                                autocomplete="off"
-                                spellcheck="false"
-                            >
-                            <button class="btn-search" id="btn-verifier">Vérifier</button>
-                        </div>
-                        <p class="status-line" id="search-status"></p>
+                    <div class="offline-banner" id="offline-banner">
+                        ⚠️ Mode hors-ligne — les modifications seront synchronisées au retour du réseau.
                     </div>
 
-                    <!-- Panneau droit : résultats -->
-                    <div class="liste-results">
+                    <!-- VUE LISTE — niveau 1 -->
+                    <div id="view-liste">
 
-                        <div class="loading-wrap" id="liste-loading">
+                        <div class="card">
+                            <p class="card-title">Emplacements à contrôler</p>
+                            <div class="search-row">
+                                <input type="text" id="input-emplacement" class="search-input"
+                                       placeholder="Ex: ETKI.001.01" autocomplete="off" spellcheck="false">
+                                <button class="btn-search" id="btn-verifier">Vérifier</button>
+                            </div>
+                            <p class="status-line" id="search-status"></p>
+                        </div>
+
+                        <div class="liste-results">
+                            <div class="loading-wrap" id="liste-loading">
+                                <div class="spinner"></div>
+                                <span>Chargement des emplacements…</span>
+                            </div>
+                            <p class="liste-vide hidden" id="liste-vide">Aucun emplacement à contrôler.</p>
+                            <div id="liste-kits" class="liste-kits"></div>
+                        </div>
+
+                    </div>
+
+                    <!-- VUE KITS — niveau 2 -->
+                    <div id="view-kits" class="hidden">
+
+                        <div class="detail-nav">
+                            <button class="btn-retour" id="btn-retour-liste">← Liste</button>
+                            <h2 class="kits-emp-title" id="kits-emp-title">📍 —</h2>
+                        </div>
+
+                        <div class="loading-wrap" id="kits-emp-loading">
                             <div class="spinner"></div>
-                            <span>Chargement des emplacements…</span>
+                            <span>Chargement des kits…</span>
                         </div>
 
-                        <p class="liste-vide hidden" id="liste-vide">Aucun emplacement à contrôler.</p>
+                        <p class="liste-vide hidden" id="kits-emp-vide">Aucun kit trouvé pour cet emplacement.</p>
 
-                        <div id="liste-kits" class="liste-kits"></div>
+                        <div id="kits-emp-list" class="liste-kits"></div>
 
                     </div>
 
-                </div>
+                    <!-- VUE DETAIL — niveau 3 -->
+                    <div id="view-detail" class="hidden">
 
-                <!-- ══════════════════════════════════════
-                     VUE KITS — niveau 2
-                     ══════════════════════════════════════ -->
-                <div id="view-kits" class="hidden">
-
-                    <div class="detail-nav">
-                        <button class="btn-retour" id="btn-retour-liste">← Liste</button>
-                        <h2 class="kits-emp-title" id="kits-emp-title">📍 —</h2>
-                    </div>
-
-                    <div class="loading-wrap" id="kits-emp-loading">
-                        <div class="spinner"></div>
-                        <span>Chargement des kits…</span>
-                    </div>
-
-                    <p class="liste-vide hidden" id="kits-emp-vide">Aucun kit trouvé pour cet emplacement.</p>
-
-                    <div id="kits-emp-list" class="liste-kits"></div>
-
-                </div>
-
-                <!-- ══════════════════════════════════════
-                     VUE DETAIL — niveau 3
-                     ══════════════════════════════════════ -->
-                <div id="view-detail" class="hidden">
-
-                    <div class="detail-nav">
-                        <button class="btn-retour" id="btn-retour-kits">← Kits</button>
-                        <div class="detail-nav-ids">
-                            <span class="detail-emp-badge" id="detail-emp-badge">—</span>
-                            <span class="detail-kit-badge" id="detail-kit-badge">—</span>
+                        <div class="detail-nav">
+                            <button class="btn-retour" id="btn-retour-kits">← Kits</button>
+                            <div class="detail-nav-ids">
+                                <span class="detail-emp-badge" id="detail-emp-badge">—</span>
+                                <span class="detail-kit-badge" id="detail-kit-badge">—</span>
+                            </div>
                         </div>
+
+                        <div class="card hidden anim-in" id="detail-loading-card">
+                            <div class="loading-wrap">
+                                <div class="spinner"></div>
+                                <span>Chargement du kit…</span>
+                            </div>
+                        </div>
+
+                        <div class="card hidden anim-in" id="detail-kit-card">
+                            <div class="kit-header">
+                                <div>
+                                    <h2 class="kit-name" id="detail-nom">—</h2>
+                                    <p class="kit-location">📍 Emplacement : <strong id="detail-emp">—</strong></p>
+                                    <p class="kit-engin" id="detail-engin"></p>
+                                </div>
+                            </div>
+
+                            <p class="card-title">Composition théorique à valider</p>
+                            <div class="comp-list" id="comp-list"></div>
+
+                            <div class="btn-actions">
+                                <button class="btn-action btn-conforme" id="btn-conforme">
+                                    ✅ Kit complet &amp; conforme
+                                </button>
+                                <button class="btn-action btn-incomplet" id="btn-incomplet">
+                                    ⚠️ Signaler des éléments manquants
+                                </button>
+                            </div>
+                        </div>
+
                     </div>
 
-                    <div class="card hidden anim-in" id="detail-loading-card">
-                        <div class="loading-wrap">
+                </section>
+
+                <!-- ════════════════════════════════════════ -->
+                <!--           SECTION HISTORIQUE            -->
+                <!-- ════════════════════════════════════════ -->
+                <section id="sec-historique" class="hidden">
+
+                    <div class="card">
+                        <p class="card-title">Historique des contrôles</p>
+
+                        <div class="histo-toolbar">
+                            <input type="text" id="histo-search" class="histo-search-input"
+                                   placeholder="Rechercher un emplacement ou kit…" autocomplete="off">
+                            <select id="histo-filter" class="histo-filter-select">
+                                <option value="tous">Tous les statuts</option>
+                                <option value="Conforme">Conforme</option>
+                                <option value="Incomplet">Incomplet</option>
+                            </select>
+                        </div>
+
+                        <div class="loading-wrap" id="histo-loading">
                             <div class="spinner"></div>
-                            <span>Chargement du kit…</span>
+                            <span>Chargement de l'historique…</span>
+                        </div>
+
+                        <p class="histo-empty hidden" id="histo-empty">Aucun contrôle enregistré.</p>
+
+                        <div id="histo-list" class="histo-list"></div>
+                    </div>
+
+                </section>
+
+                <!-- ════════════════════════════════════════ -->
+                <!--            SECTION ADMIN                 -->
+                <!-- ════════════════════════════════════════ -->
+                <section id="sec-admin" class="hidden">
+
+                    <!-- Verrou PIN -->
+                    <div class="card" id="admin-auth">
+                        <div class="auth-gate">
+                            <span class="auth-icon">🔐</span>
+                            <p class="auth-title">Accès administrateur</p>
+                            <p class="auth-sub">Entrez votre code PIN à 4 chiffres pour déverrouiller les outils d'import.</p>
+                            <div class="pin-row" id="pin-row">
+                                <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                                <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                                <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                                <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                            </div>
+                            <p class="pin-error" id="pin-error"></p>
+                            <button class="btn-pin-validate" id="btn-pin">Déverrouiller</button>
                         </div>
                     </div>
 
-                    <div class="card hidden anim-in" id="detail-kit-card">
-                        <div class="kit-header">
-                            <div>
-                                <h2 class="kit-name" id="detail-nom">—</h2>
-                                <p class="kit-location">📍 Emplacement : <strong id="detail-emp">—</strong></p>
-                                <p class="kit-engin" id="detail-engin"></p>
+                    <!-- Contenu admin (déverrouillé) -->
+                    <div id="admin-content" class="hidden" style="display:none;flex-direction:column;gap:1rem;">
+
+                        <!-- ── Onglets ───────────────────────────────────── -->
+                        <div class="admin-tabs">
+                            <button class="admin-tab-btn active" data-tab="github">⚙️ Config GitHub</button>
+                            <button class="admin-tab-btn" data-tab="emplacements">📄 Emplacements autorisés</button>
+                            <button class="admin-tab-btn" data-tab="import">📊 Import kits</button>
+                        </div>
+
+                        <!-- ── Panneau 1 : Configuration GitHub ─────────── -->
+                        <div class="admin-tab-panel" id="admin-tab-github">
+                            <div class="card">
+                                <p class="card-title">Configuration GitHub</p>
+                                <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
+                                    Le token est stocké dans Firestore et
+                                    <strong style="color:var(--text)">jamais dans le code source</strong>.
+                                    Il est accessible uniquement aux utilisateurs connectés.
+                                    Scope requis :
+                                    <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">Contents: Read &amp; Write</code>
+                                </p>
+                                <div class="field-group" style="margin-bottom:.9rem;">
+                                    <label for="github-token-input">Personal Access Token (PAT)</label>
+                                    <div class="pwd-wrapper">
+                                        <input type="password" id="github-token-input" class="field-input"
+                                               placeholder="ghp_••••••••••••••••••••" autocomplete="off" spellcheck="false">
+                                        <button type="button" class="btn-toggle-pwd" data-target="github-token-input">👁</button>
+                                    </div>
+                                </div>
+                                <button class="btn-search" id="btn-save-token" style="max-width:220px;">
+                                    Enregistrer le token →
+                                </button>
+                                <div class="admin-status" id="token-status"></div>
                             </div>
                         </div>
 
-                        <p class="card-title">Composition théorique à valider</p>
-                        <div class="comp-list" id="comp-list"></div>
+                        <!-- ── Panneau 2 : Emplacements autorisés ───────── -->
+                        <div class="admin-tab-panel hidden" id="admin-tab-emplacements">
+                            <div class="card">
+                                <p class="card-title">Emplacements autorisés — pour contrôle complet/conforme</p>
+                                <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
+                                    Importez
+                                    <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">emplacements_autorises.txt</code>
+                                    pour <strong style="color:var(--text)">écraser</strong> le fichier présent.
+                                    Le fichier doit exactement porter ce nom et contenir un identifiant par ligne.
+                                </p>
 
-                        <div class="btn-actions">
-                            <button class="btn-action btn-conforme" id="btn-conforme">
-                                ✅ Kit complet &amp; conforme
-                            </button>
-                            <button class="btn-action btn-incomplet" id="btn-incomplet">
-                                ⚠️ Signaler des éléments manquants
-                            </button>
+                                <div class="drop-zone" id="drop-zone-emp">
+                                    <input type="file" id="file-input-emp" accept=".txt">
+                                    <span class="drop-icon">📄</span>
+                                    <p class="drop-title">Glisser-déposer emplacements_autorises.txt</p>
+                                    <p class="drop-sub">Fichier .txt uniquement · 1 identifiant par ligne</p>
+                                </div>
+
+                                <div id="progress-area-emp" class="hidden" style="margin-top:1rem;">
+                                    <div class="progress-wrap">
+                                        <div class="progress-bar" id="progress-bar-emp"></div>
+                                    </div>
+                                    <p class="progress-label" id="progress-label-emp">Traitement…</p>
+                                </div>
+
+                                <div class="admin-status" id="admin-status-emp"></div>
+
+                                <div id="emp-preview-wrap" class="hidden" style="margin-top:1.25rem;">
+                                    <p class="card-title" style="margin-bottom:.6rem;">Contenu envoyé</p>
+                                    <div id="emp-preview-list"
+                                         style="display:flex;flex-wrap:wrap;gap:.4rem;max-height:220px;overflow-y:auto;
+                                                padding:.75rem;background:var(--input-bg);border:1px solid var(--border);
+                                                border-radius:var(--radius);"></div>
+                                    <p id="emp-preview-count"
+                                       style="font-family:var(--mono);font-size:.7rem;color:var(--muted);
+                                              margin-top:.5rem;text-align:right;"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── Panneau 3 : Import fichier kits ──────────── -->
+                        <div class="admin-tab-panel hidden" id="admin-tab-import">
+
+                            <div class="card">
+                                <p class="card-title">Import fichier kits — Dépôt GitHub</p>
+                                <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
+                                    Déposez le fichier Excel pour l'envoyer dans
+                                    <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">imports/pending/</code>.
+                                    Le pipeline GitHub Actions s'exécutera automatiquement et son avancement
+                                    sera affiché ici en temps réel.
+                                </p>
+
+                                <div class="drop-zone" id="drop-zone-xls">
+                                    <input type="file" id="file-input-xls" accept=".xlsx,.xls,.csv">
+                                    <span class="drop-icon">📊</span>
+                                    <p class="drop-title">Glisser-déposer le fichier Excel</p>
+                                    <p class="drop-sub">Fichiers .xlsx, .xls ou .csv · envoyé dans imports/pending/</p>
+                                </div>
+
+                                <div id="progress-area-xls" class="hidden" style="margin-top:1rem;">
+                                    <div class="progress-wrap">
+                                        <div class="progress-bar" id="progress-bar-xls"></div>
+                                    </div>
+                                    <p class="progress-label" id="progress-label-xls">Traitement…</p>
+                                </div>
+
+                                <div class="admin-status" id="admin-status-xls"></div>
+
+                                <!-- Suivi workflow GitHub Actions -->
+                                <div id="workflow-panel" class="hidden" style="margin-top:1.5rem;">
+                                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem;">
+                                        <p class="card-title" style="margin-bottom:0;">Pipeline GitHub Actions</p>
+                                        <a id="workflow-link" href="#" target="_blank" rel="noopener"
+                                           style="font-family:var(--mono);font-size:.72rem;color:var(--accent);text-decoration:none;display:none;">
+                                            Voir sur GitHub ↗
+                                        </a>
+                                    </div>
+                                    <div id="workflow-run-status"
+                                         style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;
+                                                background:var(--input-bg);border:1.5px solid var(--border);
+                                                border-radius:var(--radius);margin-bottom:1rem;">
+                                        <div class="spinner" id="workflow-spinner" style="flex-shrink:0;"></div>
+                                        <span id="workflow-run-label" style="font-size:.85rem;font-weight:600;color:var(--text);">
+                                            En attente du démarrage du pipeline…
+                                        </span>
+                                    </div>
+                                    <div id="workflow-steps" style="display:flex;flex-direction:column;gap:.4rem;"></div>
+                                    <p id="workflow-duration"
+                                       style="font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-top:.65rem;text-align:right;display:none;"></p>
+                                </div>
+                            </div>
+
+                            <!-- Format de fichier attendu -->
+                            <div class="card">
+                                <p class="card-title">Format de fichier attendu</p>
+                                <div style="overflow-x:auto;">
+                                    <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
+                                        <thead>
+                                            <tr style="border-bottom:1px solid var(--border);">
+                                                <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">Engin</th>
+                                                <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">Code kit</th>
+                                                <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">designations kit</th>
+                                                <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">emplacement</th>
+                                                <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">designation article</th>
+                                                <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">quantite</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr style="border-bottom:1px solid var(--border);">
+                                                <td style="padding:.5rem .75rem;font-family:var(--mono);color:var(--accent-hi);">X76562</td>
+                                                <td style="padding:.5rem .75rem;font-family:var(--mono);">k21opm18</td>
+                                                <td style="padding:.5rem .75rem;">Kit Sécurité</td>
+                                                <td style="padding:.5rem .75rem;">ETKI.001.01</td>
+                                                <td style="padding:.5rem .75rem;">Extincteur CO₂</td>
+                                                <td style="padding:.5rem .75rem;text-align:center;">2</td>
+                                            </tr>
+                                            <tr style="border-bottom:1px solid var(--border);">
+                                                <td style="padding:.5rem .75rem;font-family:var(--mono);color:var(--accent-hi);">X76562</td>
+                                                <td style="padding:.5rem .75rem;font-family:var(--mono);">k21opm18</td>
+                                                <td style="padding:.5rem .75rem;">Kit Sécurité</td>
+                                                <td style="padding:.5rem .75rem;">ETKI.001.01</td>
+                                                <td style="padding:.5rem .75rem;">Trousse premiers secours</td>
+                                                <td style="padding:.5rem .75rem;text-align:center;">1</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:.5rem .75rem;font-family:var(--mono);color:var(--accent-hi);">X76562</td>
+                                                <td style="padding:.5rem .75rem;font-family:var(--mono);">k21opm19</td>
+                                                <td style="padding:.5rem .75rem;">Kit Maintenance</td>
+                                                <td style="padding:.5rem .75rem;">ETKI.001.02</td>
+                                                <td style="padding:.5rem .75rem;">Jeu de tournevis</td>
+                                                <td style="padding:.5rem .75rem;text-align:center;">1</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                        </div><!-- /admin-tab-import -->
+
+                    </div><!-- /admin-content -->
+
+                </section>
+
+                <!-- ════════════════════════════════════════ -->
+                <!--            SECTION PROFIL               -->
+                <!-- ════════════════════════════════════════ -->
+                <section id="sec-profil" class="hidden">
+
+                    <div class="card profil-identity-card">
+                        <div class="profil-avatar" id="profil-initial">—</div>
+                        <div class="profil-info">
+                            <p class="profil-email" id="profil-email">—</p>
+                            <div class="profil-meta-row">
+                                <span class="profil-meta-item">
+                                    <span class="profil-meta-label">Compte créé le</span>
+                                    <span class="profil-meta-value" id="profil-created">—</span>
+                                </span>
+                                <span class="profil-meta-sep">·</span>
+                                <span class="profil-meta-item">
+                                    <span class="profil-meta-label">Dernière connexion</span>
+                                    <span class="profil-meta-value" id="profil-last-login">—</span>
+                                </span>
+                            </div>
+                            <div class="profil-uid-row">
+                                <span class="profil-meta-label">UID</span>
+                                <code class="profil-uid" id="profil-uid">—</code>
+                            </div>
                         </div>
                     </div>
 
-                </div>
-
-            </section>
-
-            <!-- ════════════════════════════════════════ -->
-            <!--           SECTION HISTORIQUE            -->
-            <!-- ════════════════════════════════════════ -->
-            <section id="sec-historique" class="hidden">
-
-                <div class="card">
-                    <p class="card-title">Historique des contrôles</p>
-
-                    <div class="histo-toolbar">
-                        <input
-                            type="text"
-                            id="histo-search"
-                            class="histo-search-input"
-                            placeholder="Rechercher un emplacement ou kit…"
-                            autocomplete="off"
-                        >
-                        <select id="histo-filter" class="histo-filter-select">
-                            <option value="tous">Tous les statuts</option>
-                            <option value="Conforme">Conforme</option>
-                            <option value="Incomplet">Incomplet</option>
-                        </select>
-                    </div>
-
-                    <div class="loading-wrap" id="histo-loading">
-                        <div class="spinner"></div>
-                        <span>Chargement de l'historique…</span>
-                    </div>
-
-                    <p class="histo-empty hidden" id="histo-empty">Aucun contrôle enregistré.</p>
-
-                    <div id="histo-list" class="histo-list"></div>
-                </div>
-
-            </section>
-
-            <!-- ════════════════════════════════════════ -->
-            <!--            SECTION ADMIN                 -->
-            <!-- ════════════════════════════════════════ -->
-            <section id="sec-admin" class="hidden">
-
-                <!-- ── Verrou PIN ─────────────────────────────────────────── -->
-                <div class="card" id="admin-auth">
-                    <div class="auth-gate">
-                        <span class="auth-icon">🔐</span>
-                        <p class="auth-title">Accès administrateur</p>
-                        <p class="auth-sub">Entrez votre code PIN à 4 chiffres pour déverrouiller les outils d'import.</p>
-                        <div class="pin-row" id="pin-row">
-                            <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                            <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                            <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                            <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                        </div>
-                        <p class="pin-error" id="pin-error"></p>
-                        <button class="btn-pin-validate" id="btn-pin">Déverrouiller</button>
-                    </div>
-                </div>
-
-                <!-- ── Contenu admin (déverrouillé) ──────────────────────── -->
-
-
-<div id="admin-content" class="hidden" style="display:none;flex-direction:column;gap:1rem;">
-
-    <!-- ── Onglets ─────────────────────────────────────────── -->
-    <div class="admin-tabs">
-        <button class="admin-tab-btn active" data-tab="github">⚙️ Config GitHub</button>
-        <button class="admin-tab-btn" data-tab="emplacements">📄 Emplacements autorisés</button>
-        <button class="admin-tab-btn" data-tab="import">📊 Import kits</button>
-    </div>
-
-    <!-- ── Panneau 1 : Configuration GitHub ──────────────────── -->
-    <div class="admin-tab-panel" id="admin-tab-github">
-        <div class="card">
-            <p class="card-title">Configuration GitHub</p>
-            <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
-                Le token est stocké dans Firestore et
-                <strong style="color:var(--text)">jamais dans le code source</strong>.
-                Scope requis :
-                <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">Contents: Read &amp; Write</code>
-            </p>
-            <div class="field-group" style="margin-bottom:.9rem;">
-                <label for="github-token-input">Personal Access Token (PAT)</label>
-                <div class="pwd-wrapper">
-                    <input type="password" id="github-token-input" class="field-input"
-                           placeholder="ghp_••••••••••••••••••••" autocomplete="off" spellcheck="false">
-                    <button type="button" class="btn-toggle-pwd" data-target="github-token-input">👁</button>
-                </div>
-            </div>
-            <button class="btn-search" id="btn-save-token" style="max-width:220px;">
-                Enregistrer le token →
-            </button>
-            <div class="admin-status" id="token-status"></div>
-        </div>
-    </div>
-
-    <!-- ── Panneau 2 : Emplacements autorisés ────────────────── -->
-    <div class="admin-tab-panel hidden" id="admin-tab-emplacements">
-        <div class="card">
-            <p class="card-title">Emplacements autorisés — pour contrôle complet/conforme</p>
-            <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
-                Importez
-                <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">emplacements_autorises.txt</code>
-                pour <strong style="color:var(--text)">écraser</strong> le fichier présent.
-                Le fichier doit exactement porter ce nom et contenir un identifiant par ligne.
-            </p>
-            <div class="drop-zone" id="drop-zone-emp">
-                <input type="file" id="file-input-emp" accept=".txt">
-                <span class="drop-icon">📄</span>
-                <p class="drop-title">Glisser-déposer emplacements_autorises.txt</p>
-                <p class="drop-sub">Fichier .txt uniquement · 1 identifiant par ligne</p>
-            </div>
-            <div id="progress-area-emp" class="hidden" style="margin-top:1rem;">
-                <div class="progress-wrap">
-                    <div class="progress-bar" id="progress-bar-emp"></div>
-                </div>
-                <p class="progress-label" id="progress-label-emp">Traitement…</p>
-            </div>
-            <div class="admin-status" id="admin-status-emp"></div>
-            <div id="emp-preview-wrap" class="hidden" style="margin-top:1.25rem;">
-                <p class="card-title" style="margin-bottom:.6rem;">Contenu envoyé</p>
-                <div id="emp-preview-list"
-                     style="display:flex;flex-wrap:wrap;gap:.4rem;max-height:220px;overflow-y:auto;
-                            padding:.75rem;background:var(--input-bg);border:1px solid var(--border);
-                            border-radius:var(--radius);"></div>
-                <p id="emp-preview-count"
-                   style="font-family:var(--mono);font-size:.7rem;color:var(--muted);
-                          margin-top:.5rem;text-align:right;"></p>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── Panneau 3 : Import fichier kits ───────────────────── -->
-    <div class="admin-tab-panel hidden" id="admin-tab-import">
-        <div class="card">
-            <p class="card-title">Import fichier kits — Dépôt GitHub</p>
-            <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
-                Déposez le fichier Excel pour l'envoyer dans
-                <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);
-                             border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">
-                    imports/pending/
-                </code>.
-                Le pipeline GitHub Actions s'exécutera automatiquement.
-            </p>
-            <div class="drop-zone" id="drop-zone-xls">
-                <input type="file" id="file-input-xls" accept=".xlsx,.xls,.csv">
-                <span class="drop-icon">📊</span>
-                <p class="drop-title">Glisser-déposer le fichier Excel</p>
-                <p class="drop-sub">Fichiers .xlsx, .xls ou .csv · envoyé dans imports/pending/</p>
-            </div>
-            <div id="progress-area-xls" class="hidden" style="margin-top:1rem;">
-                <div class="progress-wrap">
-                    <div class="progress-bar" id="progress-bar-xls"></div>
-                </div>
-                <p class="progress-label" id="progress-label-xls">Traitement…</p>
-            </div>
-            <div class="admin-status" id="admin-status-xls"></div>
-
-            <!-- Suivi workflow -->
-            <div id="workflow-panel" class="hidden" style="margin-top:1.5rem;">
-                <div style="display:flex;align-items:center;justify-content:space-between;
-                            margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem;">
-                    <p class="card-title" style="margin-bottom:0;">Pipeline GitHub Actions</p>
-                    <a id="workflow-link" href="#" target="_blank" rel="noopener"
-                       style="font-family:var(--mono);font-size:.72rem;color:var(--accent);
-                              text-decoration:none;display:none;">
-                        Voir sur GitHub ↗
-                    </a>
-                </div>
-                <div id="workflow-run-status"
-                     style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;
-                            background:var(--input-bg);border:1.5px solid var(--border);
-                            border-radius:var(--radius);margin-bottom:1rem;">
-                    <div class="spinner" id="workflow-spinner" style="flex-shrink:0;"></div>
-                    <span id="workflow-run-label"
-                          style="font-size:.85rem;font-weight:600;color:var(--text);">
-                        En attente du démarrage du pipeline…
-                    </span>
-                </div>
-                <div id="workflow-steps" style="display:flex;flex-direction:column;gap:.4rem;"></div>
-                <p id="workflow-duration"
-                   style="font-family:var(--mono);font-size:.7rem;color:var(--muted);
-                          margin-top:.65rem;text-align:right;display:none;"></p>
-            </div>
-        </div>
-
-        <!-- Format attendu -->
-        <div class="card">
-            <p class="card-title">Format de fichier attendu</p>
-            <div style="overflow-x:auto;">
-                <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
-                    <thead>
-                        <tr style="border-bottom:1px solid var(--border);">
-                            <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">Engin</th>
-                            <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">Code kit</th>
-                            <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">designations kit</th>
-                            <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">emplacement</th>
-                            <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">designation article</th>
-                            <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">quantite</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr style="border-bottom:1px solid var(--border);">
-                            <td style="padding:.5rem .75rem;font-family:var(--mono);color:var(--accent-hi);">X76562</td>
-                            <td style="padding:.5rem .75rem;font-family:var(--mono);">k21opm18</td>
-                            <td style="padding:.5rem .75rem;">Kit Sécurité</td>
-                            <td style="padding:.5rem .75rem;">ETKI.001.01</td>
-                            <td style="padding:.5rem .75rem;">Extincteur CO₂</td>
-                            <td style="padding:.5rem .75rem;text-align:center;">2</td>
-                        </tr>
-                        <tr style="border-bottom:1px solid var(--border);">
-                            <td style="padding:.5rem .75rem;font-family:var(--mono);color:var(--accent-hi);">X76562</td>
-                            <td style="padding:.5rem .75rem;font-family:var(--mono);">k21opm18</td>
-                            <td style="padding:.5rem .75rem;">Kit Sécurité</td>
-                            <td style="padding:.5rem .75rem;">ETKI.001.01</td>
-                            <td style="padding:.5rem .75rem;">Trousse premiers secours</td>
-                            <td style="padding:.5rem .75rem;text-align:center;">1</td>
-                        </tr>
-                        <tr>
-                            <td style="padding:.5rem .75rem;font-family:var(--mono);color:var(--accent-hi);">X76562</td>
-                            <td style="padding:.5rem .75rem;font-family:var(--mono);">k21opm19</td>
-                            <td style="padding:.5rem .75rem;">Kit Maintenance</td>
-                            <td style="padding:.5rem .75rem;">ETKI.001.02</td>
-                            <td style="padding:.5rem .75rem;">Jeu de tournevis</td>
-                            <td style="padding:.5rem .75rem;text-align:center;">1</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-</div>
-
-
-
-                    <!-- ── 2. Token GitHub ────────────────────────────────── -->
                     <div class="card">
-                        <p class="card-title">Configuration GitHub</p>
-                        <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
-                            Le token est stocké dans Firestore et
-                            <strong style="color:var(--text)">jamais dans le code source</strong>.
-                            Il est accessible uniquement aux utilisateurs connectés.
-                            Scope requis :
-                            <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">Contents: Read &amp; Write</code>
-                        </p>
+                        <p class="card-title">Modifier le mot de passe</p>
 
-                        <div class="field-group" style="margin-bottom:.9rem;">
-                            <label for="github-token-input">Personal Access Token (PAT)</label>
-                            <div class="pwd-wrapper">
-                                <input
-                                    type="password"
-                                    id="github-token-input"
-                                    class="field-input"
-                                    placeholder="ghp_••••••••••••••••••••"
-                                    autocomplete="off"
-                                    spellcheck="false"
-                                >
-                                <button type="button" class="btn-toggle-pwd" data-target="github-token-input">👁</button>
+                        <div class="profil-pwd-form">
+
+                            <div class="field-group">
+                                <label for="pwd-current">Mot de passe actuel</label>
+                                <div class="pwd-wrapper">
+                                    <input type="password" id="pwd-current" class="field-input"
+                                           placeholder="••••••••" autocomplete="current-password">
+                                    <button type="button" class="btn-toggle-pwd" data-target="pwd-current">👁</button>
+                                </div>
                             </div>
-                        </div>
 
-                        <button class="btn-search" id="btn-save-token" style="max-width:220px;">
-                            Enregistrer le token →
-                        </button>
-
-                        <div class="admin-status" id="token-status"></div>
-                    </div>
-
-                    <!-- ── 3. Emplacements autorisés ──────────────────────── -->
-                    <div class="card">
-                        <p class="card-title">Emplacements autorisés — pour controle complet/conforme</p>
-                        <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
-                            Importez
-                            <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">emplacements_autorises.txt</code>
-                            pour <strong style="color:var(--text)">écraser</strong> le fichier présent. Le fichier doit exactement porter ce nom
-                            et contenir un identifiant par ligne.
-                        </p>
-
-                        <div class="drop-zone" id="drop-zone-emp">
-                            <input type="file" id="file-input-emp" accept=".txt">
-                            <span class="drop-icon">📄</span>
-                            <p class="drop-title">Glisser-déposer emplacements_autorises.txt</p>
-                            <p class="drop-sub">Fichier .txt uniquement · 1 identifiant par ligne</p>
-                        </div>
-
-                        <div id="progress-area-emp" class="hidden" style="margin-top:1rem;">
-                            <div class="progress-wrap">
-                                <div class="progress-bar" id="progress-bar-emp"></div>
+                            <div class="field-group">
+                                <label for="pwd-new">Nouveau mot de passe</label>
+                                <div class="pwd-wrapper">
+                                    <input type="password" id="pwd-new" class="field-input"
+                                           placeholder="••••••••" autocomplete="new-password">
+                                    <button type="button" class="btn-toggle-pwd" data-target="pwd-new">👁</button>
+                                </div>
                             </div>
-                            <p class="progress-label" id="progress-label-emp">Traitement…</p>
-                        </div>
 
-                        <div class="admin-status" id="admin-status-emp"></div>
-
-                        <div id="emp-preview-wrap" class="hidden" style="margin-top:1.25rem;">
-                            <p class="card-title" style="margin-bottom:.6rem;">Contenu envoyé</p>
-                            <div id="emp-preview-list"
-                                 style="display:flex;flex-wrap:wrap;gap:.4rem;max-height:220px;overflow-y:auto;
-                                        padding:.75rem;background:var(--input-bg);border:1px solid var(--border);
-                                        border-radius:var(--radius);">
+                            <div class="field-group">
+                                <label for="pwd-confirm">Confirmer le nouveau mot de passe</label>
+                                <div class="pwd-wrapper">
+                                    <input type="password" id="pwd-confirm" class="field-input"
+                                           placeholder="••••••••" autocomplete="new-password">
+                                    <button type="button" class="btn-toggle-pwd" data-target="pwd-confirm">👁</button>
+                                </div>
                             </div>
-                            <p id="emp-preview-count"
-                               style="font-family:var(--mono);font-size:.7rem;color:var(--muted);
-                                      margin-top:.5rem;text-align:right;"></p>
+
+                            <div class="pwd-strength-wrap" id="pwd-strength-wrap">
+                                <div class="pwd-strength-bar">
+                                    <div class="pwd-strength-fill" id="pwd-strength-fill"></div>
+                                </div>
+                                <span class="pwd-strength-label" id="pwd-strength-label"></span>
+                            </div>
+
+                            <div class="pwd-change-error login-error" id="pwd-change-error"></div>
+                            <div class="pwd-change-success" id="pwd-change-success"></div>
+
+                            <button class="btn-login" id="btn-change-pwd">
+                                Modifier le mot de passe →
+                            </button>
+
                         </div>
                     </div>
 
-          <!-- ── import fichier kit en escel ───────────────────── -->
- 
-<div class="card">
-  <p class="card-title">Import fichier kits — Dépôt GitHub</p>
-  <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
-    Déposez le fichier Excel pour l'envoyer dans
-    <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);
-                 border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">
-      imports/pending/
-    </code>.
-    Le pipeline GitHub Actions s'exécutera automatiquement et son avancement
-    sera affiché ici en temps réel.
-  </p>
- 
-  <!-- Zone de dépôt -->
-  <div class="drop-zone" id="drop-zone-xls">
-    <input type="file" id="file-input-xls" accept=".xlsx,.xls,.csv">
-    <span class="drop-icon">📊</span>
-    <p class="drop-title">Glisser-déposer le fichier Excel</p>
-    <p class="drop-sub">Fichiers .xlsx, .xls ou .csv · envoyé dans imports/pending/</p>
-  </div>
- 
-  <!-- Barre push -->
-  <div id="progress-area-xls" class="hidden" style="margin-top:1rem;">
-    <div class="progress-wrap">
-      <div class="progress-bar" id="progress-bar-xls"></div>
-    </div>
-    <p class="progress-label" id="progress-label-xls">Traitement…</p>
-  </div>
- 
-  <!-- Statut push -->
-  <div class="admin-status" id="admin-status-xls"></div>
- 
-  <!-- ── Suivi du workflow GitHub Actions ───────────────────── -->
-  <div id="workflow-panel" class="hidden" style="margin-top:1.5rem;">
- 
-    <!-- En-tête run -->
-    <div style="display:flex;align-items:center;justify-content:space-between;
-                margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem;">
-      <p class="card-title" style="margin-bottom:0;">Pipeline GitHub Actions</p>
-      <a id="workflow-link" href="#" target="_blank" rel="noopener"
-         style="font-family:var(--mono);font-size:.72rem;color:var(--accent);
-                text-decoration:none;display:none;">
-        Voir sur GitHub ↗
-      </a>
-    </div>
- 
-    <!-- Statut global du run -->
-    <div id="workflow-run-status"
-         style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;
-                background:var(--input-bg);border:1.5px solid var(--border);
-                border-radius:var(--radius);margin-bottom:1rem;">
-      <div class="spinner" id="workflow-spinner" style="flex-shrink:0;"></div>
-      <span id="workflow-run-label"
-            style="font-size:.85rem;font-weight:600;color:var(--text);">
-        En attente du démarrage du pipeline…
-      </span>
-    </div>
- 
-    <!-- Étapes détaillées -->
-    <div id="workflow-steps"
-         style="display:flex;flex-direction:column;gap:.4rem;">
-      <!-- Injectées dynamiquement -->
-    </div>
- 
-    <!-- Durée -->
-    <p id="workflow-duration"
-       style="font-family:var(--mono);font-size:.7rem;color:var(--muted);
-              margin-top:.65rem;text-align:right;display:none;"></p>
-  </div>
-</div>
+                </section>
 
-                   
-
-
-                </div>
-            </section>
-
-            <!-- ════════════════════════════════════════ -->
-            <!--            SECTION PROFIL               -->
-            <!-- ════════════════════════════════════════ -->
-            <section id="sec-profil" class="hidden">
-
-                <div class="card profil-identity-card">
-                    <div class="profil-avatar" id="profil-initial">—</div>
-                    <div class="profil-info">
-                        <p class="profil-email" id="profil-email">—</p>
-                        <div class="profil-meta-row">
-                            <span class="profil-meta-item">
-                                <span class="profil-meta-label">Compte créé le</span>
-                                <span class="profil-meta-value" id="profil-created">—</span>
-                            </span>
-                            <span class="profil-meta-sep">·</span>
-                            <span class="profil-meta-item">
-                                <span class="profil-meta-label">Dernière connexion</span>
-                                <span class="profil-meta-value" id="profil-last-login">—</span>
-                            </span>
-                        </div>
-                        <div class="profil-uid-row">
-                            <span class="profil-meta-label">UID</span>
-                            <code class="profil-uid" id="profil-uid">—</code>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <p class="card-title">Modifier le mot de passe</p>
-
-                    <div class="profil-pwd-form">
-
-                        <div class="field-group">
-                            <label for="pwd-current">Mot de passe actuel</label>
-                            <div class="pwd-wrapper">
-                                <input type="password" id="pwd-current" class="field-input"
-                                       placeholder="••••••••" autocomplete="current-password">
-                                <button type="button" class="btn-toggle-pwd" data-target="pwd-current">👁</button>
-                            </div>
-                        </div>
-
-                        <div class="field-group">
-                            <label for="pwd-new">Nouveau mot de passe</label>
-                            <div class="pwd-wrapper">
-                                <input type="password" id="pwd-new" class="field-input"
-                                       placeholder="••••••••" autocomplete="new-password">
-                                <button type="button" class="btn-toggle-pwd" data-target="pwd-new">👁</button>
-                            </div>
-                        </div>
-
-                        <div class="field-group">
-                            <label for="pwd-confirm">Confirmer le nouveau mot de passe</label>
-                            <div class="pwd-wrapper">
-                                <input type="password" id="pwd-confirm" class="field-input"
-                                       placeholder="••••••••" autocomplete="new-password">
-                                <button type="button" class="btn-toggle-pwd" data-target="pwd-confirm">👁</button>
-                            </div>
-                        </div>
-
-                        <div class="pwd-strength-wrap" id="pwd-strength-wrap">
-                            <div class="pwd-strength-bar">
-                                <div class="pwd-strength-fill" id="pwd-strength-fill"></div>
-                            </div>
-                            <span class="pwd-strength-label" id="pwd-strength-label"></span>
-                        </div>
-
-                        <div class="pwd-change-error login-error" id="pwd-change-error"></div>
-                        <div class="pwd-change-success" id="pwd-change-success"></div>
-
-                        <button class="btn-login" id="btn-change-pwd">
-                            Modifier le mot de passe →
-                        </button>
-                    </div>
-                </div>
-
-            </section>
-
-        </main>
+            </main>
         </div><!-- /.app-body -->
-    </div>
+    </div><!-- /#app -->
 
     <script type="module" src="app.js"></script>
+
     <script>
         /* Synchronisation sidebar desktop ↔ onglets header mobile */
         (function() {
             const pairs = [
-                ['sidebar-terrain',    'tab-terrain',    'terrain'],
-                ['sidebar-historique', 'tab-historique', 'historique'],
-                ['sidebar-admin',      'tab-admin',      'admin'],
-                ['sidebar-profil',     'tab-profil',     'profil'],
+                ['sidebar-terrain',    'tab-terrain'],
+                ['sidebar-historique', 'tab-historique'],
+                ['sidebar-admin',      'tab-admin'],
+                ['sidebar-profil',     'tab-profil'],
             ];
             pairs.forEach(([sbId, tabId]) => {
                 const sbBtn  = document.getElementById(sbId);
@@ -727,6 +540,7 @@
             });
         })();
     </script>
+
     <script>
         /* Enregistrement du Service Worker */
         if ('serviceWorker' in navigator) {
@@ -734,7 +548,6 @@
                 try {
                     const reg = await navigator.serviceWorker.register('./sw.js');
                     console.log('[PWA] Service Worker enregistré :', reg.scope);
-
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         newWorker.addEventListener('statechange', () => {
@@ -758,7 +571,6 @@
             `;
             document.body.appendChild(banner);
             requestAnimationFrame(() => banner.classList.add('visible'));
-
             document.getElementById('pwa-update-btn').addEventListener('click', () => {
                 registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -767,5 +579,6 @@
             });
         }
     </script>
+
 </body>
 </html>
