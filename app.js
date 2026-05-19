@@ -24,7 +24,8 @@ const db   = getFirestore(app);
 const auth = getAuth(app);
 
 try {
-    await enableIndexedDbPersistence(db);
+    import { initializeFirestore, persistentLocalCache } from "...firestore.js";
+const db = initializeFirestore(app, { localCache: persistentLocalCache() });
 } catch (err) {
     console.warn("[Offline] Persistance indisponible :", err.code);
 }
@@ -700,15 +701,15 @@ $('btn-pin').addEventListener('click', () => {
 // ADMIN — IMPORT EXCEL
 // ═══════════════════════════════════════════════════════════════════════════════
 
-dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => {
+dropZone?.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone?.addEventListener('dragleave', ()  => dropZone.classList.remove('dragover'));
+dropZone?.addEventListener('drop', e => {
     e.preventDefault();
     dropZone.classList.remove('dragover');
     const file = e.dataTransfer?.files?.[0];
     if (file) traiterFichier(file);
 });
-fileInput.addEventListener('change', e => {
+fileInput?.addEventListener('change', e => {
     const file = e.target.files?.[0];
     if (file) traiterFichier(file);
 });
