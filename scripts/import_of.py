@@ -114,6 +114,15 @@ def lire_fichier(path: str) -> pd.DataFrame:
     else:
         print(f"   [INFO] Aucun fichier '{config_path}' trouvé à la racine. Toutes les lignes sont conservées.", flush=True)
 
+    # ─── 3. AJOUT DE L'ID DU KIT DIRECTEMENT DANS LE EXCEL ──────────────────
+    c_engin = resolve_col(list(df.columns), "engin")
+    c_kit = resolve_col(list(df.columns), "code_kit")
+
+    if c_engin and c_kit:
+        # On crée la colonne 'id_kit' par concaténation (ex: ENGIN_CODEKIT)
+        df["id_kit"] = df[c_engin].str.strip() + "_" + df[c_kit].str.strip()
+        print("   [DATA] Colonne 'id_kit' générée avec succès.", flush=True)
+
     print(f"   [DATA] Taille finale après filtres : {df.shape[0]} lignes, {df.shape[1]} colonnes", flush=True)
 
     df = df.fillna("")
@@ -160,6 +169,7 @@ def construire_index(df: pd.DataFrame) -> dict:
 
         if kit_id not in index[emp_id]:
             index[emp_id][kit_id] = {
+                "id_kit":         kit_id,  # Ajouté aussi dans le payload pour Firebase
                 "engin":          engin,
                 "code_kit":       code_kit,
                 "nom_du_kit":     nom_kit,
