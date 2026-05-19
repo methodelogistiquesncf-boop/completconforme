@@ -114,8 +114,8 @@ const histoFilter  = $('histo-filter');
 // ═══════════════════════════════════════════════════════════════════════════════
 
 onAuthStateChanged(auth, user => {
-    if (user) { showApp(user); chargerListeKits(); }
-    else       showLogin();
+    if (user) showApp(user);
+    else      showLogin();
 });
 
 function showLogin() {
@@ -134,6 +134,7 @@ function showApp(user) {
         headerUser.textContent = user.email.charAt(0).toUpperCase();
         headerUser.title = user.email;
     }
+    showTab('terrain');
 }
 
 btnLogin.addEventListener('click', async () => {
