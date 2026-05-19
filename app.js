@@ -1478,7 +1478,7 @@ function initGithubConfig() {
  
             // 5. Encodage base64 + PUT
             const base64Content = btoa(unescape(encodeURIComponent(text)));
-            const author = auth.currentUser?.email || "admin";
+            
  
             const putResp = await fetch(`${API_BASE}/${EXPECTED_FILENAME}`, {
                 method:  "PUT",
@@ -1489,7 +1489,7 @@ function initGithubConfig() {
                     "Content-Type":         "application/json",
                 },
                 body: JSON.stringify({
-                    message: `[Admin] MAJ emplacements_autorises.txt par ${author}`,
+                    message: `[Admin] MAJ emplacements_autorises.txt`,
                     content: base64Content,
                     ...(sha ? { sha } : {}),
                 }),
