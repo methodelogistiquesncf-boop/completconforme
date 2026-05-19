@@ -307,29 +307,29 @@
 
                 <div id="admin-content" class="hidden" style="display:none;flex-direction:column;gap:1rem;">
 
-                    <div class="card">
-                        <p class="card-title">Import de données — Fichier maître</p>
-                        <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
-                            Déposez un fichier global (.xlsx ou .csv). Les kits déjà présents dans Firebase
-                            <strong style="color:var(--text)">ne seront pas écrasés</strong>.
-                        </p>
+<div class="card">
+  <p class="card-title">Import OF — Fichier terrain</p>
+  <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
+    Fichier Excel issu de l'OF. Les kits existants
+    <strong style="color:var(--text)">ne seront pas écrasés</strong>.
+  </p>
 
-                        <div class="drop-zone" id="drop-zone">
-                            <input type="file" id="file-input" accept=".xlsx,.xls,.csv">
-                            <span class="drop-icon">📂</span>
-                            <p class="drop-title">Glisser-déposer ou cliquer pour parcourir</p>
-                            <p class="drop-sub">Fichiers .xlsx ou .csv uniquement</p>
-                        </div>
+  <div class="drop-zone" id="drop-zone-of">
+    <input type="file" id="file-input-of" accept=".xlsx,.xls,.csv">
+    <span class="drop-icon">📋</span>
+    <p class="drop-title">Glisser-déposer le fichier OF</p>
+    <p class="drop-sub">Fichiers .xlsx ou .csv uniquement</p>
+  </div>
 
-                        <div id="progress-area" class="hidden" style="margin-top:1rem;">
-                            <div class="progress-wrap">
-                                <div class="progress-bar" id="progress-bar"></div>
-                            </div>
-                            <p class="progress-label" id="progress-label">0 / 0 kits traités…</p>
-                        </div>
+  <div id="progress-area-of" class="hidden" style="margin-top:1rem;">
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progress-bar-of"></div>
+    </div>
+    <p class="progress-label" id="progress-label-of">0 / 0 kits traités…</p>
+  </div>
 
-                        <div class="admin-status" id="admin-status"></div>
-                    </div>
+  <div class="admin-status" id="admin-status-of"></div>
+</div>
 
                     <div class="card">
                         <p class="card-title">Format de fichier attendu</p>
