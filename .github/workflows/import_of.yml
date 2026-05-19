@@ -73,3 +73,9 @@ jobs:
           git mv "$FILE" "$DEST"
           git commit -m "✅ Archivage import : ${FNAME}"
           git push
+# ── 7. Sauvegarde du fichier nettoyé en téléchargement ───────────────
+      - name: Télécharger le fichier nettoyé
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fichier-Excel-Nettoye
+          path: imports/cleaned/
