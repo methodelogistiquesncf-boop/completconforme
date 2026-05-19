@@ -1028,3 +1028,13 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+async function detectAppVersion() {
+    try {
+        const keys = await caches.keys();
+        const key  = keys.find(k => k.startsWith('completconforme-'));
+        if (!key) return;
+        const version = key.replace('completconforme-', ''); // → "v3"
+        document.querySelectorAll('.app-version').forEach(el => el.textContent = version);
+    } catch {}
+}
+detectAppVersion();
