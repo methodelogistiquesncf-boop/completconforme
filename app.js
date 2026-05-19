@@ -1,12 +1,32 @@
-import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, enableIndexedDbPersistence,
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, initializeFirestore, persistentLocalCache,
          doc, setDoc, getDoc, getDocs,
-         collection }                            from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+         collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword,
          signOut, onAuthStateChanged,
          updatePassword, reauthenticateWithCredential,
-         EmailAuthProvider }                     from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+         EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+const firebaseConfig = {
+  apiKey: "AIzaSyAkhB59fG7oNtRfhb_0xeuW9PYmaUT9KRk",
+  authDomain: "completconforme.firebaseapp.com",
+  projectId: "completconforme",
+  storageBucket: "completconforme.firebasestorage.app",
+  messagingSenderId: "595620033926",
+  appId: "1:595620033926:web:64dcfd0b141040146a2807"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// Persistance offline (nouvelle API, remplace enableIndexedDbPersistence)
+let db;
+try {
+    db = initializeFirestore(app, { localCache: persistentLocalCache() });
+} catch (err) {
+    console.warn("[Offline] Persistance indisponible :", err.message);
+    db = getFirestore(app);
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURATION Firebase
 // ─────────────────────────────────────────────────────────────────────────────
@@ -20,7 +40,7 @@ const firebaseConfig = {
 };
 
 const app  = initializeApp(firebaseConfig);
-const db   = getFirestore(app);
+
 const auth = getAuth(app);
 
 try {
