@@ -1,0 +1,59 @@
+name: "📦 Import OF → Firestore"
+
+on:
+  push:
+    paths:
+      - "imports/pending/**"
+
+jobs:
+  import:
+    name: Traitement & injection Firestore
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Récupération du repo ────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Python ─────────────────────────────────────────────────────────
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installer les dépendances
+        run: |
+          pip install --quiet \
+            openpyxl pandas firebase-admin
+
+      # ── 3. Détection du fichier ajouté ────────────────────────────────────
+      - name: Identifier le fichier importé
+        id: detect
+        run: |
+          FILE=$(git diff-tree --no-commit-id -r --name-only ${{ github.sha }} \
+                 | grep '^imports/pending/' | head -1)
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+          echo "Fichier détecté : $FILE"
+
+      # ── 4. Traitement Python ──────────────────────────────────────────────
+      - name: Importer dans Firestore
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          IMPORT_FILE: ${{ steps.detect.outputs.file }}
+        run: python scripts/import_of.py
+
+      # ── 5. Archivage du fichier traité ────────────────────────────────────
+      - name: Archiver le fichier traité
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FILE="${{ steps.detect.outputs.file }}"
+          FNAME=$(basename "$FILE")
+          DEST="imports/done/$(date +%Y-%m-%d)_${FNAME}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git mv "$FILE" "$DEST"
+          git commit -m "✅ Archivage import : ${FNAME}"
+          git push
