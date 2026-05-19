@@ -1,8 +1,21 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#C0354A">
+<meta name="description" content="Application de contrôle de conformité des kits terrain.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="CompletConf">
+
+<!-- Manifest PWA -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Icônes -->
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <title>Complet Conforme</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -478,5 +491,52 @@
             });
         })();
     </script>
+    <script>
+    // ── Enregistrement du Service Worker ──────────────────────────────────────
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+            try {
+                const reg = await navigator.serviceWorker.register('/sw.js');
+                console.log('[PWA] Service Worker enregistré :', reg.scope);
+
+                // Détection d'une mise à jour disponible
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (
+                            newWorker.state === 'installed' &&
+                            navigator.serviceWorker.controller
+                        ) {
+                            // Une nouvelle version est disponible
+                            afficherBanniereMAJ(reg);
+                        }
+                    });
+                });
+
+            } catch (err) {
+                console.warn('[PWA] Échec enregistrement SW :', err);
+            }
+        });
+    }
+
+    // ── Bannière de mise à jour ───────────────────────────────────────────────
+    function afficherBanniereMAJ(registration) {
+        const banner = document.createElement('div');
+        banner.id = 'pwa-update-banner';
+        banner.innerHTML = `
+            <span>🔄 Une nouvelle version est disponible.</span>
+            <button id="pwa-update-btn">Mettre à jour</button>
+        `;
+        document.body.appendChild(banner);
+        requestAnimationFrame(() => banner.classList.add('visible'));
+
+        document.getElementById('pwa-update-btn').addEventListener('click', () => {
+            registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
+            });
+        });
+    }
+</script>
 </body>
 </html>
