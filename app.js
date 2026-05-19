@@ -1261,26 +1261,28 @@ function initImportOF() {
 
 initImportOF();
 // ═══════════════════════════════════════════════════════════════════════════════
-// PUSH emplacements_autorises.txt → GitHub
-// À ajouter à la fin de app.js (après initImportOF())
+// GITHUB TOKEN (Firestore) + PUSH emplacements_autorises.txt
+// À ajouter à la fin de app.js, après initImportOF()
 //
-// ⚠️  CONFIGURATION OBLIGATOIRE : remplissez les 3 constantes ci-dessous.
-//     Le token PAT doit avoir la permission "Contents: Read & Write" sur le repo.
+// ⚙️  Seules 2 constantes à configurer :
 // ═══════════════════════════════════════════════════════════════════════════════
-
-function initImportEmplacements() {
-
+ 
+function initGithubConfig() {
+ 
     // ── ⚙️  À CONFIGURER ────────────────────────────────────────────────────
-    const GITHUB_OWNER  = "methodelogistiquesncf-boop";   // nom d'utilisateur ou org GitHub
-    const GITHUB_REPO   = "completconforme";               // nom du dépôt
-    const GITHUB_TOKEN  = "ghp_XXXXXXXXXXXXXXXXXXXXXX";   // Personal Access Token (PAT)
-    //                                                       Fine-grained ou classic,
-    //                                                       scope "repo" ou "Contents: RW"
-    // ────────────────────────────────────────────────────────────────────────
-
+    const GITHUB_OWNER = "methodelogistiquesncf-boop"; // votre utilisateur ou org GitHub
+    const GITHUB_REPO  = "completconforme";            // nom du dépôt
+    // ── Le token est lu depuis Firestore : config/secrets → champ github_token ─
+ 
     const EXPECTED_FILENAME = "emplacements_autorises.txt";
+    const FIRESTORE_SECRET  = { col: "config", doc: "secrets", field: "github_token" };
     const API_BASE = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
-
+ 
+    // ── Refs DOM ─────────────────────────────────────────────────────────────
+    const tokenInput   = document.getElementById("github-token-input");
+    const btnSaveToken = document.getElementById("btn-save-token");
+    const tokenStatus  = document.getElementById("token-status");
+ 
     const dropZoneEmp  = document.getElementById("drop-zone-emp");
     const fileInputEmp = document.getElementById("file-input-emp");
     const progAreaEmp  = document.getElementById("progress-area-emp");
@@ -1290,37 +1292,36 @@ function initImportEmplacements() {
     const previewWrap  = document.getElementById("emp-preview-wrap");
     const previewList  = document.getElementById("emp-preview-list");
     const previewCount = document.getElementById("emp-preview-count");
-
-    if (!dropZoneEmp) return;
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
+ 
+    if (!tokenInput || !dropZoneEmp) return;
+ 
+    // ── Helpers ───────────────────────────────────────────────────────────────
+ 
+    function setTokenStatus(msg, type = "info") {
+        tokenStatus.textContent = msg;
+        tokenStatus.className   = `admin-status ${type}`;
+    }
+ 
     function setStatusEmp(msg, type = "info") {
         statusEmp.textContent = msg;
         statusEmp.className   = `admin-status ${type}`;
     }
-
+ 
     function setProgress(pct, label) {
         progBarEmp.style.width   = pct + "%";
         progLabelEmp.textContent = label;
     }
-
+ 
     function afficherApercu(lignes) {
         previewList.innerHTML = "";
         lignes.forEach(id => {
             const badge = document.createElement("span");
             badge.textContent = id;
             badge.style.cssText = `
-                font-family: var(--mono);
-                font-size: .72rem;
-                font-weight: 700;
-                background: var(--accent-soft);
-                color: var(--accent);
-                border: 1px solid rgba(192,53,74,.18);
-                border-radius: 6px;
-                padding: .2rem .55rem;
-                white-space: nowrap;
-                letter-spacing: .04em;
+                font-family: var(--mono); font-size: .72rem; font-weight: 700;
+                background: var(--accent-soft); color: var(--accent);
+                border: 1px solid rgba(192,53,74,.18); border-radius: 6px;
+                padding: .2rem .55rem; white-space: nowrap; letter-spacing: .04em;
             `;
             previewList.appendChild(badge);
         });
@@ -1328,9 +1329,72 @@ function initImportEmplacements() {
             `${lignes.length} emplacement${lignes.length > 1 ? "s" : ""} envoyé${lignes.length > 1 ? "s" : ""}`;
         previewWrap.classList.remove("hidden");
     }
-
-    // ── Drag & drop ──────────────────────────────────────────────────────────
-
+ 
+    // ── Lecture du token depuis Firestore ─────────────────────────────────────
+ 
+    async function lireToken() {
+        const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
+        if (!snap.exists()) throw new Error("Aucun token configuré. Enregistrez-en un d'abord.");
+        const token = snap.data()[FIRESTORE_SECRET.field];
+        if (!token) throw new Error("Champ token vide dans Firestore.");
+        return token;
+    }
+ 
+    // ── Chargement initial : indique si un token est déjà enregistré ──────────
+ 
+    async function chargerEtatToken() {
+        try {
+            const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
+            if (snap.exists() && snap.data()[FIRESTORE_SECRET.field]) {
+                setTokenStatus("✅ Token GitHub configuré.", "success");
+                tokenInput.placeholder = "ghp_•••••••••• (déjà enregistré)";
+            }
+        } catch (err) {
+            // Pas bloquant au démarrage
+        }
+    }
+    chargerEtatToken();
+ 
+    // ── Sauvegarde du token dans Firestore ────────────────────────────────────
+ 
+    btnSaveToken.addEventListener("click", async () => {
+        const val = tokenInput.value.trim();
+        if (!val) {
+            setTokenStatus("❌ Veuillez saisir un token.", "error");
+            return;
+        }
+        if (!val.startsWith("ghp_") && !val.startsWith("github_pat_")) {
+            setTokenStatus("⚠️ Format inattendu. Un PAT GitHub commence par ghp_ ou github_pat_.", "error");
+            return;
+        }
+ 
+        btnSaveToken.disabled    = true;
+        btnSaveToken.textContent = "Enregistrement…";
+        setTokenStatus("⏳ Enregistrement dans Firestore…", "info");
+ 
+        try {
+            await setDoc(
+                doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc),
+                {
+                    [FIRESTORE_SECRET.field]: val,
+                    token_mis_a_jour_le:      new Date().toISOString(),
+                    token_mis_a_jour_par:     auth.currentUser?.email || "inconnu",
+                },
+                { merge: true }
+            );
+            tokenInput.value       = "";
+            tokenInput.placeholder = "ghp_•••••••••• (déjà enregistré)";
+            setTokenStatus("✅ Token enregistré dans Firestore avec succès.", "success");
+        } catch (err) {
+            setTokenStatus("❌ Erreur : " + err.message, "error");
+        } finally {
+            btnSaveToken.disabled    = false;
+            btnSaveToken.textContent = "Enregistrer le token →";
+        }
+    });
+ 
+    // ── Drag & drop fichier ───────────────────────────────────────────────────
+ 
     dropZoneEmp.addEventListener("dragover", e => {
         e.preventDefault();
         dropZoneEmp.classList.add("dragover");
@@ -1349,11 +1413,11 @@ function initImportEmplacements() {
         if (file) traiterFichierEmp(file);
         e.target.value = "";
     });
-
-    // ── Traitement principal ──────────────────────────────────────────────────
-
+ 
+    // ── Push vers GitHub ──────────────────────────────────────────────────────
+ 
     async function traiterFichierEmp(file) {
-
+ 
         // 1. Validation du nom exact
         if (file.name !== EXPECTED_FILENAME) {
             setStatusEmp(
@@ -1363,106 +1427,100 @@ function initImportEmplacements() {
             );
             return;
         }
-
+ 
         previewWrap.classList.add("hidden");
         progAreaEmp.classList.remove("hidden");
-        setProgress(10, "Lecture du fichier…");
+        setProgress(5, "Lecture du fichier…");
         setStatusEmp("⏳ Lecture du fichier…", "info");
-
+ 
         try {
-            // 2. Lecture du contenu
+            // 2. Lecture contenu
             const text = await file.text();
-
             const lignes = text
                 .split(/\r?\n/)
                 .map(l => l.trim())
                 .filter(l => l.length > 0 && !l.startsWith("#"));
-
+ 
             if (!lignes.length) {
                 setStatusEmp("❌ Le fichier est vide ou ne contient aucun identifiant valide.", "error");
                 progAreaEmp.classList.add("hidden");
                 return;
             }
-
-            setProgress(30, "Récupération du SHA actuel…");
+ 
+            setProgress(20, "Récupération du token…");
+ 
+            // 3. Lecture du token depuis Firestore
+            const token = await lireToken();
+ 
+            setProgress(40, "Récupération du SHA actuel…");
             setStatusEmp("⏳ Connexion à GitHub…", "info");
-
-            // 3. Récupérer le SHA du fichier actuel (requis par l'API pour écraser)
+ 
+            // 4. Récupérer le SHA du fichier existant (requis par l'API pour écraser)
             let sha = null;
             const getResp = await fetch(`${API_BASE}/${EXPECTED_FILENAME}`, {
                 headers: {
-                    Authorization: `Bearer ${GITHUB_TOKEN}`,
-                    Accept:        "application/vnd.github+json",
+                    Authorization:          `Bearer ${token}`,
+                    Accept:                 "application/vnd.github+json",
                     "X-GitHub-Api-Version": "2022-11-28",
                 }
             });
-
+ 
             if (getResp.ok) {
                 const existing = await getResp.json();
-                sha = existing.sha; // nécessaire pour écraser un fichier existant
+                sha = existing.sha;
             } else if (getResp.status !== 404) {
-                // 404 = fichier inexistant (premier push), c'est OK
                 const err = await getResp.json();
                 throw new Error(`GitHub GET : ${err.message}`);
             }
-
-            setProgress(60, "Envoi vers le dépôt…");
+ 
+            setProgress(65, "Envoi vers le dépôt…");
             setStatusEmp("⏳ Push vers GitHub…", "info");
-
-            // 4. Encoder le contenu en base64
+ 
+            // 5. Encodage base64 + PUT
             const base64Content = btoa(unescape(encodeURIComponent(text)));
-
-            // 5. Push via l'API GitHub Contents
             const author = auth.currentUser?.email || "admin";
-            const body = {
-                message: `[Admin] Mise à jour emplacements_autorises.txt par ${author}`,
-                content: base64Content,
-                ...(sha ? { sha } : {}), // sha obligatoire uniquement si le fichier existe déjà
-            };
-
+ 
             const putResp = await fetch(`${API_BASE}/${EXPECTED_FILENAME}`, {
                 method:  "PUT",
                 headers: {
-                    Authorization:          `Bearer ${GITHUB_TOKEN}`,
+                    Authorization:          `Bearer ${token}`,
                     Accept:                 "application/vnd.github+json",
                     "X-GitHub-Api-Version": "2022-11-28",
                     "Content-Type":         "application/json",
                 },
-                body: JSON.stringify(body),
+                body: JSON.stringify({
+                    message: `[Admin] MAJ emplacements_autorises.txt par ${author}`,
+                    content: base64Content,
+                    ...(sha ? { sha } : {}),
+                }),
             });
-
+ 
             if (!putResp.ok) {
                 const err = await putResp.json();
                 throw new Error(`GitHub PUT : ${err.message}`);
             }
-
-            const result = await putResp.json();
-            const commitUrl = result.commit?.html_url || "#";
-
+ 
+            const result     = await putResp.json();
+            const commitSha  = result.commit?.sha?.slice(0, 7) || "ok";
+            const commitUrl  = result.commit?.html_url || "#";
+ 
             setProgress(100, "Terminé.");
-            setStatusEmp(
-                `✅ ${lignes.length} emplacement(s) envoyé(s) · ` +
-                `Commit : ${result.commit?.sha?.slice(0, 7) || "ok"}`,
-                "success"
-            );
-
-            // Lien vers le commit (optionnel, enrichit le retour)
-            if (result.commit?.sha) {
-                statusEmp.innerHTML +=
-                    ` <a href="${commitUrl}" target="_blank" rel="noopener"
-                        style="color:var(--accent);font-family:var(--mono);font-size:.75rem;">
-                        Voir le commit ↗
-                      </a>`;
-            }
-
+            statusEmp.className   = "admin-status success";
+            statusEmp.innerHTML   =
+                `✅ ${lignes.length} emplacement(s) envoyé(s) · Commit : ` +
+                `<a href="${commitUrl}" target="_blank" rel="noopener"
+                    style="color:var(--green);font-family:var(--mono);font-size:.8rem;">
+                    ${commitSha} ↗
+                </a>`;
+ 
             afficherApercu(lignes);
-
+ 
         } catch (err) {
             console.error("[PushEmp]", err);
-            setStatusEmp("❌ Erreur : " + err.message, "error");
+            setStatusEmp("❌ " + err.message, "error");
             progAreaEmp.classList.add("hidden");
         }
     }
 }
-
-initImportEmplacements();
+ 
+initGithubConfig();
