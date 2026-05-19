@@ -1076,22 +1076,25 @@ function initImportOF() {
   }
 
   // ── Drag & drop ──────────────────────────────────────
-  dropZoneOF.addEventListener('dragover', e => {
+dropZoneOF, fileInputOF].forEach(el => {
+  el.addEventListener('dragover', e => {
     e.preventDefault();
     dropZoneOF.classList.add('dragover');
   });
-  dropZoneOF.addEventListener('dragleave', () => dropZoneOF.classList.remove('dragover'));
-  dropZoneOF.addEventListener('drop', e => {
+  el.addEventListener('dragleave', () => dropZoneOF.classList.remove('dragover'));
+  el.addEventListener('drop', e => {
     e.preventDefault();
     dropZoneOF.classList.remove('dragover');
     const file = e.dataTransfer?.files?.[0];
     if (file) traiterFichierOF(file);
   });
-  fileInputOF.addEventListener('change', e => {
-    const file = e.target.files?.[0];
-    if (file) traiterFichierOF(file);
-    e.target.value = '';
-  });
+});
+
+fileInputOF.addEventListener('change', e => {
+  const file = e.target.files?.[0];
+  if (file) traiterFichierOF(file);
+  e.target.value = '';
+});
 
   // ── Lecture du fichier ───────────────────────────────
   async function traiterFichierOF(file) {
