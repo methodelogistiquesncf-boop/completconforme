@@ -1038,3 +1038,172 @@ async function detectAppVersion() {
     } catch {}
 }
 detectAppVersion();
+
+// ═══════════════════════════════════════════════════════
+//  IMPORT OF — Fichier terrain
+// ═══════════════════════════════════════════════════════
+
+// Mapping exact des colonnes Excel → clés internes
+const OF_COL = {
+  codePiece:      'Code pièce',
+  designPiece:    'Désignation pièce',
+  qtePiece:       'Quantité pièce',
+  codeKit:        'Code kit',
+  designKit:      'Désignation kit',
+  codeContenant:  'code_contenant',
+  engin:          'Engin',
+  caisse:         'Caisse',
+  emplacement:    'emplacement_reflex',
+};
+
+function initImportOF() {
+  const dropZone   = document.getElementById('drop-zone-of');
+  const fileInput  = document.getElementById('file-input-of');
+  const progArea   = document.getElementById('progress-area-of');
+  const progBar    = document.getElementById('progress-bar-of');
+  const progLabel  = document.getElementById('progress-label-of');
+  const statusEl   = document.getElementById('admin-status-of');
+
+  if (!dropZone) return;
+
+  // ── Drag & drop ──────────────────────────────────────
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) traiterFichierOF(file);
+  });
+  fileInput.addEventListener('change', e => {
+    if (e.target.files[0]) traiterFichierOF(e.target.files[0]);
+    e.target.value = '';
+  });
+
+  // ── Lecture + parsing ────────────────────────────────
+  async function traiterFichierOF(file) {
+    setStatus('info', '⏳ Lecture du fichier…');
+    progArea.classList.remove('hidden');
+    progBar.style.width = '0%';
+
+    try {
+      const buffer    = await file.arrayBuffer();
+      const workbook  = XLSX.read(buffer, { type: 'array' });
+      const sheet     = workbook.Sheets[workbook.SheetNames[0]];
+      const rows      = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      if (!rows.length) {
+        setStatus('error', '❌ Fichier vide ou non reconnu.');
+        return;
+      }
+
+      // Vérification colonne obligatoire
+      if (!rows[0].hasOwnProperty(OF_COL.codeKit)) {
+        setStatus('error', `❌ Colonne "${OF_COL.codeKit}" introuvable. Vérifiez le format.`);
+        return;
+      }
+
+      const kitsMap = grouperParKit(rows);
+      await injecterDansFirebase(kitsMap);
+
+    } catch (err) {
+      console.error(err);
+      setStatus('error', `❌ Erreur : ${err.message}`);
+    }
+  }
+
+  // ── Groupement des lignes par Code kit ───────────────
+  function grouperParKit(rows) {
+    const map = new Map();
+
+    for (const row of rows) {
+      const codeKit = String(row[OF_COL.codeKit] ?? '').trim();
+      if (!codeKit) continue;
+
+      if (!map.has(codeKit)) {
+        map.set(codeKit, {
+          codeKit,
+          designation:   String(row[OF_COL.designKit]    ?? '').trim(),
+          codeContenant: String(row[OF_COL.codeContenant] ?? '').trim(),
+          engin:         String(row[OF_COL.engin]         ?? '').trim(),
+          caisse:        String(row[OF_COL.caisse]        ?? '').trim(),
+          emplacement:   String(row[OF_COL.emplacement]   ?? '').trim(),
+          pieces: [],
+        });
+      }
+
+      const piece = {
+        codePiece:   String(row[OF_COL.codePiece]   ?? '').trim(),
+        designation: String(row[OF_COL.designPiece] ?? '').trim(),
+        quantite:    Number(row[OF_COL.qtePiece])   || 0,
+      };
+
+      // N'ajoute la pièce que si elle a un code valide
+      if (piece.codePiece) {
+        map.get(codeKit).pieces.push(piece);
+      }
+    }
+
+    return map;
+  }
+
+  // ── Injection Firestore ──────────────────────────────
+  async function injecterDansFirebase(kitsMap) {
+    const total   = kitsMap.size;
+    let traites   = 0;
+    let ignores   = 0;
+    let erreurs   = 0;
+    const BATCH   = 400; // ms entre chaque batch pour ne pas saturer Firestore
+
+    setStatus('info', `⏳ Injection de ${total} kit(s)…`);
+
+    for (const [codeKit, kitData] of kitsMap) {
+      // ID Firestore : codeKit nettoyé (sans caractères interdits)
+      const docId  = codeKit.replace(/[\/\.#\[\]]/g, '_');
+      const docRef = db.collection('kits').doc(docId);
+
+      try {
+        const snap = await docRef.get();
+
+        if (snap.exists) {
+          ignores++;
+        } else {
+          await docRef.set({
+            ...kitData,
+            importedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      } catch (err) {
+        console.error(`Kit ${codeKit} :`, err);
+        erreurs++;
+      }
+
+      traites++;
+      const pct = Math.round((traites / total) * 100);
+      progBar.style.width  = pct + '%';
+      progLabel.textContent = `${traites} / ${total} kits traités…`;
+
+      // Pause légère pour ne pas bloquer l'UI
+      if (traites % 20 === 0) await sleep(BATCH);
+    }
+
+    const msg = `✅ ${traites - ignores - erreurs} injectés · ${ignores} déjà présents · ${erreurs} erreurs`;
+    setStatus(erreurs ? 'error' : 'success', msg);
+  }
+
+  // ── Helpers ──────────────────────────────────────────
+  function setStatus(type, msg) {
+    statusEl.className  = `admin-status ${type}`;
+    statusEl.textContent = msg;
+  }
+
+  function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+}
+
+// Appel dans ton init principal (là où tu initialises déjà les autres sections)
+initImportOF();
