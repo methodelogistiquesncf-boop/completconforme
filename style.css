@@ -1435,4 +1435,41 @@ section.hidden { display: none; }
     .profil-meta-sep { display: none; }
     .profil-meta-row { flex-direction: column; gap: .5rem; }
 }
- 
+ /* ─── BANNIÈRE MISE À JOUR PWA ───────────────────────────────────────────── */
+#pwa-update-banner {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface-hi);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-lg);
+    padding: .85rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: var(--shadow-lg);
+    z-index: 2000;
+    opacity: 0;
+    transition: opacity .3s ease, transform .3s ease;
+    white-space: nowrap;
+    font-size: .85rem;
+    font-weight: 600;
+}
+#pwa-update-banner.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+#pwa-update-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: .4rem .9rem;
+    font-family: var(--sans);
+    font-size: .8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+}
+#pwa-update-btn:hover { background: var(--accent-hi); }
