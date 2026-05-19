@@ -74,6 +74,7 @@
                 <nav>
                     <button class="tab-btn active" id="tab-terrain">📱 Terrain</button>
                     <button class="tab-btn" id="tab-historique">🕒 Historique</button>
+                    <button class="tab-btn" id="tab-profil">👤 Profil</button>
                     <button class="tab-btn" id="tab-admin">⚙️ Admin</button>
                     <div class="header-user-chip" id="header-user" title="Utilisateur connecté"></div>
                     <button class="btn-logout" id="btn-logout" title="Se déconnecter">
@@ -98,6 +99,10 @@
                 <button class="sidebar-btn" id="sidebar-admin">
                     <span class="sb-icon">⚙️</span> Admin
                 </button>
+                <button class="sidebar-btn" id="sidebar-profil">
+                    <span class="sb-icon">👤</span> Profil
+                </button>
+                
             </aside>
 
         <main>
@@ -359,6 +364,86 @@
 
                 </div>
             </section>
+            <!-- ════════════════════════════════════════ -->
+<!--            SECTION PROFIL               -->
+<!-- ════════════════════════════════════════ -->
+<section id="sec-profil" class="hidden">
+
+    <!-- Carte identité -->
+    <div class="card profil-identity-card">
+        <div class="profil-avatar" id="profil-initial">—</div>
+        <div class="profil-info">
+            <p class="profil-email" id="profil-email">—</p>
+            <div class="profil-meta-row">
+                <span class="profil-meta-item">
+                    <span class="profil-meta-label">Compte créé le</span>
+                    <span class="profil-meta-value" id="profil-created">—</span>
+                </span>
+                <span class="profil-meta-sep">·</span>
+                <span class="profil-meta-item">
+                    <span class="profil-meta-label">Dernière connexion</span>
+                    <span class="profil-meta-value" id="profil-last-login">—</span>
+                </span>
+            </div>
+            <div class="profil-uid-row">
+                <span class="profil-meta-label">UID</span>
+                <code class="profil-uid" id="profil-uid">—</code>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carte changement de mot de passe -->
+    <div class="card">
+        <p class="card-title">Modifier le mot de passe</p>
+
+        <div class="profil-pwd-form">
+
+            <div class="field-group">
+                <label for="pwd-current">Mot de passe actuel</label>
+                <div class="pwd-wrapper">
+                    <input type="password" id="pwd-current" class="field-input"
+                           placeholder="••••••••" autocomplete="current-password">
+                    <button type="button" class="btn-toggle-pwd" data-target="pwd-current">👁</button>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="pwd-new">Nouveau mot de passe</label>
+                <div class="pwd-wrapper">
+                    <input type="password" id="pwd-new" class="field-input"
+                           placeholder="••••••••" autocomplete="new-password">
+                    <button type="button" class="btn-toggle-pwd" data-target="pwd-new">👁</button>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="pwd-confirm">Confirmer le nouveau mot de passe</label>
+                <div class="pwd-wrapper">
+                    <input type="password" id="pwd-confirm" class="field-input"
+                           placeholder="••••••••" autocomplete="new-password">
+                    <button type="button" class="btn-toggle-pwd" data-target="pwd-confirm">👁</button>
+                </div>
+            </div>
+
+            <!-- Indicateur de force -->
+            <div class="pwd-strength-wrap" id="pwd-strength-wrap">
+                <div class="pwd-strength-bar">
+                    <div class="pwd-strength-fill" id="pwd-strength-fill"></div>
+                </div>
+                <span class="pwd-strength-label" id="pwd-strength-label"></span>
+            </div>
+
+            <div class="pwd-change-error login-error" id="pwd-change-error"></div>
+            <div class="pwd-change-success" id="pwd-change-success"></div>
+
+            <button class="btn-login" id="btn-change-pwd">
+                Modifier le mot de passe →
+            </button>
+        </div>
+    </div>
+
+</section>
+            
 
         </main>
         </div><!-- /.app-body -->
@@ -372,6 +457,7 @@
                 ['sidebar-terrain',    'tab-terrain',    'terrain'],
                 ['sidebar-historique', 'tab-historique', 'historique'],
                 ['sidebar-admin',      'tab-admin',      'admin'],
+                ['sidebar-profil', 'tab-profil', 'profil'],
             ];
             pairs.forEach(([sbId, tabId]) => {
                 const sbBtn  = document.getElementById(sbId);
