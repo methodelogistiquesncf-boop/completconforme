@@ -391,19 +391,21 @@
                         </div>
                     </div>
 
-                    <!-- ── Import Excel → imports/pending/ ───────────────────────── -->
+          <!-- ── import fichier kit en escel ───────────────────── -->
+ 
 <div class="card">
   <p class="card-title">Import fichier kits — Dépôt GitHub</p>
   <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
-    Déposez le fichier Excel (.xlsx / .csv) à envoyer dans
+    Déposez le fichier Excel pour l'envoyer dans
     <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);
                  border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">
       imports/pending/
-    </code>
-    sur le dépôt. Si un fichier du même nom existe déjà,
-    <strong style="color:var(--text)">il sera écrasé</strong>.
+    </code>.
+    Le pipeline GitHub Actions s'exécutera automatiquement et son avancement
+    sera affiché ici en temps réel.
   </p>
  
+  <!-- Zone de dépôt -->
   <div class="drop-zone" id="drop-zone-xls">
     <input type="file" id="file-input-xls" accept=".xlsx,.xls,.csv">
     <span class="drop-icon">📊</span>
@@ -411,6 +413,7 @@
     <p class="drop-sub">Fichiers .xlsx, .xls ou .csv · envoyé dans imports/pending/</p>
   </div>
  
+  <!-- Barre push -->
   <div id="progress-area-xls" class="hidden" style="margin-top:1rem;">
     <div class="progress-wrap">
       <div class="progress-bar" id="progress-bar-xls"></div>
@@ -418,9 +421,47 @@
     <p class="progress-label" id="progress-label-xls">Traitement…</p>
   </div>
  
+  <!-- Statut push -->
   <div class="admin-status" id="admin-status-xls"></div>
+ 
+  <!-- ── Suivi du workflow GitHub Actions ───────────────────── -->
+  <div id="workflow-panel" class="hidden" style="margin-top:1.5rem;">
+ 
+    <!-- En-tête run -->
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem;">
+      <p class="card-title" style="margin-bottom:0;">Pipeline GitHub Actions</p>
+      <a id="workflow-link" href="#" target="_blank" rel="noopener"
+         style="font-family:var(--mono);font-size:.72rem;color:var(--accent);
+                text-decoration:none;display:none;">
+        Voir sur GitHub ↗
+      </a>
+    </div>
+ 
+    <!-- Statut global du run -->
+    <div id="workflow-run-status"
+         style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;
+                background:var(--input-bg);border:1.5px solid var(--border);
+                border-radius:var(--radius);margin-bottom:1rem;">
+      <div class="spinner" id="workflow-spinner" style="flex-shrink:0;"></div>
+      <span id="workflow-run-label"
+            style="font-size:.85rem;font-weight:600;color:var(--text);">
+        En attente du démarrage du pipeline…
+      </span>
+    </div>
+ 
+    <!-- Étapes détaillées -->
+    <div id="workflow-steps"
+         style="display:flex;flex-direction:column;gap:.4rem;">
+      <!-- Injectées dynamiquement -->
+    </div>
+ 
+    <!-- Durée -->
+    <p id="workflow-duration"
+       style="font-family:var(--mono);font-size:.7rem;color:var(--muted);
+              margin-top:.65rem;text-align:right;display:none;"></p>
+  </div>
 </div>
-
 
                    
                     <!-- ── 4. Format de fichier attendu ───────────────────── -->
