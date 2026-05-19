@@ -3,7 +3,9 @@ import { getFirestore, enableIndexedDbPersistence,
          doc, setDoc, getDoc, getDocs,
          collection }                            from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword,
-         signOut, onAuthStateChanged }           from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+         signOut, onAuthStateChanged,
+         updatePassword, reauthenticateWithCredential,
+         EmailAuthProvider }                     from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURATION Firebase
@@ -49,9 +51,11 @@ const btnLogout  = $('btn-logout');
 const tabTerrain    = $('tab-terrain');
 const tabAdmin      = $('tab-admin');
 const tabHistorique = $('tab-historique');
+const tabProfil     = $('tab-profil');
 const secTerrain    = $('sec-terrain');
 const secAdmin      = $('sec-admin');
 const secHistorique = $('sec-historique');
+const secProfil     = $('sec-profil');
 
 const offlineBanner = $('offline-banner');
 
@@ -127,9 +131,9 @@ function showApp(user) {
     appEl.classList.add('visible');
     const headerUser = $('header-user');
     if (headerUser) {
-    headerUser.textContent = user.email.charAt(0).toUpperCase();
-    headerUser.title = user.email;
-}
+        headerUser.textContent = user.email.charAt(0).toUpperCase();
+        headerUser.title = user.email;
+    }
 }
 
 btnLogin.addEventListener('click', async () => {
@@ -192,17 +196,22 @@ updateOnlineBanner();
 tabTerrain.addEventListener('click',    () => showTab('terrain'));
 tabAdmin.addEventListener('click',      () => showTab('admin'));
 tabHistorique.addEventListener('click', () => showTab('historique'));
+tabProfil.addEventListener('click',     () => showTab('profil'));
 
 function showTab(tab) {
     tabTerrain.classList.toggle('active',    tab === 'terrain');
     tabAdmin.classList.toggle('active',      tab === 'admin');
     tabHistorique.classList.toggle('active', tab === 'historique');
+    tabProfil.classList.toggle('active',     tab === 'profil');
+
     secTerrain.classList.toggle('hidden',    tab !== 'terrain');
     secAdmin.classList.toggle('hidden',      tab !== 'admin');
     secHistorique.classList.toggle('hidden', tab !== 'historique');
+    secProfil.classList.toggle('hidden',     tab !== 'profil');
 
     if (tab === 'historique') chargerHistorique();
     if (tab === 'terrain')   { afficherVue('liste'); chargerListeKits(); }
+    if (tab === 'profil')    afficherProfil();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -227,8 +236,6 @@ btnRetourKits?.addEventListener('click', () => {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // NIVEAU 1 — LISTE GLOBALE DES KITS NON CONFORMES
-// Structure : emplacements/{empId}/kits/{kitId}
-// Chaque ligne = un kit (pas un emplacement)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 let tousLesKits = [];
@@ -236,7 +243,7 @@ let tousLesKits = [];
 async function chargerListeKits() {
     listeLoading.classList.remove('hidden');
     listeVide.classList.add('hidden');
-    listeKits.innerHTML     = '';
+    listeKits.innerHTML      = '';
     searchStatus.textContent = '';
 
     try {
@@ -263,7 +270,6 @@ async function chargerListeKits() {
 
         await Promise.all(promises);
 
-        // Tri : Incomplet en premier, puis Non vérifié, puis alpha
         tousLesKits.sort((a, b) => {
             const ordre = { "Incomplet": 0, "Non vérifié": 1 };
             const oa = ordre[a.statut_conformite] ?? 2;
@@ -303,7 +309,6 @@ function renderListeKits(liste) {
 
     listeVide.classList.add('hidden');
 
-    // Séparateurs par emplacement
     let lastEmp = null;
     filtered.forEach(k => {
         if (k.empId !== lastEmp) {
@@ -314,8 +319,8 @@ function renderListeKits(liste) {
             lastEmp = k.empId;
         }
 
-        const isKo  = k.statut_conformite === 'Incomplet';
-        const card  = document.createElement('div');
+        const isKo = k.statut_conformite === 'Incomplet';
+        const card = document.createElement('div');
         card.className = 'kit-liste-item' + (isKo ? ' kit-liste-ko' : '');
         card.innerHTML = `
             <div class="kit-liste-left">
@@ -337,13 +342,12 @@ function renderListeKits(liste) {
     });
 }
 
-inputEmp?.addEventListener('input',  () => renderListeKits(tousLesKits));
+inputEmp?.addEventListener('input',   () => renderListeKits(tousLesKits));
 btnVerifier?.addEventListener('click', () => renderListeKits(tousLesKits));
 inputEmp?.addEventListener('keydown', e => { if (e.key === 'Enter') btnVerifier.click(); });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// NIVEAU 2 — TOUS LES KITS D'UN EMPLACEMENT (avec leur statut individuel)
-// Accessible via le bouton "← Retour" depuis le détail
+// NIVEAU 2 — TOUS LES KITS D'UN EMPLACEMENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function chargerKitsEmplacement(empId) {
@@ -422,9 +426,7 @@ async function ouvrirDetailKit(empId, kitId) {
     detailKitCard.classList.add('hidden');
 
     try {
-        // Statut et métadonnées depuis la sous-collection
         const kitDocSnap = await getDoc(doc(db, "emplacements", empId, "kits", kitId));
-        // Composants depuis nomenclature_kits
         const nomSnap    = await getDoc(doc(db, "nomenclature_kits", kitId));
         if (!nomSnap.exists()) throw new Error(`Nomenclature du kit « ${kitId} » introuvable.`);
 
@@ -528,7 +530,6 @@ async function valider(statut) {
     }));
 
     try {
-        // Écriture dans emplacements/{empId}/kits/{kitId}
         await setDoc(
             doc(db, "emplacements", currentEmpId, "kits", currentKitId),
             {
@@ -554,7 +555,7 @@ async function valider(statut) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// HISTORIQUE — lit les sous-collections kits de chaque emplacement
+// HISTORIQUE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 let histoData = [];
@@ -617,13 +618,13 @@ function renderHistorique(liste) {
     histoEmpty.classList.add('hidden');
 
     filtered.forEach(k => {
-        const date     = new Date(k.derniere_verification).toLocaleString('fr-FR', {
+        const date    = new Date(k.derniere_verification).toLocaleString('fr-FR', {
             day:'2-digit', month:'2-digit', year:'numeric',
             hour:'2-digit', minute:'2-digit'
         });
-        const statut   = k.statut_conformite || 'Non vérifié';
-        const isOk     = statut === 'Conforme';
-        const isKo     = statut === 'Incomplet';
+        const statut  = k.statut_conformite || 'Non vérifié';
+        const isOk    = statut === 'Conforme';
+        const isKo    = statut === 'Incomplet';
         const manquants = (k.detail_verification || []).filter(c =>
             c.quantite_comptee !== null && c.quantite_comptee !== c.quantite_requise
         );
@@ -696,7 +697,6 @@ $('btn-pin').addEventListener('click', () => {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ADMIN — IMPORT EXCEL
-// Nouvelle structure : emplacements/{empId}/kits/{kitId}
 // ═══════════════════════════════════════════════════════════════════════════════
 
 dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
@@ -740,7 +740,6 @@ async function traiterFichier(file) {
 
             if (!lignes.length) throw new Error("Aucune donnée exploitable.");
 
-            // Index : empId → kitId → { engin, code_kit, nom_du_kit, composants[] }
             const index = {};
             lignes.forEach(l => {
                 const row = {};
@@ -769,7 +768,6 @@ async function traiterFichier(file) {
                 }
             });
 
-            // Compter le total
             let totalKits = 0;
             Object.values(index).forEach(kits => { totalKits += Object.keys(kits).length; });
 
@@ -777,7 +775,6 @@ async function traiterFichier(file) {
             let ecrits = 0, ignores = 0;
 
             for (const [empId, kits] of Object.entries(index)) {
-                // Document emplacement (conteneur)
                 await setDoc(doc(db, "emplacements", empId), { id: empId }, { merge: true });
 
                 for (const [kitId, kitData] of Object.entries(kits)) {
@@ -787,14 +784,12 @@ async function traiterFichier(file) {
                     if (kitSnap.exists()) {
                         ignores++;
                     } else {
-                        // Sous-collection : données du kit + statut initial
                         await setDoc(kitRef, {
                             ...kitData,
                             statut_conformite:    "Non vérifié",
                             derniere_mise_a_jour: new Date().toISOString(),
                         });
 
-                        // Nomenclature partagée (composants) — sans écraser
                         const nomRef  = doc(db, "nomenclature_kits", kitId);
                         const nomSnap = await getDoc(nomRef);
                         if (!nomSnap.exists()) await setDoc(nomRef, kitData);
@@ -826,12 +821,165 @@ async function traiterFichier(file) {
     };
 }
 
-// ─── TOGGLE MOT DE PASSE ──────────────────────────────────────────────────────
+// ─── TOGGLE MOT DE PASSE (page de connexion) ──────────────────────────────────
 $('toggle-pwd').addEventListener('click', () => {
     const isPassword = loginPwd.type === 'password';
-    loginPwd.type = isPassword ? 'text' : 'password';
+    loginPwd.type       = isPassword ? 'text' : 'password';
     $('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROFIL UTILISATEUR
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── AFFICHAGE ────────────────────────────────────────────────────────────────
+
+function afficherProfil() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    $('profil-initial').textContent = user.email.charAt(0).toUpperCase();
+    $('profil-email').textContent   = user.email;
+    $('profil-uid').textContent     = user.uid;
+
+    const created = user.metadata.creationTime;
+    $('profil-created').textContent = created
+        ? new Date(created).toLocaleDateString('fr-FR', {
+              day: '2-digit', month: 'long', year: 'numeric'
+          })
+        : '—';
+
+    const lastLogin = user.metadata.lastSignInTime;
+    $('profil-last-login').textContent = lastLogin
+        ? new Date(lastLogin).toLocaleString('fr-FR', {
+              day: '2-digit', month: '2-digit', year: 'numeric',
+              hour: '2-digit', minute: '2-digit'
+          })
+        : '—';
+
+    // Réinitialiser le formulaire à chaque ouverture
+    ['pwd-current', 'pwd-new', 'pwd-confirm'].forEach(id => {
+        const el = $(id);
+        if (el) el.value = '';
+    });
+    $('pwd-change-error')?.classList.remove('visible');
+    $('pwd-change-success')?.classList.remove('visible');
+    $('pwd-strength-wrap')?.classList.remove('visible');
+    if ($('pwd-strength-fill')) $('pwd-strength-fill').className = 'pwd-strength-fill';
+    if ($('pwd-strength-label')) $('pwd-strength-label').textContent = '';
+}
+
+// ─── INDICATEUR DE FORCE DU MOT DE PASSE ─────────────────────────────────────
+
+$('pwd-new')?.addEventListener('input', () => {
+    const val  = $('pwd-new').value;
+    const wrap = $('pwd-strength-wrap');
+    const fill = $('pwd-strength-fill');
+    const lbl  = $('pwd-strength-label');
+
+    if (!val) { wrap.classList.remove('visible'); return; }
+    wrap.classList.add('visible');
+
+    let score = 0;
+    if (val.length >= 8)               score++;
+    if (val.length >= 12)              score++;
+    if (/[A-Z]/.test(val))             score++;
+    if (/[0-9]/.test(val))             score++;
+    if (/[^A-Za-z0-9]/.test(val))     score++;
+
+    const levels = [
+        { label: 'Très faible', cls: 'strength-1' },
+        { label: 'Faible',      cls: 'strength-2' },
+        { label: 'Moyen',       cls: 'strength-3' },
+        { label: 'Fort',        cls: 'strength-4' },
+        { label: 'Très fort',   cls: 'strength-5' },
+    ];
+    const level      = levels[Math.min(score, 4)];
+    fill.className   = `pwd-strength-fill ${level.cls}`;
+    lbl.textContent  = level.label;
+});
+
+// ─── TOGGLE MOT DE PASSE (formulaire profil, via data-target) ─────────────────
+
+document.querySelectorAll('.btn-toggle-pwd[data-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const input = $(btn.dataset.target);
+        if (!input) return;
+        const isPassword    = input.type === 'password';
+        input.type          = isPassword ? 'text' : 'password';
+        btn.textContent     = isPassword ? '🙈' : '👁';
+    });
+});
+
+// ─── CHANGEMENT DE MOT DE PASSE ───────────────────────────────────────────────
+
+$('btn-change-pwd')?.addEventListener('click', async () => {
+    const currentPwd = $('pwd-current').value;
+    const newPwd     = $('pwd-new').value;
+    const confirmPwd = $('pwd-confirm').value;
+    const errEl      = $('pwd-change-error');
+    const okEl       = $('pwd-change-success');
+
+    errEl.classList.remove('visible');
+    okEl.classList.remove('visible');
+
+    if (!currentPwd || !newPwd || !confirmPwd) {
+        return afficherErreurPwd(errEl, 'Veuillez remplir tous les champs.');
+    }
+    if (newPwd !== confirmPwd) {
+        return afficherErreurPwd(errEl, 'Les nouveaux mots de passe ne correspondent pas.');
+    }
+    if (newPwd.length < 6) {
+        return afficherErreurPwd(errEl, 'Le nouveau mot de passe doit contenir au moins 6 caractères.');
+    }
+    if (newPwd === currentPwd) {
+        return afficherErreurPwd(errEl, 'Le nouveau mot de passe doit être différent de l\'actuel.');
+    }
+
+    const btn = $('btn-change-pwd');
+    btn.disabled    = true;
+    btn.textContent = 'Modification en cours…';
+
+    try {
+        const user       = auth.currentUser;
+        const credential = EmailAuthProvider.credential(user.email, currentPwd);
+
+        // Réauthentification obligatoire avant opération sensible
+        await reauthenticateWithCredential(user, credential);
+        await updatePassword(user, newPwd);
+
+        // Réinitialisation des champs
+        ['pwd-current', 'pwd-new', 'pwd-confirm'].forEach(id => {
+            const el = $(id);
+            if (el) el.value = '';
+        });
+        $('pwd-strength-wrap').classList.remove('visible');
+
+        okEl.textContent = '✅ Mot de passe modifié avec succès.';
+        okEl.classList.add('visible');
+        setTimeout(() => okEl.classList.remove('visible'), 5000);
+
+    } catch (err) {
+        const messages = {
+            'auth/wrong-password':         'Mot de passe actuel incorrect.',
+            'auth/invalid-credential':     'Mot de passe actuel incorrect.',
+            'auth/weak-password':          'Nouveau mot de passe trop faible (minimum 6 caractères).',
+            'auth/too-many-requests':      'Trop de tentatives. Veuillez réessayer plus tard.',
+            'auth/requires-recent-login':  'Session expirée. Veuillez vous reconnecter.',
+            'auth/network-request-failed': 'Erreur réseau. Vérifiez votre connexion.',
+        };
+        afficherErreurPwd(errEl, messages[err.code] || `Erreur : ${err.message}`);
+
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Modifier le mot de passe →';
+    }
+});
+
+function afficherErreurPwd(el, msg) {
+    el.textContent = msg;
+    el.classList.add('visible');
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TOASTS
