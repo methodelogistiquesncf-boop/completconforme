@@ -1525,30 +1525,51 @@ function initGithubConfig() {
  
 initGithubConfig();
 // ═══════════════════════════════════════════════════════════════════════════════
-// PUSH fichier Excel → GitHub : imports/pending/{nom_du_fichier}
+// PUSH Excel → imports/pending/ + suivi live du workflow GitHub Actions
 // À ajouter à la fin de app.js, après initGithubConfig()
-//
-// Réutilise le token PAT déjà stocké dans Firestore par initGithubConfig().
-// Aucune configuration supplémentaire nécessaire.
 // ═══════════════════════════════════════════════════════════════════════════════
  
 function initImportGithubXls() {
  
-    // ── ⚙️  Mêmes constantes que initGithubConfig ────────────────────────────
+    // ── ⚙️  Configuration ────────────────────────────────────────────────────
     const GITHUB_OWNER     = "methodelogistiquesncf-boop";
     const GITHUB_REPO      = "completconforme";
-    const TARGET_FOLDER    = "imports/pending";           // dossier cible dans le repo
+    const TARGET_FOLDER    = "imports/pending";
     const ACCEPTED_EXT     = ["xlsx", "xls", "csv"];
     const FIRESTORE_SECRET = { col: "config", doc: "secrets", field: "github_token" };
-    const API_BASE = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
+    const API_BASE         = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
+    const API_ACTIONS      = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions`;
+ 
+    const POLL_INTERVAL_MS = 4000;   // polling toutes les 4 secondes
+    const POLL_TIMEOUT_MS  = 300000; // abandon après 5 minutes
+ 
+    // Correspondance nom d'étape workflow → libellé lisible
+    const STEP_LABELS = {
+        "Checkout":                       "📥 Récupération du dépôt",
+        "Setup Python 3.11":              "🐍 Installation Python 3.11",
+        "Installer les dépendances":      "📦 Installation des dépendances",
+        "Identifier le fichier importé":  "🔍 Détection du fichier",
+        "Vérifier qu'un fichier a été détecté": "✔️ Vérification",
+        "Importer dans Firestore":        "🔥 Injection dans Firestore",
+        "Archiver le fichier traité":     "🗃️ Archivage du fichier",
+        "Télécharger le fichier nettoyé": "⬇️ Téléchargement fichier nettoyé",
+    };
  
     // ── Refs DOM ──────────────────────────────────────────────────────────────
-    const dropZoneXls  = document.getElementById("drop-zone-xls");
-    const fileInputXls = document.getElementById("file-input-xls");
-    const progAreaXls  = document.getElementById("progress-area-xls");
-    const progBarXls   = document.getElementById("progress-bar-xls");
-    const progLabelXls = document.getElementById("progress-label-xls");
-    const statusXls    = document.getElementById("admin-status-xls");
+    const dropZoneXls     = document.getElementById("drop-zone-xls");
+    const fileInputXls    = document.getElementById("file-input-xls");
+    const progAreaXls     = document.getElementById("progress-area-xls");
+    const progBarXls      = document.getElementById("progress-bar-xls");
+    const progLabelXls    = document.getElementById("progress-label-xls");
+    const statusXls       = document.getElementById("admin-status-xls");
+ 
+    const workflowPanel   = document.getElementById("workflow-panel");
+    const workflowLink    = document.getElementById("workflow-link");
+    const workflowSpinner = document.getElementById("workflow-spinner");
+    const workflowRunLbl  = document.getElementById("workflow-run-label");
+    const workflowRunSt   = document.getElementById("workflow-run-status");
+    const workflowSteps   = document.getElementById("workflow-steps");
+    const workflowDur     = document.getElementById("workflow-duration");
  
     if (!dropZoneXls) return;
  
@@ -1566,10 +1587,196 @@ function initImportGithubXls() {
  
     async function lireToken() {
         const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
-        if (!snap.exists()) throw new Error("Aucun token GitHub configuré. Enregistrez-en un dans la carte « Configuration GitHub ».");
+        if (!snap.exists()) throw new Error("Aucun token GitHub configuré. Enregistrez-en un dans « Configuration GitHub ».");
         const token = snap.data()[FIRESTORE_SECRET.field];
         if (!token)  throw new Error("Champ token vide dans Firestore.");
         return token;
+    }
+ 
+    // ── Icônes & couleurs des statuts GitHub Actions ──────────────────────────
+ 
+    function iconStep(status, conclusion) {
+        if (status === "queued")      return { icon: "⏳", color: "var(--muted)" };
+        if (status === "in_progress") return { icon: "🔄", color: "var(--blue)" };
+        if (status === "completed") {
+            if (conclusion === "success")   return { icon: "✅", color: "var(--green)" };
+            if (conclusion === "skipped")   return { icon: "⏭️", color: "var(--muted)" };
+            if (conclusion === "failure")   return { icon: "❌", color: "var(--red)" };
+            if (conclusion === "cancelled") return { icon: "🚫", color: "var(--muted)" };
+        }
+        return { icon: "⏸️", color: "var(--muted)" };
+    }
+ 
+    function iconRun(status, conclusion) {
+        if (status === "queued")      return { icon: "⏳", label: "En file d'attente…",    color: "var(--muted)" };
+        if (status === "in_progress") return { icon: "🔄", label: "Pipeline en cours…",    color: "var(--blue)"  };
+        if (status === "completed") {
+            if (conclusion === "success")   return { icon: "✅", label: "Pipeline terminé avec succès !", color: "var(--green)" };
+            if (conclusion === "failure")   return { icon: "❌", label: "Pipeline échoué.",               color: "var(--red)"   };
+            if (conclusion === "cancelled") return { icon: "🚫", label: "Pipeline annulé.",               color: "var(--muted)" };
+        }
+        return { icon: "⏳", label: "Démarrage…", color: "var(--muted)" };
+    }
+ 
+    // ── Rendu des étapes ──────────────────────────────────────────────────────
+ 
+    function renderSteps(steps) {
+        workflowSteps.innerHTML = "";
+        steps.forEach(step => {
+            // Ignorer les étapes système de GitHub
+            if (step.name === "Set up job" || step.name === "Complete job") return;
+ 
+            const { icon, color } = iconStep(step.status, step.conclusion);
+            const label = STEP_LABELS[step.name] || step.name;
+ 
+            const row = document.createElement("div");
+            row.dataset.stepName = step.name;
+            row.style.cssText = `
+                display: flex; align-items: center; gap: .65rem;
+                padding: .55rem .85rem;
+                background: var(--input-bg);
+                border: 1.5px solid var(--border);
+                border-radius: var(--radius);
+                transition: border-color .2s;
+            `;
+ 
+            const isActive = step.status === "in_progress";
+            if (isActive) row.style.borderColor = "var(--blue)";
+            if (step.conclusion === "success")  row.style.borderColor = "rgba(63,168,118,.4)";
+            if (step.conclusion === "failure")  row.style.borderColor = "rgba(192,53,74,.4)";
+ 
+            row.innerHTML = `
+                <span style="font-size:.95rem;flex-shrink:0;">${icon}</span>
+                <span style="font-size:.83rem;font-weight:600;color:${color};flex:1;">${label}</span>
+                ${step.status === "in_progress"
+                    ? `<div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0;"></div>`
+                    : `<span style="font-family:var(--mono);font-size:.68rem;color:var(--muted);">
+                           ${step.conclusion || step.status}
+                       </span>`
+                }
+            `;
+            workflowSteps.appendChild(row);
+        });
+    }
+ 
+    // ── Rendu statut global du run ────────────────────────────────────────────
+ 
+    function renderRunStatus(status, conclusion) {
+        const { icon, label, color } = iconRun(status, conclusion);
+        const isRunning = status !== "completed";
+ 
+        workflowSpinner.style.display = isRunning ? "block" : "none";
+        workflowRunLbl.textContent    = `${icon} ${label}`;
+        workflowRunLbl.style.color    = color;
+ 
+        if (status === "completed") {
+            workflowRunSt.style.borderColor =
+                conclusion === "success" ? "rgba(63,168,118,.45)" : "rgba(192,53,74,.35)";
+            workflowRunSt.style.background  =
+                conclusion === "success" ? "rgba(63,168,118,.05)" : "rgba(192,53,74,.05)";
+        }
+    }
+ 
+    // ── Durée formatée ────────────────────────────────────────────────────────
+ 
+    function formatDuration(start, end) {
+        const secs = Math.round((new Date(end) - new Date(start)) / 1000);
+        if (secs < 60) return `${secs}s`;
+        return `${Math.floor(secs / 60)}min ${secs % 60}s`;
+    }
+ 
+    // ── Polling GitHub Actions ────────────────────────────────────────────────
+ 
+    async function pollWorkflow(commitSha, token) {
+        workflowPanel.classList.remove("hidden");
+        renderRunStatus("queued", null);
+ 
+        const deadline = Date.now() + POLL_TIMEOUT_MS;
+        let runId      = null;
+ 
+        // Phase 1 : attendre que GitHub Actions crée le run lié au commit
+        while (Date.now() < deadline) {
+            await sleep(POLL_INTERVAL_MS);
+ 
+            const res = await fetch(
+                `${API_ACTIONS}/runs?head_sha=${commitSha}&per_page=5`,
+                { headers: githubHeaders(token) }
+            );
+            if (!res.ok) continue;
+ 
+            const data = await res.json();
+            const run  = data.workflow_runs?.[0];
+            if (!run) continue;
+ 
+            runId = run.id;
+ 
+            // Afficher le lien vers le run
+            workflowLink.href          = run.html_url;
+            workflowLink.style.display = "inline";
+ 
+            renderRunStatus(run.status, run.conclusion);
+ 
+            // Phase 2 : suivre les étapes jusqu'à complétion
+            await pollRunJobs(runId, run, token, deadline);
+            return;
+        }
+ 
+        // Timeout
+        workflowRunLbl.textContent = "⚠️ Délai dépassé — vérifiez GitHub Actions.";
+        workflowRunLbl.style.color = "var(--amber)";
+        workflowSpinner.style.display = "none";
+    }
+ 
+    async function pollRunJobs(runId, initialRun, token, deadline) {
+        let run = initialRun;
+ 
+        while (Date.now() < deadline) {
+            // Récupérer les jobs et leurs étapes
+            const jobsRes = await fetch(
+                `${API_ACTIONS}/runs/${runId}/jobs`,
+                { headers: githubHeaders(token) }
+            );
+ 
+            if (jobsRes.ok) {
+                const jobsData = await jobsRes.json();
+                const job      = jobsData.jobs?.[0]; // 1 seul job dans ce workflow
+                if (job?.steps) renderSteps(job.steps);
+            }
+ 
+            renderRunStatus(run.status, run.conclusion);
+ 
+            if (run.status === "completed") {
+                workflowSpinner.style.display = "none";
+ 
+                // Durée totale
+                if (run.created_at && run.updated_at) {
+                    workflowDur.textContent = `⏱ Durée totale : ${formatDuration(run.created_at, run.updated_at)}`;
+                    workflowDur.style.display = "block";
+                }
+                return;
+            }
+ 
+            await sleep(POLL_INTERVAL_MS);
+ 
+            // Rafraîchir le run
+            const runRes = await fetch(
+                `${API_ACTIONS}/runs/${runId}`,
+                { headers: githubHeaders(token) }
+            );
+            if (runRes.ok) run = await runRes.json();
+        }
+    }
+ 
+    function githubHeaders(token) {
+        return {
+            Authorization:          `Bearer ${token}`,
+            Accept:                 "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        };
+    }
+ 
+    function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
     }
  
     // ── Drag & drop ───────────────────────────────────────────────────────────
@@ -1593,99 +1800,86 @@ function initImportGithubXls() {
         e.target.value = "";
     });
  
-    // ── Push vers GitHub ──────────────────────────────────────────────────────
+    // ── Traitement principal ──────────────────────────────────────────────────
  
     async function traiterFichierXls(file) {
  
-        // 1. Validation de l'extension
+        // 1. Validation extension
         const ext = file.name.split(".").pop().toLowerCase();
         if (!ACCEPTED_EXT.includes(ext)) {
-            setStatusXls(
-                `❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`,
-                "error"
-            );
+            setStatusXls(`❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`, "error");
             return;
         }
  
+        // Reset UI
+        workflowPanel.classList.add("hidden");
+        workflowSteps.innerHTML    = "";
+        workflowLink.style.display = "none";
+        workflowDur.style.display  = "none";
         progAreaXls.classList.remove("hidden");
         setProgress(5, "Lecture du fichier…");
         setStatusXls("⏳ Lecture du fichier…", "info");
  
         try {
-            // 2. Lecture en ArrayBuffer puis conversion base64
-            const buffer       = await file.arrayBuffer();
-            const uint8        = new Uint8Array(buffer);
-            const base64Content = btoa(
-                uint8.reduce((data, byte) => data + String.fromCharCode(byte), "")
-            );
+            // 2. Lecture binaire → base64
+            const buffer = await file.arrayBuffer();
+            const uint8  = new Uint8Array(buffer);
+            const base64 = btoa(uint8.reduce((d, b) => d + String.fromCharCode(b), ""));
  
-            setProgress(25, "Récupération du token…");
- 
-            // 3. Token depuis Firestore
+            setProgress(20, "Récupération du token…");
             const token = await lireToken();
  
-            // 4. Chemin cible dans le repo
             const targetPath = `${TARGET_FOLDER}/${file.name}`;
- 
-            setProgress(45, "Vérification du fichier existant…");
+            setProgress(40, "Vérification du fichier existant…");
             setStatusXls("⏳ Connexion à GitHub…", "info");
  
-            // 5. Récupérer le SHA si le fichier existe déjà (requis pour écraser)
+            // 3. SHA si fichier existant
             let sha = null;
             const getResp = await fetch(`${API_BASE}/${targetPath}`, {
-                headers: {
-                    Authorization:          `Bearer ${token}`,
-                    Accept:                 "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                }
+                headers: githubHeaders(token)
             });
- 
             if (getResp.ok) {
-                const existing = await getResp.json();
-                sha = existing.sha;
-                setProgress(60, "Fichier existant trouvé, écrasement…");
-            } else if (getResp.status === 404) {
-                setProgress(60, "Nouveau fichier, envoi…");
-            } else {
-                const err = await getResp.json();
-                throw new Error(`GitHub GET : ${err.message}`);
+                sha = (await getResp.json()).sha;
+            } else if (getResp.status !== 404) {
+                throw new Error(`GitHub GET : ${(await getResp.json()).message}`);
             }
  
+            setProgress(65, "Envoi vers le dépôt…");
             setStatusXls("⏳ Push vers GitHub…", "info");
  
-            // 6. PUT vers imports/pending/{nom_du_fichier}
+            // 4. PUT fichier
             const putResp = await fetch(`${API_BASE}/${targetPath}`, {
                 method:  "PUT",
-                headers: {
-                    Authorization:          `Bearer ${token}`,
-                    Accept:                 "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                    "Content-Type":         "application/json",
-                },
+                headers: { ...githubHeaders(token), "Content-Type": "application/json" },
                 body: JSON.stringify({
                     message: `[Admin] Import ${file.name} → ${TARGET_FOLDER}`,
-                    content: base64Content,
+                    content: base64,
                     ...(sha ? { sha } : {}),
                 }),
             });
  
             if (!putResp.ok) {
-                const err = await putResp.json();
-                throw new Error(`GitHub PUT : ${err.message}`);
+                throw new Error(`GitHub PUT : ${(await putResp.json()).message}`);
             }
  
             const result    = await putResp.json();
-            const commitSha = result.commit?.sha?.slice(0, 7) || "ok";
+            const commitSha = result.commit?.sha;
             const commitUrl = result.commit?.html_url || "#";
+            const shortSha  = commitSha?.slice(0, 7) || "ok";
  
-            setProgress(100, "Terminé.");
+            setProgress(100, "Fichier envoyé — pipeline en attente…");
             statusXls.className = "admin-status success";
             statusXls.innerHTML =
                 `✅ « ${file.name} » envoyé dans <code style="font-family:var(--mono);font-size:.8rem;">${TARGET_FOLDER}/</code> · Commit : ` +
                 `<a href="${commitUrl}" target="_blank" rel="noopener"
                     style="color:var(--green);font-family:var(--mono);font-size:.8rem;">
-                    ${commitSha} ↗
+                    ${shortSha} ↗
                 </a>`;
+ 
+            // 5. Suivi live du workflow Actions
+            if (commitSha) {
+                await pollWorkflow(commitSha, token);
+            }
  
         } catch (err) {
             console.error("[PushXls]", err);
@@ -1696,3 +1890,4 @@ function initImportGithubXls() {
 }
  
 initImportGithubXls();
+ 
