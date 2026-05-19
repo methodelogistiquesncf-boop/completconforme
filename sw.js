@@ -33,7 +33,6 @@ const NETWORK_ONLY_PATTERNS = [
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache =>
-            // Promise.allSettled : un 404 n'interrompt plus tout le precache
             Promise.allSettled(
                 PRECACHE_ASSETS.map(url =>
                     cache.add(url).catch(err =>
@@ -41,7 +40,8 @@ self.addEventListener('install', event => {
                     )
                 )
             )
-        ).then(() => self.skipWaiting())
+        )
+        // plus de skipWaiting ici
     );
 });
 
