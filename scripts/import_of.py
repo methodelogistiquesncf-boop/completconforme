@@ -72,7 +72,6 @@ def lire_fichier(path: str) -> pd.DataFrame:
     if ext in (".xlsx", ".xls"):
         df = pd.read_excel(path, dtype=str)
     elif ext == ".csv":
-        # Essai UTF-8 puis latin-1
         try:
             df = pd.read_csv(path, dtype=str, encoding="utf-8")
         except UnicodeDecodeError:
@@ -99,18 +98,15 @@ def lire_fichier(path: str) -> pd.DataFrame:
     df = df[colonnes_presentes]
 
     # ─── 2. FILTRE : LIGNES À GARDER (EMPLACEMENTS VALIDES) ─────────────────
-    config_path = "emplacements_autorises.txt"  # Nom de ton fichier sur le repo
+    config_path = "emplacements_autorises.txt"
     
     if os.path.exists(config_path):
-        # On lit le fichier et on récupère chaque emplacement (un par ligne)
         with open(config_path, "r", encoding="utf-8") as f:
             emplacements_a_garder = [ligne.strip() for ligne in f if ligne.strip()]
         
-        # On utilise ton mapping ou le nom direct pour cibler la bonne colonne
         c_emp = resolve_col(list(df.columns), "emplacement")
         
         if c_emp and c_emp in df.columns:
-            # .isin() filtre pour ne garder que les lignes dont l'emplacement est dans la liste
             df = df[df[c_emp].str.strip().isin(emplacements_a_garder)]
             print(f"   [FILTER] Filtrage appliqué : seuls les emplacements de '{config_path}' sont conservés.", flush=True)
         else:
@@ -119,7 +115,6 @@ def lire_fichier(path: str) -> pd.DataFrame:
         print(f"   [INFO] Aucun fichier '{config_path}' trouvé à la racine. Toutes les lignes sont conservées.", flush=True)
 
     print(f"   [DATA] Taille finale après filtres : {df.shape[0]} lignes, {df.shape[1]} colonnes", flush=True)
-    # ──────────────────────────────────────────────────────────────────────
 
     df = df.fillna("")
     return df
@@ -130,7 +125,6 @@ def lire_fichier(path: str) -> pd.DataFrame:
 def construire_index(df: pd.DataFrame) -> dict:
     cols = list(df.columns)
 
-    # Résolution des colonnes
     c_kit        = resolve_col(cols, "code_kit")
     c_kit_nom    = resolve_col(cols, "design_kit")
     c_engin      = resolve_col(cols, "engin")
@@ -141,7 +135,6 @@ def construire_index(df: pd.DataFrame) -> dict:
     c_contenant = COL["code_contenant"] if COL["code_contenant"] in cols else None
     c_caisse    = COL["caisse"]         if COL["caisse"] in cols          else None
 
-    # Colonnes obligatoires
     manquantes = [k for k, v in {"code_kit": c_kit, "engin": c_engin, "emplacement": c_emp}.items() if not v]
     if manquantes:
         raise ValueError(f"Colonnes obligatoires introuvables : {manquantes}\n"
@@ -199,7 +192,6 @@ def injecter(db, index: dict) -> dict:
     maintenant = datetime.datetime.utcnow().isoformat() + "Z"
 
     for emp_id, kits in index.items():
-        # Création/mise à jour doc emplacement
         try:
             db.collection("emplacements").document(emp_id).set(
                 {"id": emp_id}, merge=True
@@ -225,7 +217,6 @@ def injecter(db, index: dict) -> dict:
                 }
                 kit_ref.set(payload)
 
-                # Nomenclature globale
                 nom_ref  = db.collection("nomenclature_kits").document(kit_id)
                 nom_snap = nom_ref.get()
                 if not nom_snap.exists:
@@ -255,47 +246,45 @@ def main():
         sys.exit(1)
 
     print(f"\n{'='*60}", flush=True)
-    print(f"  CompletConforme — Import OF", flush=True)
+    print(f"  CompletConforme — Nettoyage & Import", flush=True)
     print(f"  Fichier : {import_file}", flush=True)
     print(f"{'='*60}\n", flush=True)
 
-    # 1. Firebase
-    print("→ Initialisation Firebase…", flush=True)
-    db = init_firebase()
-
-    # 2. Lecture et nettoyage automatique
-    print(f"→ Lecture et nettoyage du fichier {import_file}…", flush=True)
+    # ETAPE 1 : Lecture et nettoyage automatique du fichier
+    print(f"→ 1. Lecture et nettoyage du fichier {import_file}…", flush=True)
     df = lire_fichier(import_file)
     print(f"  {len(df)} lignes valides après filtres.", flush=True)
 
-    # ─── SAUVEGARDE DE LA COPIE NETTOYÉE ──────────────────────────────────────
+    # ETAPE 2 : Sauvegarde immédiate de la copie propre
     os.makedirs("imports/cleaned", exist_ok=True)
     nom_origine = pathlib.Path(import_file).name
     fichier_nettoye = f"imports/cleaned/cleaned_{nom_origine}"
     
-    print(f"→ Sauvegarde de la copie nettoyée : {fichier_nettoye}…", flush=True)
+    print(f"→ 2. Sauvegarde de la copie nettoyée : {fichier_nettoye}…", flush=True)
     if fichier_nettoye.endswith((".xlsx", ".xls")):
         df.to_excel(fichier_nettoye, index=False)
     else:
         df.to_csv(fichier_nettoye, index=False, encoding="utf-8")
-    # ──────────────────────────────────────────────────────────────────────────
 
-    # 3. Construction index
-    print("→ Construction de l'index…", flush=True)
+    # ETAPE 3 : Préparation des structures (Index)
+    print("→ 3. Préparation des structures de données (Index)…", flush=True)
     index = construire_index(df)
     total_emp  = len(index)
     total_kits = sum(len(v) for v in index.values())
-    print(f"  {total_emp} emplacement(s) · {total_kits} kit(s) détectés.", flush=True)
+    print(f"  {total_emp} emplacement(s) · {total_kits} kit(s) générés.", flush=True)
 
     if total_kits == 0:
-        print("❌ Aucun kit valide détecté après filtrage. Vérifiez le fichier.", flush=True)
-        sys.exit(1)
+        print("❌ Aucun kit valide détecté après filtrage. Fin du traitement.", flush=True)
+        sys.exit(0)
 
-    # 4. Injection
-    print("→ Injection dans Firestore…", flush=True)
+    # ETAPE 4 : Connexion Firebase et Injection (Dernière étape)
+    print("→ 4. Initialisation Firebase & Connexion base de données…", flush=True)
+    db = init_firebase()
+
+    print("→ 5. Injection finale dans Firestore…", flush=True)
     stats = injecter(db, index)
 
-    # 5. Résumé
+    # Résumé final
     print(f"\n{'='*60}", flush=True)
     print(f"  ✅ {stats['ecrits']} kit(s) ajouté(s)", flush=True)
     print(f"  ⏭  {stats['ignores']} kit(s) ignoré(s) (déjà présents)", flush=True)
