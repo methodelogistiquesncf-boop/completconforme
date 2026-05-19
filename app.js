@@ -34,8 +34,6 @@ const firebaseConfig = {
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Persistance offline — initializeFirestore ne peut pas être appelé dans un
-// import dynamique ; on l'appelle directement avec un fallback getFirestore.
 let db;
 try {
     db = initializeFirestore(app, { localCache: persistentLocalCache() });
@@ -62,7 +60,7 @@ const btnLogin   = $('btn-login');
 const loginError = $('login-error');
 const btnLogout  = $('btn-logout');
 
-// Onglets
+// Onglets principaux
 const tabTerrain    = $('tab-terrain');
 const tabAdmin      = $('tab-admin');
 const tabHistorique = $('tab-historique');
@@ -110,7 +108,6 @@ const pinInputs    = document.querySelectorAll('.pin-input');
 const pinError     = $('pin-error');
 const adminAuth    = $('admin-auth');
 const adminContent = $('admin-content');
-
 
 // Historique
 const histoList    = $('histo-list');
@@ -201,7 +198,7 @@ window.addEventListener('offline', updateOnlineBanner);
 updateOnlineBanner();
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// NAVIGATION ONGLETS
+// NAVIGATION ONGLETS PRINCIPAUX
 // ═══════════════════════════════════════════════════════════════════════════════
 
 tabTerrain.addEventListener('click',    () => showTab('terrain'));
@@ -353,9 +350,9 @@ function renderListeKits(liste) {
     });
 }
 
-inputEmp?.addEventListener('input',   () => renderListeKits(tousLesKits));
+inputEmp?.addEventListener('input',    () => renderListeKits(tousLesKits));
 btnVerifier?.addEventListener('click', () => renderListeKits(tousLesKits));
-inputEmp?.addEventListener('keydown', e => { if (e.key === 'Enter') btnVerifier.click(); });
+inputEmp?.addEventListener('keydown',  e => { if (e.key === 'Enter') btnVerifier.click(); });
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // NIVEAU 2 — TOUS LES KITS D'UN EMPLACEMENT
@@ -707,136 +704,22 @@ $('btn-pin').addEventListener('click', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ADMIN — IMPORT EXCEL (Nomenclature)
+// ADMIN — NAVIGATION ONGLETS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-dropZone?.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone?.addEventListener('dragleave', ()  => dropZone.classList.remove('dragover'));
-dropZone?.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    const file = e.dataTransfer?.files?.[0];
-    if (file) traiterFichier(file);
+document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.add('hidden'));
+        btn.classList.add('active');
+        document.getElementById('admin-tab-' + btn.dataset.tab)?.classList.remove('hidden');
+    });
 });
-fileInput?.addEventListener('change', e => {
-    const file = e.target.files?.[0];
-    if (file) traiterFichier(file);
-    e.target.value = '';
-});
-
-function setStatus(msg, type = 'info') {
-    adminStatus.textContent = msg;
-    adminStatus.className   = `admin-status ${type}`;
-}
-
-async function traiterFichier(file) {
-    const ext = file.name.split('.').pop().toLowerCase();
-    if (!['xlsx', 'xls', 'csv'].includes(ext)) {
-        setStatus('Format invalide. Utilisez .xlsx ou .csv.', 'error'); return;
-    }
-
-    progressArea.classList.remove('hidden');
-    progressBar.style.width   = '0%';
-    progressLabel.textContent = 'Lecture du fichier…';
-    setStatus('Analyse en cours…', 'info');
-
-    const reader = new FileReader();
-    reader.readAsArrayBuffer(file);
-    reader.onerror = () => setStatus('Impossible de lire le fichier.', 'error');
-
-    reader.onload = async e => {
-        try {
-            const wb     = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-            const sheet  = wb.Sheets[wb.SheetNames[0]];
-            const lignes = XLSX.utils.sheet_to_json(sheet);
-
-            if (!lignes.length) throw new Error("Aucune donnée exploitable.");
-
-            const index = {};
-            lignes.forEach(l => {
-                const row = {};
-                Object.keys(l).forEach(k => { row[k.trim()] = l[k]; });
-
-                const engin       = String(row['Engin']            || row['engin']    || '').trim();
-                const codeKit     = String(row['Code kit']         || row['code_kit'] || '').trim();
-                const nomKit      = String(row['designations kit'] || row['nom_kit']  || 'Kit sans nom').trim();
-                const emplacement = String(row['emplacement']      || row['Emplacement'] || '').trim();
-                const nomComp     = String(row['designation article'] || row['designations article'] || '').trim();
-                const quantite    = Number(row['quantite'] || row['Quantite'] || row['quantité'] || 1);
-
-                if (!engin || !codeKit || !emplacement) return;
-
-                const kitId = `${engin}_${codeKit}`;
-                if (!index[emplacement])        index[emplacement] = {};
-                if (!index[emplacement][kitId]) {
-                    index[emplacement][kitId] = {
-                        engin, code_kit: codeKit, nom_du_kit: nomKit, composants: []
-                    };
-                }
-                if (nomComp) {
-                    index[emplacement][kitId].composants.push({
-                        nom: nomComp, quantite_requise: quantite || 1
-                    });
-                }
-            });
-
-            let totalKits = 0;
-            Object.values(index).forEach(kits => { totalKits += Object.keys(kits).length; });
-
-            setStatus('Vérification des données existantes…', 'info');
-            let ecrits = 0, ignores = 0;
-
-            for (const [empId, kits] of Object.entries(index)) {
-                await setDoc(doc(db, "emplacements", empId), { id: empId }, { merge: true });
-
-                for (const [kitId, kitData] of Object.entries(kits)) {
-                    const kitRef  = doc(db, "emplacements", empId, "kits", kitId);
-                    const kitSnap = await getDoc(kitRef);
-
-                    if (kitSnap.exists()) {
-                        ignores++;
-                    } else {
-                        await setDoc(kitRef, {
-                            ...kitData,
-                            statut_conformite:    "Non vérifié",
-                            derniere_mise_a_jour: new Date().toISOString(),
-                        });
-
-                        const nomRef  = doc(db, "nomenclature_kits", kitId);
-                        const nomSnap = await getDoc(nomRef);
-                        if (!nomSnap.exists()) await setDoc(nomRef, kitData);
-
-                        ecrits++;
-                    }
-
-                    const done = ecrits + ignores;
-                    const pct  = Math.round((done / totalKits) * 100);
-                    progressBar.style.width   = pct + '%';
-                    progressLabel.textContent = `${done} / ${totalKits} kits traités…`;
-                    setStatus(`Import en cours… ${pct}%`, 'info');
-                }
-            }
-
-            progressBar.style.width = '100%';
-            setStatus(
-                `✅ Import terminé — ${ecrits} kit(s) ajouté(s)` +
-                `${ignores ? `, ${ignores} ignoré(s) déjà présent(s)` : ''}.`,
-                'success'
-            );
-
-        } catch (err) {
-            console.error(err);
-            setStatus('❌ Échec : ' + err.message, 'error');
-        } finally {
-            fileInput.value = '';
-        }
-    };
-}
 
 // ─── TOGGLE MOT DE PASSE (page de connexion) ──────────────────────────────────
 $('toggle-pwd').addEventListener('click', () => {
-    const isPassword    = loginPwd.type === 'password';
-    loginPwd.type       = isPassword ? 'text' : 'password';
+    const isPassword        = loginPwd.type === 'password';
+    loginPwd.type           = isPassword ? 'text' : 'password';
     $('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
 });
 
@@ -874,7 +757,7 @@ function afficherProfil() {
     $('pwd-change-error')?.classList.remove('visible');
     $('pwd-change-success')?.classList.remove('visible');
     $('pwd-strength-wrap')?.classList.remove('visible');
-    if ($('pwd-strength-fill')) $('pwd-strength-fill').className = 'pwd-strength-fill';
+    if ($('pwd-strength-fill'))  $('pwd-strength-fill').className = 'pwd-strength-fill';
     if ($('pwd-strength-label')) $('pwd-strength-label').textContent = '';
 }
 
@@ -903,8 +786,8 @@ $('pwd-new')?.addEventListener('input', () => {
         { label: 'Fort',        cls: 'strength-4' },
         { label: 'Très fort',   cls: 'strength-5' },
     ];
-    const level    = levels[Math.min(score, 4)];
-    fill.className = `pwd-strength-fill ${level.cls}`;
+    const level     = levels[Math.min(score, 4)];
+    fill.className  = `pwd-strength-fill ${level.cls}`;
     lbl.textContent = level.label;
 });
 
@@ -932,18 +815,14 @@ $('btn-change-pwd')?.addEventListener('click', async () => {
     errEl.classList.remove('visible');
     okEl.classList.remove('visible');
 
-    if (!currentPwd || !newPwd || !confirmPwd) {
+    if (!currentPwd || !newPwd || !confirmPwd)
         return afficherErreurPwd(errEl, 'Veuillez remplir tous les champs.');
-    }
-    if (newPwd !== confirmPwd) {
+    if (newPwd !== confirmPwd)
         return afficherErreurPwd(errEl, 'Les nouveaux mots de passe ne correspondent pas.');
-    }
-    if (newPwd.length < 6) {
+    if (newPwd.length < 6)
         return afficherErreurPwd(errEl, 'Le nouveau mot de passe doit contenir au moins 6 caractères.');
-    }
-    if (newPwd === currentPwd) {
+    if (newPwd === currentPwd)
         return afficherErreurPwd(errEl, 'Le nouveau mot de passe doit être différent de l\'actuel.');
-    }
 
     const btn = $('btn-change-pwd');
     btn.disabled    = true;
@@ -1049,31 +928,21 @@ async function detectAppVersion() {
 }
 detectAppVersion();
 
-
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // GITHUB TOKEN (Firestore) + PUSH emplacements_autorises.txt
-// À ajouter à la fin de app.js, après initImportOF()
-//
-// ⚙️  Seules 2 constantes à configurer :
 // ═══════════════════════════════════════════════════════════════════════════════
- 
+
 function initGithubConfig() {
- 
-    // ── ⚙️  À CONFIGURER ────────────────────────────────────────────────────
-    const GITHUB_OWNER = "methodelogistiquesncf-boop"; // votre utilisateur ou org GitHub
-    const GITHUB_REPO  = "completconforme";            // nom du dépôt
-    // ── Le token est lu depuis Firestore : config/secrets → champ github_token ─
- 
+
+    const GITHUB_OWNER      = "methodelogistiquesncf-boop";
+    const GITHUB_REPO       = "completconforme";
     const EXPECTED_FILENAME = "emplacements_autorises.txt";
     const FIRESTORE_SECRET  = { col: "config", doc: "secrets", field: "github_token" };
     const API_BASE = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
- 
-    // ── Refs DOM ─────────────────────────────────────────────────────────────
+
     const tokenInput   = document.getElementById("github-token-input");
     const btnSaveToken = document.getElementById("btn-save-token");
     const tokenStatus  = document.getElementById("token-status");
- 
     const dropZoneEmp  = document.getElementById("drop-zone-emp");
     const fileInputEmp = document.getElementById("file-input-emp");
     const progAreaEmp  = document.getElementById("progress-area-emp");
@@ -1083,26 +952,24 @@ function initGithubConfig() {
     const previewWrap  = document.getElementById("emp-preview-wrap");
     const previewList  = document.getElementById("emp-preview-list");
     const previewCount = document.getElementById("emp-preview-count");
- 
+
     if (!tokenInput || !dropZoneEmp) return;
- 
-    // ── Helpers ───────────────────────────────────────────────────────────────
- 
+
     function setTokenStatus(msg, type = "info") {
         tokenStatus.textContent = msg;
         tokenStatus.className   = `admin-status ${type}`;
     }
- 
+
     function setStatusEmp(msg, type = "info") {
         statusEmp.textContent = msg;
         statusEmp.className   = `admin-status ${type}`;
     }
- 
+
     function setProgress(pct, label) {
         progBarEmp.style.width   = pct + "%";
         progLabelEmp.textContent = label;
     }
- 
+
     function afficherApercu(lignes) {
         previewList.innerHTML = "";
         lignes.forEach(id => {
@@ -1120,9 +987,7 @@ function initGithubConfig() {
             `${lignes.length} emplacement${lignes.length > 1 ? "s" : ""} envoyé${lignes.length > 1 ? "s" : ""}`;
         previewWrap.classList.remove("hidden");
     }
- 
-    // ── Lecture du token depuis Firestore ─────────────────────────────────────
- 
+
     async function lireToken() {
         const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
         if (!snap.exists()) throw new Error("Aucun token configuré. Enregistrez-en un d'abord.");
@@ -1130,9 +995,7 @@ function initGithubConfig() {
         if (!token) throw new Error("Champ token vide dans Firestore.");
         return token;
     }
- 
-    // ── Chargement initial : indique si un token est déjà enregistré ──────────
- 
+
     async function chargerEtatToken() {
         try {
             const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
@@ -1140,29 +1003,22 @@ function initGithubConfig() {
                 setTokenStatus("✅ Token GitHub configuré.", "success");
                 tokenInput.placeholder = "ghp_•••••••••• (déjà enregistré)";
             }
-        } catch (err) {
-            // Pas bloquant au démarrage
-        }
+        } catch {}
     }
     chargerEtatToken();
- 
-    // ── Sauvegarde du token dans Firestore ────────────────────────────────────
- 
+
     btnSaveToken.addEventListener("click", async () => {
         const val = tokenInput.value.trim();
-        if (!val) {
-            setTokenStatus("❌ Veuillez saisir un token.", "error");
-            return;
-        }
+        if (!val) { setTokenStatus("❌ Veuillez saisir un token.", "error"); return; }
         if (!val.startsWith("ghp_") && !val.startsWith("github_pat_")) {
             setTokenStatus("⚠️ Format inattendu. Un PAT GitHub commence par ghp_ ou github_pat_.", "error");
             return;
         }
- 
+
         btnSaveToken.disabled    = true;
         btnSaveToken.textContent = "Enregistrement…";
         setTokenStatus("⏳ Enregistrement dans Firestore…", "info");
- 
+
         try {
             await setDoc(
                 doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc),
@@ -1183,16 +1039,9 @@ function initGithubConfig() {
             btnSaveToken.textContent = "Enregistrer le token →";
         }
     });
- 
-    // ── Drag & drop fichier ───────────────────────────────────────────────────
- 
-    dropZoneEmp.addEventListener("dragover", e => {
-        e.preventDefault();
-        dropZoneEmp.classList.add("dragover");
-    });
-    dropZoneEmp.addEventListener("dragleave", () =>
-        dropZoneEmp.classList.remove("dragover")
-    );
+
+    dropZoneEmp.addEventListener("dragover",  e => { e.preventDefault(); dropZoneEmp.classList.add("dragover"); });
+    dropZoneEmp.addEventListener("dragleave", ()  => dropZoneEmp.classList.remove("dragover"));
     dropZoneEmp.addEventListener("drop", e => {
         e.preventDefault();
         dropZoneEmp.classList.remove("dragover");
@@ -1204,80 +1053,61 @@ function initGithubConfig() {
         if (file) traiterFichierEmp(file);
         e.target.value = "";
     });
- 
-    // ── Push vers GitHub ──────────────────────────────────────────────────────
- 
+
     async function traiterFichierEmp(file) {
- 
-        // 1. Validation du nom exact
         if (file.name !== EXPECTED_FILENAME) {
-            setStatusEmp(
-                `❌ Nom invalide : « ${file.name} ». ` +
-                `Le fichier doit s'appeler exactement « ${EXPECTED_FILENAME} ».`,
-                "error"
-            );
+            setStatusEmp(`❌ Nom invalide : « ${file.name} ». Le fichier doit s'appeler exactement « ${EXPECTED_FILENAME} ».`, "error");
             return;
         }
- 
+
         previewWrap.classList.add("hidden");
         progAreaEmp.classList.remove("hidden");
         setProgress(5, "Lecture du fichier…");
         setStatusEmp("⏳ Lecture du fichier…", "info");
- 
+
         try {
-            // 2. Lecture contenu
             const text = await file.text();
-            const lignes = text
-                .split(/\r?\n/)
-                .map(l => l.trim())
-                .filter(l => l.length > 0 && !l.startsWith("#"));
- 
+            const lignes = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0 && !l.startsWith("#"));
+
             if (!lignes.length) {
                 setStatusEmp("❌ Le fichier est vide ou ne contient aucun identifiant valide.", "error");
                 progAreaEmp.classList.add("hidden");
                 return;
             }
- 
+
             setProgress(20, "Récupération du token…");
- 
-            // 3. Lecture du token depuis Firestore
             const token = await lireToken();
- 
+
             setProgress(40, "Récupération du SHA actuel…");
             setStatusEmp("⏳ Connexion à GitHub…", "info");
- 
-            // 4. Récupérer le SHA du fichier existant (requis par l'API pour écraser)
+
             let sha = null;
             const getResp = await fetch(`${API_BASE}/${EXPECTED_FILENAME}`, {
                 headers: {
-                    Authorization:          `Bearer ${token}`,
-                    Accept:                 "application/vnd.github+json",
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/vnd.github+json",
                     "X-GitHub-Api-Version": "2022-11-28",
                 }
             });
- 
+
             if (getResp.ok) {
-                const existing = await getResp.json();
-                sha = existing.sha;
+                sha = (await getResp.json()).sha;
             } else if (getResp.status !== 404) {
-                const err = await getResp.json();
-                throw new Error(`GitHub GET : ${err.message}`);
+                throw new Error(`GitHub GET : ${(await getResp.json()).message}`);
             }
- 
+
             setProgress(65, "Envoi vers le dépôt…");
             setStatusEmp("⏳ Push vers GitHub…", "info");
- 
-            // 5. Encodage base64 + PUT
+
             const base64Content = btoa(unescape(encodeURIComponent(text)));
-            
- 
+
             const putResp = await fetch(`${API_BASE}/${EXPECTED_FILENAME}`, {
-                method:  "PUT",
+                method: "PUT",
                 headers: {
-                    Authorization:          `Bearer ${token}`,
-                    Accept:                 "application/vnd.github+json",
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/vnd.github+json",
                     "X-GitHub-Api-Version": "2022-11-28",
-                    "Content-Type":         "application/json",
+                    "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
                     message: `[Admin] MAJ emplacements_autorises.txt`,
@@ -1285,27 +1115,24 @@ function initGithubConfig() {
                     ...(sha ? { sha } : {}),
                 }),
             });
- 
-            if (!putResp.ok) {
-                const err = await putResp.json();
-                throw new Error(`GitHub PUT : ${err.message}`);
-            }
- 
-            const result     = await putResp.json();
-            const commitSha  = result.commit?.sha?.slice(0, 7) || "ok";
-            const commitUrl  = result.commit?.html_url || "#";
- 
+
+            if (!putResp.ok) throw new Error(`GitHub PUT : ${(await putResp.json()).message}`);
+
+            const result    = await putResp.json();
+            const commitSha = result.commit?.sha?.slice(0, 7) || "ok";
+            const commitUrl = result.commit?.html_url || "#";
+
             setProgress(100, "Terminé.");
-            statusEmp.className   = "admin-status success";
-            statusEmp.innerHTML   =
+            statusEmp.className = "admin-status success";
+            statusEmp.innerHTML =
                 `✅ ${lignes.length} emplacement(s) envoyé(s) · Commit : ` +
                 `<a href="${commitUrl}" target="_blank" rel="noopener"
                     style="color:var(--green);font-family:var(--mono);font-size:.8rem;">
                     ${commitSha} ↗
                 </a>`;
- 
+
             afficherApercu(lignes);
- 
+
         } catch (err) {
             console.error("[PushEmp]", err);
             setStatusEmp("❌ " + err.message, "error");
@@ -1313,16 +1140,15 @@ function initGithubConfig() {
         }
     }
 }
- 
+
 initGithubConfig();
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // PUSH Excel → imports/pending/ + suivi live du workflow GitHub Actions
-// À ajouter à la fin de app.js, après initGithubConfig()
 // ═══════════════════════════════════════════════════════════════════════════════
- 
+
 function initImportGithubXls() {
- 
-    // ── ⚙️  Configuration ────────────────────────────────────────────────────
+
     const GITHUB_OWNER     = "methodelogistiquesncf-boop";
     const GITHUB_REPO      = "completconforme";
     const TARGET_FOLDER    = "imports/pending";
@@ -1330,30 +1156,26 @@ function initImportGithubXls() {
     const FIRESTORE_SECRET = { col: "config", doc: "secrets", field: "github_token" };
     const API_BASE         = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
     const API_ACTIONS      = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions`;
- 
-    const POLL_INTERVAL_MS = 4000;   // polling toutes les 4 secondes
-    const POLL_TIMEOUT_MS  = 300000; // abandon après 5 minutes
- 
-    // Correspondance nom d'étape workflow → libellé lisible
+    const POLL_INTERVAL_MS = 4000;
+    const POLL_TIMEOUT_MS  = 300000;
+
     const STEP_LABELS = {
-        "Checkout":                       "📥 Récupération du dépôt",
-        "Setup Python 3.11":              "🐍 Installation Python 3.11",
-        "Installer les dépendances":      "📦 Installation des dépendances",
-        "Identifier le fichier importé":  "🔍 Détection du fichier",
+        "Checkout":                             "📥 Récupération du dépôt",
+        "Setup Python 3.11":                    "🐍 Installation Python 3.11",
+        "Installer les dépendances":            "📦 Installation des dépendances",
+        "Identifier le fichier importé":        "🔍 Détection du fichier",
         "Vérifier qu'un fichier a été détecté": "✔️ Vérification",
-        "Importer dans Firestore":        "🔥 Injection dans Firestore",
-        "Archiver le fichier traité":     "🗃️ Archivage du fichier",
-        "Télécharger le fichier nettoyé": "⬇️ Téléchargement fichier nettoyé",
+        "Importer dans Firestore":              "🔥 Injection dans Firestore",
+        "Archiver le fichier traité":           "🗃️ Archivage du fichier",
+        "Télécharger le fichier nettoyé":       "⬇️ Téléchargement fichier nettoyé",
     };
- 
-    // ── Refs DOM ──────────────────────────────────────────────────────────────
+
     const dropZoneXls     = document.getElementById("drop-zone-xls");
     const fileInputXls    = document.getElementById("file-input-xls");
     const progAreaXls     = document.getElementById("progress-area-xls");
     const progBarXls      = document.getElementById("progress-bar-xls");
     const progLabelXls    = document.getElementById("progress-label-xls");
     const statusXls       = document.getElementById("admin-status-xls");
- 
     const workflowPanel   = document.getElementById("workflow-panel");
     const workflowLink    = document.getElementById("workflow-link");
     const workflowSpinner = document.getElementById("workflow-spinner");
@@ -1361,31 +1183,27 @@ function initImportGithubXls() {
     const workflowRunSt   = document.getElementById("workflow-run-status");
     const workflowSteps   = document.getElementById("workflow-steps");
     const workflowDur     = document.getElementById("workflow-duration");
- 
+
     if (!dropZoneXls) return;
- 
-    // ── Helpers ───────────────────────────────────────────────────────────────
- 
+
     function setStatusXls(msg, type = "info") {
         statusXls.textContent = msg;
         statusXls.className   = `admin-status ${type}`;
     }
- 
+
     function setProgress(pct, label) {
         progBarXls.style.width   = pct + "%";
         progLabelXls.textContent = label;
     }
- 
+
     async function lireToken() {
         const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
-        if (!snap.exists()) throw new Error("Aucun token GitHub configuré. Enregistrez-en un dans « Configuration GitHub ».");
+        if (!snap.exists()) throw new Error("Aucun token GitHub configuré. Enregistrez-en un dans « Config GitHub ».");
         const token = snap.data()[FIRESTORE_SECRET.field];
-        if (!token)  throw new Error("Champ token vide dans Firestore.");
+        if (!token) throw new Error("Champ token vide dans Firestore.");
         return token;
     }
- 
-    // ── Icônes & couleurs des statuts GitHub Actions ──────────────────────────
- 
+
     function iconStep(status, conclusion) {
         if (status === "queued")      return { icon: "⏳", color: "var(--muted)" };
         if (status === "in_progress") return { icon: "🔄", color: "var(--blue)" };
@@ -1397,10 +1215,10 @@ function initImportGithubXls() {
         }
         return { icon: "⏸️", color: "var(--muted)" };
     }
- 
+
     function iconRun(status, conclusion) {
-        if (status === "queued")      return { icon: "⏳", label: "En file d'attente…",    color: "var(--muted)" };
-        if (status === "in_progress") return { icon: "🔄", label: "Pipeline en cours…",    color: "var(--blue)"  };
+        if (status === "queued")      return { icon: "⏳", label: "En file d'attente…",           color: "var(--muted)" };
+        if (status === "in_progress") return { icon: "🔄", label: "Pipeline en cours…",           color: "var(--blue)"  };
         if (status === "completed") {
             if (conclusion === "success")   return { icon: "✅", label: "Pipeline terminé avec succès !", color: "var(--green)" };
             if (conclusion === "failure")   return { icon: "❌", label: "Pipeline échoué.",               color: "var(--red)"   };
@@ -1408,177 +1226,111 @@ function initImportGithubXls() {
         }
         return { icon: "⏳", label: "Démarrage…", color: "var(--muted)" };
     }
- 
-    // ── Rendu des étapes ──────────────────────────────────────────────────────
- 
+
     function renderSteps(steps) {
         workflowSteps.innerHTML = "";
         steps.forEach(step => {
-            // Ignorer les étapes système de GitHub
             if (step.name === "Set up job" || step.name === "Complete job") return;
- 
             const { icon, color } = iconStep(step.status, step.conclusion);
             const label = STEP_LABELS[step.name] || step.name;
- 
             const row = document.createElement("div");
-            row.dataset.stepName = step.name;
             row.style.cssText = `
-                display: flex; align-items: center; gap: .65rem;
-                padding: .55rem .85rem;
-                background: var(--input-bg);
-                border: 1.5px solid var(--border);
-                border-radius: var(--radius);
-                transition: border-color .2s;
+                display:flex;align-items:center;gap:.65rem;padding:.55rem .85rem;
+                background:var(--input-bg);border:1.5px solid var(--border);
+                border-radius:var(--radius);transition:border-color .2s;
             `;
- 
-            const isActive = step.status === "in_progress";
-            if (isActive) row.style.borderColor = "var(--blue)";
-            if (step.conclusion === "success")  row.style.borderColor = "rgba(63,168,118,.4)";
-            if (step.conclusion === "failure")  row.style.borderColor = "rgba(192,53,74,.4)";
- 
+            if (step.status === "in_progress")     row.style.borderColor = "var(--blue)";
+            if (step.conclusion === "success")      row.style.borderColor = "rgba(63,168,118,.4)";
+            if (step.conclusion === "failure")      row.style.borderColor = "rgba(192,53,74,.4)";
             row.innerHTML = `
                 <span style="font-size:.95rem;flex-shrink:0;">${icon}</span>
                 <span style="font-size:.83rem;font-weight:600;color:${color};flex:1;">${label}</span>
                 ${step.status === "in_progress"
                     ? `<div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0;"></div>`
-                    : `<span style="font-family:var(--mono);font-size:.68rem;color:var(--muted);">
-                           ${step.conclusion || step.status}
-                       </span>`
+                    : `<span style="font-family:var(--mono);font-size:.68rem;color:var(--muted);">${step.conclusion || step.status}</span>`
                 }
             `;
             workflowSteps.appendChild(row);
         });
     }
- 
-    // ── Rendu statut global du run ────────────────────────────────────────────
- 
+
     function renderRunStatus(status, conclusion) {
         const { icon, label, color } = iconRun(status, conclusion);
-        const isRunning = status !== "completed";
- 
-        workflowSpinner.style.display = isRunning ? "block" : "none";
+        workflowSpinner.style.display = status !== "completed" ? "block" : "none";
         workflowRunLbl.textContent    = `${icon} ${label}`;
         workflowRunLbl.style.color    = color;
- 
         if (status === "completed") {
-            workflowRunSt.style.borderColor =
-                conclusion === "success" ? "rgba(63,168,118,.45)" : "rgba(192,53,74,.35)";
-            workflowRunSt.style.background  =
-                conclusion === "success" ? "rgba(63,168,118,.05)" : "rgba(192,53,74,.05)";
+            workflowRunSt.style.borderColor = conclusion === "success" ? "rgba(63,168,118,.45)" : "rgba(192,53,74,.35)";
+            workflowRunSt.style.background  = conclusion === "success" ? "rgba(63,168,118,.05)" : "rgba(192,53,74,.05)";
         }
     }
- 
-    // ── Durée formatée ────────────────────────────────────────────────────────
- 
+
     function formatDuration(start, end) {
         const secs = Math.round((new Date(end) - new Date(start)) / 1000);
-        if (secs < 60) return `${secs}s`;
-        return `${Math.floor(secs / 60)}min ${secs % 60}s`;
+        return secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}min ${secs % 60}s`;
     }
- 
-    // ── Polling GitHub Actions ────────────────────────────────────────────────
- 
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function githubHeaders(token) {
+        return {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        };
+    }
+
     async function pollWorkflow(commitSha, token) {
         workflowPanel.classList.remove("hidden");
         renderRunStatus("queued", null);
- 
+
         const deadline = Date.now() + POLL_TIMEOUT_MS;
-        let runId      = null;
- 
-        // Phase 1 : attendre que GitHub Actions crée le run lié au commit
+
         while (Date.now() < deadline) {
             await sleep(POLL_INTERVAL_MS);
- 
-            const res = await fetch(
-                `${API_ACTIONS}/runs?head_sha=${commitSha}&per_page=5`,
-                { headers: githubHeaders(token) }
-            );
+            const res = await fetch(`${API_ACTIONS}/runs?head_sha=${commitSha}&per_page=5`, { headers: githubHeaders(token) });
             if (!res.ok) continue;
- 
             const data = await res.json();
             const run  = data.workflow_runs?.[0];
             if (!run) continue;
- 
-            runId = run.id;
- 
-            // Afficher le lien vers le run
+
             workflowLink.href          = run.html_url;
             workflowLink.style.display = "inline";
- 
             renderRunStatus(run.status, run.conclusion);
- 
-            // Phase 2 : suivre les étapes jusqu'à complétion
-            await pollRunJobs(runId, run, token, deadline);
+            await pollRunJobs(run.id, run, token, deadline);
             return;
         }
- 
-        // Timeout
-        workflowRunLbl.textContent = "⚠️ Délai dépassé — vérifiez GitHub Actions.";
-        workflowRunLbl.style.color = "var(--amber)";
+
+        workflowRunLbl.textContent    = "⚠️ Délai dépassé — vérifiez GitHub Actions.";
+        workflowRunLbl.style.color    = "var(--amber)";
         workflowSpinner.style.display = "none";
     }
- 
+
     async function pollRunJobs(runId, initialRun, token, deadline) {
         let run = initialRun;
- 
         while (Date.now() < deadline) {
-            // Récupérer les jobs et leurs étapes
-            const jobsRes = await fetch(
-                `${API_ACTIONS}/runs/${runId}/jobs`,
-                { headers: githubHeaders(token) }
-            );
- 
+            const jobsRes = await fetch(`${API_ACTIONS}/runs/${runId}/jobs`, { headers: githubHeaders(token) });
             if (jobsRes.ok) {
-                const jobsData = await jobsRes.json();
-                const job      = jobsData.jobs?.[0]; // 1 seul job dans ce workflow
+                const job = (await jobsRes.json()).jobs?.[0];
                 if (job?.steps) renderSteps(job.steps);
             }
- 
             renderRunStatus(run.status, run.conclusion);
- 
             if (run.status === "completed") {
                 workflowSpinner.style.display = "none";
- 
-                // Durée totale
                 if (run.created_at && run.updated_at) {
-                    workflowDur.textContent = `⏱ Durée totale : ${formatDuration(run.created_at, run.updated_at)}`;
+                    workflowDur.textContent  = `⏱ Durée totale : ${formatDuration(run.created_at, run.updated_at)}`;
                     workflowDur.style.display = "block";
                 }
                 return;
             }
- 
             await sleep(POLL_INTERVAL_MS);
- 
-            // Rafraîchir le run
-            const runRes = await fetch(
-                `${API_ACTIONS}/runs/${runId}`,
-                { headers: githubHeaders(token) }
-            );
+            const runRes = await fetch(`${API_ACTIONS}/runs/${runId}`, { headers: githubHeaders(token) });
             if (runRes.ok) run = await runRes.json();
         }
     }
- 
-    function githubHeaders(token) {
-        return {
-            Authorization:          `Bearer ${token}`,
-            Accept:                 "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        };
-    }
- 
-    function sleep(ms) {
-        return new Promise(r => setTimeout(r, ms));
-    }
- 
-    // ── Drag & drop ───────────────────────────────────────────────────────────
- 
-    dropZoneXls.addEventListener("dragover", e => {
-        e.preventDefault();
-        dropZoneXls.classList.add("dragover");
-    });
-    dropZoneXls.addEventListener("dragleave", () =>
-        dropZoneXls.classList.remove("dragover")
-    );
+
+    dropZoneXls.addEventListener("dragover",  e => { e.preventDefault(); dropZoneXls.classList.add("dragover"); });
+    dropZoneXls.addEventListener("dragleave", ()  => dropZoneXls.classList.remove("dragover"));
     dropZoneXls.addEventListener("drop", e => {
         e.preventDefault();
         dropZoneXls.classList.remove("dragover");
@@ -1590,19 +1342,14 @@ function initImportGithubXls() {
         if (file) traiterFichierXls(file);
         e.target.value = "";
     });
- 
-    // ── Traitement principal ──────────────────────────────────────────────────
- 
+
     async function traiterFichierXls(file) {
- 
-        // 1. Validation extension
         const ext = file.name.split(".").pop().toLowerCase();
         if (!ACCEPTED_EXT.includes(ext)) {
             setStatusXls(`❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`, "error");
             return;
         }
- 
-        // Reset UI
+
         workflowPanel.classList.add("hidden");
         workflowSteps.innerHTML    = "";
         workflowLink.style.display = "none";
@@ -1610,37 +1357,32 @@ function initImportGithubXls() {
         progAreaXls.classList.remove("hidden");
         setProgress(5, "Lecture du fichier…");
         setStatusXls("⏳ Lecture du fichier…", "info");
- 
+
         try {
-            // 2. Lecture binaire → base64
             const buffer = await file.arrayBuffer();
             const uint8  = new Uint8Array(buffer);
             const base64 = btoa(uint8.reduce((d, b) => d + String.fromCharCode(b), ""));
- 
+
             setProgress(20, "Récupération du token…");
             const token = await lireToken();
- 
+
             const targetPath = `${TARGET_FOLDER}/${file.name}`;
             setProgress(40, "Vérification du fichier existant…");
             setStatusXls("⏳ Connexion à GitHub…", "info");
- 
-            // 3. SHA si fichier existant
+
             let sha = null;
-            const getResp = await fetch(`${API_BASE}/${targetPath}`, {
-                headers: githubHeaders(token)
-            });
+            const getResp = await fetch(`${API_BASE}/${targetPath}`, { headers: githubHeaders(token) });
             if (getResp.ok) {
                 sha = (await getResp.json()).sha;
             } else if (getResp.status !== 404) {
                 throw new Error(`GitHub GET : ${(await getResp.json()).message}`);
             }
- 
+
             setProgress(65, "Envoi vers le dépôt…");
             setStatusXls("⏳ Push vers GitHub…", "info");
- 
-            // 4. PUT fichier
+
             const putResp = await fetch(`${API_BASE}/${targetPath}`, {
-                method:  "PUT",
+                method: "PUT",
                 headers: { ...githubHeaders(token), "Content-Type": "application/json" },
                 body: JSON.stringify({
                     message: `[Admin] Import ${file.name} → ${TARGET_FOLDER}`,
@@ -1648,16 +1390,14 @@ function initImportGithubXls() {
                     ...(sha ? { sha } : {}),
                 }),
             });
- 
-            if (!putResp.ok) {
-                throw new Error(`GitHub PUT : ${(await putResp.json()).message}`);
-            }
- 
+
+            if (!putResp.ok) throw new Error(`GitHub PUT : ${(await putResp.json()).message}`);
+
             const result    = await putResp.json();
             const commitSha = result.commit?.sha;
             const commitUrl = result.commit?.html_url || "#";
             const shortSha  = commitSha?.slice(0, 7) || "ok";
- 
+
             setProgress(100, "Fichier envoyé — pipeline en attente…");
             statusXls.className = "admin-status success";
             statusXls.innerHTML =
@@ -1666,12 +1406,9 @@ function initImportGithubXls() {
                     style="color:var(--green);font-family:var(--mono);font-size:.8rem;">
                     ${shortSha} ↗
                 </a>`;
- 
-            // 5. Suivi live du workflow Actions
-            if (commitSha) {
-                await pollWorkflow(commitSha, token);
-            }
- 
+
+            if (commitSha) await pollWorkflow(commitSha, token);
+
         } catch (err) {
             console.error("[PushXls]", err);
             setStatusXls("❌ " + err.message, "error");
@@ -1679,16 +1416,5 @@ function initImportGithubXls() {
         }
     }
 }
- 
-initImportGithubXls();
 
-// ADMIN — NAVIGATION ONGLETS
-// ═══════════════════════════════════════════════════════
-document.querySelectorAll('.admin-tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.add('hidden'));
-        btn.classList.add('active');
-        document.getElementById('admin-tab-' + btn.dataset.tab)?.classList.remove('hidden');
-    });
-});
+initImportGithubXls();
