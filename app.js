@@ -1260,3 +1260,209 @@ function initImportOF() {
 }
 
 initImportOF();
+// ═══════════════════════════════════════════════════════════════════════════════
+// PUSH emplacements_autorises.txt → GitHub
+// À ajouter à la fin de app.js (après initImportOF())
+//
+// ⚠️  CONFIGURATION OBLIGATOIRE : remplissez les 3 constantes ci-dessous.
+//     Le token PAT doit avoir la permission "Contents: Read & Write" sur le repo.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initImportEmplacements() {
+
+    // ── ⚙️  À CONFIGURER ────────────────────────────────────────────────────
+    const GITHUB_OWNER  = "methodelogistiquesncf-boop";   // nom d'utilisateur ou org GitHub
+    const GITHUB_REPO   = "completconforme";               // nom du dépôt
+    const GITHUB_TOKEN  = "ghp_XXXXXXXXXXXXXXXXXXXXXX";   // Personal Access Token (PAT)
+    //                                                       Fine-grained ou classic,
+    //                                                       scope "repo" ou "Contents: RW"
+    // ────────────────────────────────────────────────────────────────────────
+
+    const EXPECTED_FILENAME = "emplacements_autorises.txt";
+    const API_BASE = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
+
+    const dropZoneEmp  = document.getElementById("drop-zone-emp");
+    const fileInputEmp = document.getElementById("file-input-emp");
+    const progAreaEmp  = document.getElementById("progress-area-emp");
+    const progBarEmp   = document.getElementById("progress-bar-emp");
+    const progLabelEmp = document.getElementById("progress-label-emp");
+    const statusEmp    = document.getElementById("admin-status-emp");
+    const previewWrap  = document.getElementById("emp-preview-wrap");
+    const previewList  = document.getElementById("emp-preview-list");
+    const previewCount = document.getElementById("emp-preview-count");
+
+    if (!dropZoneEmp) return;
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function setStatusEmp(msg, type = "info") {
+        statusEmp.textContent = msg;
+        statusEmp.className   = `admin-status ${type}`;
+    }
+
+    function setProgress(pct, label) {
+        progBarEmp.style.width   = pct + "%";
+        progLabelEmp.textContent = label;
+    }
+
+    function afficherApercu(lignes) {
+        previewList.innerHTML = "";
+        lignes.forEach(id => {
+            const badge = document.createElement("span");
+            badge.textContent = id;
+            badge.style.cssText = `
+                font-family: var(--mono);
+                font-size: .72rem;
+                font-weight: 700;
+                background: var(--accent-soft);
+                color: var(--accent);
+                border: 1px solid rgba(192,53,74,.18);
+                border-radius: 6px;
+                padding: .2rem .55rem;
+                white-space: nowrap;
+                letter-spacing: .04em;
+            `;
+            previewList.appendChild(badge);
+        });
+        previewCount.textContent =
+            `${lignes.length} emplacement${lignes.length > 1 ? "s" : ""} envoyé${lignes.length > 1 ? "s" : ""}`;
+        previewWrap.classList.remove("hidden");
+    }
+
+    // ── Drag & drop ──────────────────────────────────────────────────────────
+
+    dropZoneEmp.addEventListener("dragover", e => {
+        e.preventDefault();
+        dropZoneEmp.classList.add("dragover");
+    });
+    dropZoneEmp.addEventListener("dragleave", () =>
+        dropZoneEmp.classList.remove("dragover")
+    );
+    dropZoneEmp.addEventListener("drop", e => {
+        e.preventDefault();
+        dropZoneEmp.classList.remove("dragover");
+        const file = e.dataTransfer?.files?.[0];
+        if (file) traiterFichierEmp(file);
+    });
+    fileInputEmp.addEventListener("change", e => {
+        const file = e.target.files?.[0];
+        if (file) traiterFichierEmp(file);
+        e.target.value = "";
+    });
+
+    // ── Traitement principal ──────────────────────────────────────────────────
+
+    async function traiterFichierEmp(file) {
+
+        // 1. Validation du nom exact
+        if (file.name !== EXPECTED_FILENAME) {
+            setStatusEmp(
+                `❌ Nom invalide : « ${file.name} ». ` +
+                `Le fichier doit s'appeler exactement « ${EXPECTED_FILENAME} ».`,
+                "error"
+            );
+            return;
+        }
+
+        previewWrap.classList.add("hidden");
+        progAreaEmp.classList.remove("hidden");
+        setProgress(10, "Lecture du fichier…");
+        setStatusEmp("⏳ Lecture du fichier…", "info");
+
+        try {
+            // 2. Lecture du contenu
+            const text = await file.text();
+
+            const lignes = text
+                .split(/\r?\n/)
+                .map(l => l.trim())
+                .filter(l => l.length > 0 && !l.startsWith("#"));
+
+            if (!lignes.length) {
+                setStatusEmp("❌ Le fichier est vide ou ne contient aucun identifiant valide.", "error");
+                progAreaEmp.classList.add("hidden");
+                return;
+            }
+
+            setProgress(30, "Récupération du SHA actuel…");
+            setStatusEmp("⏳ Connexion à GitHub…", "info");
+
+            // 3. Récupérer le SHA du fichier actuel (requis par l'API pour écraser)
+            let sha = null;
+            const getResp = await fetch(`${API_BASE}/${EXPECTED_FILENAME}`, {
+                headers: {
+                    Authorization: `Bearer ${GITHUB_TOKEN}`,
+                    Accept:        "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                }
+            });
+
+            if (getResp.ok) {
+                const existing = await getResp.json();
+                sha = existing.sha; // nécessaire pour écraser un fichier existant
+            } else if (getResp.status !== 404) {
+                // 404 = fichier inexistant (premier push), c'est OK
+                const err = await getResp.json();
+                throw new Error(`GitHub GET : ${err.message}`);
+            }
+
+            setProgress(60, "Envoi vers le dépôt…");
+            setStatusEmp("⏳ Push vers GitHub…", "info");
+
+            // 4. Encoder le contenu en base64
+            const base64Content = btoa(unescape(encodeURIComponent(text)));
+
+            // 5. Push via l'API GitHub Contents
+            const author = auth.currentUser?.email || "admin";
+            const body = {
+                message: `[Admin] Mise à jour emplacements_autorises.txt par ${author}`,
+                content: base64Content,
+                ...(sha ? { sha } : {}), // sha obligatoire uniquement si le fichier existe déjà
+            };
+
+            const putResp = await fetch(`${API_BASE}/${EXPECTED_FILENAME}`, {
+                method:  "PUT",
+                headers: {
+                    Authorization:          `Bearer ${GITHUB_TOKEN}`,
+                    Accept:                 "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                    "Content-Type":         "application/json",
+                },
+                body: JSON.stringify(body),
+            });
+
+            if (!putResp.ok) {
+                const err = await putResp.json();
+                throw new Error(`GitHub PUT : ${err.message}`);
+            }
+
+            const result = await putResp.json();
+            const commitUrl = result.commit?.html_url || "#";
+
+            setProgress(100, "Terminé.");
+            setStatusEmp(
+                `✅ ${lignes.length} emplacement(s) envoyé(s) · ` +
+                `Commit : ${result.commit?.sha?.slice(0, 7) || "ok"}`,
+                "success"
+            );
+
+            // Lien vers le commit (optionnel, enrichit le retour)
+            if (result.commit?.sha) {
+                statusEmp.innerHTML +=
+                    ` <a href="${commitUrl}" target="_blank" rel="noopener"
+                        style="color:var(--accent);font-family:var(--mono);font-size:.75rem;">
+                        Voir le commit ↗
+                      </a>`;
+            }
+
+            afficherApercu(lignes);
+
+        } catch (err) {
+            console.error("[PushEmp]", err);
+            setStatusEmp("❌ Erreur : " + err.message, "error");
+            progAreaEmp.classList.add("hidden");
+        }
+    }
+}
+
+initImportEmplacements();
