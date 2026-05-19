@@ -1076,7 +1076,7 @@ function initImportOF() {
   }
 
   // ── Drag & drop ──────────────────────────────────────
-dropZoneOF, fileInputOF].forEach(el => {
+[dropZoneOF, fileInputOF].forEach(el => {
   el.addEventListener('dragover', e => {
     e.preventDefault();
     dropZoneOF.classList.add('dragover');
