@@ -1,53 +1,47 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// IMPORTS Firebase
+// ─────────────────────────────────────────────────────────────────────────────
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, initializeFirestore, persistentLocalCache,
-         doc, setDoc, getDoc, getDocs,
-         collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword,
-         signOut, onAuthStateChanged,
-         updatePassword, reauthenticateWithCredential,
-         EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {
+    getFirestore,
+    initializeFirestore,
+    persistentLocalCache,
+    doc, setDoc, getDoc, getDocs,
+    collection
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {
+    getAuth,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    updatePassword,
+    reauthenticateWithCredential,
+    EmailAuthProvider
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIGURATION Firebase
+// ─────────────────────────────────────────────────────────────────────────────
 const firebaseConfig = {
-  apiKey: "AIzaSyAkhB59fG7oNtRfhb_0xeuW9PYmaUT9KRk",
-  authDomain: "completconforme.firebaseapp.com",
-  projectId: "completconforme",
-  storageBucket: "completconforme.firebasestorage.app",
-  messagingSenderId: "595620033926",
-  appId: "1:595620033926:web:64dcfd0b141040146a2807"
+    apiKey:            "AIzaSyAkhB59fG7oNtRfhb_0xeuW9PYmaUT9KRk",
+    authDomain:        "completconforme.firebaseapp.com",
+    projectId:         "completconforme",
+    storageBucket:     "completconforme.firebasestorage.app",
+    messagingSenderId: "595620033926",
+    appId:             "1:595620033926:web:64dcfd0b141040146a2807"
 };
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Persistance offline (nouvelle API, remplace enableIndexedDbPersistence)
+// Persistance offline — initializeFirestore ne peut pas être appelé dans un
+// import dynamique ; on l'appelle directement avec un fallback getFirestore.
 let db;
 try {
     db = initializeFirestore(app, { localCache: persistentLocalCache() });
 } catch (err) {
     console.warn("[Offline] Persistance indisponible :", err.message);
     db = getFirestore(app);
-}
-// ─────────────────────────────────────────────────────────────────────────────
-// CONFIGURATION Firebase
-// ─────────────────────────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyAkhB59fG7oNtRfhb_0xeuW9PYmaUT9KRk",
-  authDomain: "completconforme.firebaseapp.com",
-  projectId: "completconforme",
-  storageBucket: "completconforme.firebasestorage.app",
-  messagingSenderId: "595620033926",
-  appId: "1:595620033926:web:64dcfd0b141040146a2807"
-};
-
-const app  = initializeApp(firebaseConfig);
-
-const auth = getAuth(app);
-
-try {
-    import { initializeFirestore, persistentLocalCache } from "...firestore.js";
-const db = initializeFirestore(app, { localCache: persistentLocalCache() });
-} catch (err) {
-    console.warn("[Offline] Persistance indisponible :", err.code);
 }
 
 const ADMIN_PIN = "1234";
@@ -640,13 +634,13 @@ function renderHistorique(liste) {
     histoEmpty.classList.add('hidden');
 
     filtered.forEach(k => {
-        const date    = new Date(k.derniere_verification).toLocaleString('fr-FR', {
+        const date = new Date(k.derniere_verification).toLocaleString('fr-FR', {
             day:'2-digit', month:'2-digit', year:'numeric',
             hour:'2-digit', minute:'2-digit'
         });
-        const statut  = k.statut_conformite || 'Non vérifié';
-        const isOk    = statut === 'Conforme';
-        const isKo    = statut === 'Incomplet';
+        const statut    = k.statut_conformite || 'Non vérifié';
+        const isOk      = statut === 'Conforme';
+        const isKo      = statut === 'Incomplet';
         const manquants = (k.detail_verification || []).filter(c =>
             c.quantite_comptee !== null && c.quantite_comptee !== c.quantite_requise
         );
@@ -718,7 +712,7 @@ $('btn-pin').addEventListener('click', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ADMIN — IMPORT EXCEL
+// ADMIN — IMPORT EXCEL (Nomenclature)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 dropZone?.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
@@ -732,6 +726,7 @@ dropZone?.addEventListener('drop', e => {
 fileInput?.addEventListener('change', e => {
     const file = e.target.files?.[0];
     if (file) traiterFichier(file);
+    e.target.value = '';
 });
 
 function setStatus(msg, type = 'info') {
@@ -845,7 +840,7 @@ async function traiterFichier(file) {
 
 // ─── TOGGLE MOT DE PASSE (page de connexion) ──────────────────────────────────
 $('toggle-pwd').addEventListener('click', () => {
-    const isPassword = loginPwd.type === 'password';
+    const isPassword    = loginPwd.type === 'password';
     loginPwd.type       = isPassword ? 'text' : 'password';
     $('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
 });
@@ -853,8 +848,6 @@ $('toggle-pwd').addEventListener('click', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // PROFIL UTILISATEUR
 // ═══════════════════════════════════════════════════════════════════════════════
-
-// ─── AFFICHAGE ────────────────────────────────────────────────────────────────
 
 function afficherProfil() {
     const user = auth.currentUser;
@@ -879,7 +872,6 @@ function afficherProfil() {
           })
         : '—';
 
-    // Réinitialiser le formulaire à chaque ouverture
     ['pwd-current', 'pwd-new', 'pwd-confirm'].forEach(id => {
         const el = $(id);
         if (el) el.value = '';
@@ -903,11 +895,11 @@ $('pwd-new')?.addEventListener('input', () => {
     wrap.classList.add('visible');
 
     let score = 0;
-    if (val.length >= 8)               score++;
-    if (val.length >= 12)              score++;
-    if (/[A-Z]/.test(val))             score++;
-    if (/[0-9]/.test(val))             score++;
-    if (/[^A-Za-z0-9]/.test(val))     score++;
+    if (val.length >= 8)           score++;
+    if (val.length >= 12)          score++;
+    if (/[A-Z]/.test(val))         score++;
+    if (/[0-9]/.test(val))         score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
 
     const levels = [
         { label: 'Très faible', cls: 'strength-1' },
@@ -916,9 +908,9 @@ $('pwd-new')?.addEventListener('input', () => {
         { label: 'Fort',        cls: 'strength-4' },
         { label: 'Très fort',   cls: 'strength-5' },
     ];
-    const level      = levels[Math.min(score, 4)];
-    fill.className   = `pwd-strength-fill ${level.cls}`;
-    lbl.textContent  = level.label;
+    const level    = levels[Math.min(score, 4)];
+    fill.className = `pwd-strength-fill ${level.cls}`;
+    lbl.textContent = level.label;
 });
 
 // ─── TOGGLE MOT DE PASSE (formulaire profil, via data-target) ─────────────────
@@ -965,12 +957,9 @@ $('btn-change-pwd')?.addEventListener('click', async () => {
     try {
         const user       = auth.currentUser;
         const credential = EmailAuthProvider.credential(user.email, currentPwd);
-
-        // Réauthentification obligatoire avant opération sensible
         await reauthenticateWithCredential(user, credential);
         await updatePassword(user, newPwd);
 
-        // Réinitialisation des champs
         ['pwd-current', 'pwd-new', 'pwd-confirm'].forEach(id => {
             const el = $(id);
             if (el) el.value = '';
@@ -1049,229 +1038,225 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VERSION APPLICATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
 async function detectAppVersion() {
     try {
         const keys = await caches.keys();
         const key  = keys.find(k => k.startsWith('completconforme-'));
         if (!key) return;
-        const version = key.replace('completconforme-', ''); // → "v3"
+        const version = key.replace('completconforme-', '');
         document.querySelectorAll('.app-version').forEach(el => el.textContent = version);
     } catch {}
 }
 detectAppVersion();
 
-
-// ═══════════════════════════════════════════════════════
-//  IMPORT OF — Fichier terrain
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// IMPORT OF — Fichier terrain
+// ═══════════════════════════════════════════════════════════════════════════════
 
 const OF_COL = {
-  codePiece:     'Code pièce',
-  designPiece:   'Désignation pièce',
-  qtePiece:      'Quantité pièce',
-  codeKit:       'Code kit',
-  designKit:     'Désignation kit',
-  codeContenant: 'code_contenant',
-  engin:         'Engin',
-  caisse:        'Caisse',
-  emplacement:   'emplacement_reflex',
+    codePiece:     'Code pièce',
+    designPiece:   'Désignation pièce',
+    qtePiece:      'Quantité pièce',
+    codeKit:       'Code kit',
+    designKit:     'Désignation kit',
+    codeContenant: 'code_contenant',
+    engin:         'Engin',
+    caisse:        'Caisse',
+    emplacement:   'emplacement_reflex',
 };
 
 function initImportOF() {
-  const dropZoneOF  = document.getElementById('drop-zone-of');
-  const fileInputOF = document.getElementById('file-input-of');
-  const progAreaOF  = document.getElementById('progress-area-of');
-  const progBarOF   = document.getElementById('progress-bar-of');
-  const progLabelOF = document.getElementById('progress-label-of');
-  const statusOF    = document.getElementById('admin-status-of');
+    const dropZoneOF  = document.getElementById('drop-zone-of');
+    const fileInputOF = document.getElementById('file-input-of');
+    const progAreaOF  = document.getElementById('progress-area-of');
+    const progBarOF   = document.getElementById('progress-bar-of');
+    const progLabelOF = document.getElementById('progress-label-of');
+    const statusOF    = document.getElementById('admin-status-of');
 
-  if (!dropZoneOF) return;
+    if (!dropZoneOF) return;
 
-  function setStatusOF(msg, type = 'info') {
-    statusOF.textContent = msg;
-    statusOF.className   = `admin-status ${type}`;
-  }
-
-  function sleep(ms) {
-    return new Promise(r => setTimeout(r, ms));
-  }
-
-  // ── Drag & drop ──────────────────────────────────────
-[dropZoneOF, fileInputOF].forEach(el => {
-  el.addEventListener('dragover', e => {
-    e.preventDefault();
-    dropZoneOF.classList.add('dragover');
-  });
-  el.addEventListener('dragleave', () => dropZoneOF.classList.remove('dragover'));
-  el.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZoneOF.classList.remove('dragover');
-    const file = e.dataTransfer?.files?.[0];
-    if (file) traiterFichierOF(file);
-  });
-});
-
-fileInputOF.addEventListener('change', e => {
-  const file = e.target.files?.[0];
-  if (file) traiterFichierOF(file);
-  e.target.value = '';
-});
-
-  // ── Lecture du fichier ───────────────────────────────
-  async function traiterFichierOF(file) {
-    const ext = file.name.split('.').pop().toLowerCase();
-    if (!['xlsx', 'xls', 'csv'].includes(ext)) {
-      setStatusOF('Format invalide. Utilisez .xlsx ou .csv.', 'error');
-      return;
+    function setStatusOF(msg, type = 'info') {
+        statusOF.textContent = msg;
+        statusOF.className   = `admin-status ${type}`;
     }
 
-    setStatusOF('⏳ Lecture du fichier…', 'info');
-    progAreaOF.classList.remove('hidden');
-    progBarOF.style.width    = '0%';
-    progLabelOF.textContent  = 'Analyse…';
-
-    try {
-      const buffer   = await file.arrayBuffer();
-      const wb       = XLSX.read(new Uint8Array(buffer), { type: 'array' });
-      const sheet    = wb.Sheets[wb.SheetNames[0]];
-      const rows     = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-      if (!rows.length) {
-        setStatusOF('❌ Fichier vide ou non reconnu.', 'error');
-        return;
-      }
-
-      // Vérification colonne clé
-      const firstRow = rows[0];
-      if (!Object.prototype.hasOwnProperty.call(firstRow, OF_COL.codeKit)) {
-        setStatusOF(`❌ Colonne "${OF_COL.codeKit}" introuvable. Vérifiez le fichier.`, 'error');
-        return;
-      }
-      if (!Object.prototype.hasOwnProperty.call(firstRow, OF_COL.emplacement)) {
-        setStatusOF(`❌ Colonne "${OF_COL.emplacement}" introuvable. Vérifiez le fichier.`, 'error');
-        return;
-      }
-
-      const index = grouperParEmplacement(rows);
-      await injecterDansFirebase(index);
-
-    } catch (err) {
-      console.error('[ImportOF]', err);
-      setStatusOF('❌ Erreur : ' + err.message, 'error');
-    }
-  }
-
-  // ── Groupement : emplacement → kits → pièces ─────────
-  function grouperParEmplacement(rows) {
-    const index = {}; // { empId: { kitId: kitData } }
-
-    for (const row of rows) {
-      const empId   = String(row[OF_COL.emplacement] ?? '').trim();
-      const codeKit = String(row[OF_COL.codeKit]     ?? '').trim();
-      const engin   = String(row[OF_COL.engin]       ?? '').trim();
-
-      if (!empId || !codeKit || !engin) continue;
-
-      // ID du kit = même convention que l'import existant
-      const kitId = `${engin}_${codeKit}`;
-
-      if (!index[empId]) index[empId] = {};
-
-      if (!index[empId][kitId]) {
-        index[empId][kitId] = {
-          engin,
-          code_kit:      codeKit,
-          nom_du_kit:    String(row[OF_COL.designKit]    ?? '').trim() || 'Kit sans nom',
-          codeContenant: String(row[OF_COL.codeContenant]?? '').trim(),
-          caisse:        String(row[OF_COL.caisse]       ?? '').trim(),
-          composants: [],
-        };
-      }
-
-      const nomPiece = String(row[OF_COL.designPiece] ?? '').trim();
-      const qte      = Number(row[OF_COL.qtePiece])   || 1;
-
-      if (nomPiece) {
-        index[empId][kitId].composants.push({
-          nom:              nomPiece,
-          code_piece:       String(row[OF_COL.codePiece] ?? '').trim(),
-          quantite_requise: qte,
-        });
-      }
+    function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
     }
 
-    return index;
-  }
+    // ── Drag & drop ──────────────────────────────────────
+    dropZoneOF.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZoneOF.classList.add('dragover');
+    });
+    dropZoneOF.addEventListener('dragleave', () => dropZoneOF.classList.remove('dragover'));
+    dropZoneOF.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZoneOF.classList.remove('dragover');
+        const file = e.dataTransfer?.files?.[0];
+        if (file) traiterFichierOF(file);
+    });
 
-  // ── Injection Firestore (même structure que l'import existant) ──
-  async function injecterDansFirebase(index) {
-    // Compter le total
-    let totalKits = 0;
-    Object.values(index).forEach(kits => { totalKits += Object.keys(kits).length; });
+    fileInputOF.addEventListener('change', e => {
+        const file = e.target.files?.[0];
+        if (file) traiterFichierOF(file);
+        e.target.value = '';
+    });
 
-    if (!totalKits) {
-      setStatusOF('❌ Aucun kit valide détecté dans le fichier.', 'error');
-      return;
-    }
-
-    setStatusOF(`⏳ Injection de ${totalKits} kit(s)…`, 'info');
-
-    let ecrits  = 0;
-    let ignores = 0;
-    let erreurs = 0;
-
-    for (const [empId, kits] of Object.entries(index)) {
-      // Créer/merger le document emplacement
-      try {
-        await setDoc(doc(db, 'emplacements', empId), { id: empId }, { merge: true });
-      } catch (err) {
-        console.warn('[ImportOF] emplacement', empId, err);
-      }
-
-      for (const [kitId, kitData] of Object.entries(kits)) {
-        try {
-          const kitRef  = doc(db, 'emplacements', empId, 'kits', kitId);
-          const kitSnap = await getDoc(kitRef);
-
-          if (kitSnap.exists()) {
-            ignores++;
-          } else {
-            // Écriture dans emplacements/{empId}/kits/{kitId}
-            await setDoc(kitRef, {
-              ...kitData,
-              statut_conformite:    'Non vérifié',
-              derniere_mise_a_jour: new Date().toISOString(),
-            });
-
-            // Écriture dans nomenclature_kits/{kitId} si absent
-            const nomRef  = doc(db, 'nomenclature_kits', kitId);
-            const nomSnap = await getDoc(nomRef);
-            if (!nomSnap.exists()) await setDoc(nomRef, kitData);
-
-            ecrits++;
-          }
-        } catch (err) {
-          console.error(`[ImportOF] Kit ${kitId} :`, err);
-          erreurs++;
+    // ── Lecture du fichier ───────────────────────────────
+    async function traiterFichierOF(file) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+            setStatusOF('Format invalide. Utilisez .xlsx ou .csv.', 'error');
+            return;
         }
 
-        const done = ecrits + ignores + erreurs;
-        const pct  = Math.round((done / totalKits) * 100);
-        progBarOF.style.width    = pct + '%';
-        progLabelOF.textContent  = `${done} / ${totalKits} kits traités…`;
+        setStatusOF('⏳ Lecture du fichier…', 'info');
+        progAreaOF.classList.remove('hidden');
+        progBarOF.style.width   = '0%';
+        progLabelOF.textContent = 'Analyse…';
 
-        if (done % 20 === 0) await sleep(300);
-      }
+        try {
+            const buffer = await file.arrayBuffer();
+            const wb     = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+            const sheet  = wb.Sheets[wb.SheetNames[0]];
+            const rows   = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+            if (!rows.length) {
+                setStatusOF('❌ Fichier vide ou non reconnu.', 'error');
+                return;
+            }
+
+            const firstRow = rows[0];
+            if (!Object.prototype.hasOwnProperty.call(firstRow, OF_COL.codeKit)) {
+                setStatusOF(`❌ Colonne "${OF_COL.codeKit}" introuvable. Vérifiez le fichier.`, 'error');
+                return;
+            }
+            if (!Object.prototype.hasOwnProperty.call(firstRow, OF_COL.emplacement)) {
+                setStatusOF(`❌ Colonne "${OF_COL.emplacement}" introuvable. Vérifiez le fichier.`, 'error');
+                return;
+            }
+
+            const index = grouperParEmplacement(rows);
+            await injecterDansFirebase(index);
+
+        } catch (err) {
+            console.error('[ImportOF]', err);
+            setStatusOF('❌ Erreur : ' + err.message, 'error');
+        }
     }
 
-    progBarOF.style.width = '100%';
-    setStatusOF(
-      `✅ ${ecrits} kit(s) ajouté(s)` +
-      `${ignores ? ` · ${ignores} déjà présent(s)` : ''}` +
-      `${erreurs ? ` · ${erreurs} erreur(s)` : ''}`,
-      erreurs ? 'error' : 'success'
-    );
-  }
+    // ── Groupement : emplacement → kits → pièces ─────────
+    function grouperParEmplacement(rows) {
+        const index = {};
+
+        for (const row of rows) {
+            const empId   = String(row[OF_COL.emplacement] ?? '').trim();
+            const codeKit = String(row[OF_COL.codeKit]     ?? '').trim();
+            const engin   = String(row[OF_COL.engin]       ?? '').trim();
+
+            if (!empId || !codeKit || !engin) continue;
+
+            const kitId = `${engin}_${codeKit}`;
+
+            if (!index[empId]) index[empId] = {};
+
+            if (!index[empId][kitId]) {
+                index[empId][kitId] = {
+                    engin,
+                    code_kit:      codeKit,
+                    nom_du_kit:    String(row[OF_COL.designKit]     ?? '').trim() || 'Kit sans nom',
+                    codeContenant: String(row[OF_COL.codeContenant] ?? '').trim(),
+                    caisse:        String(row[OF_COL.caisse]        ?? '').trim(),
+                    composants:    [],
+                };
+            }
+
+            const nomPiece = String(row[OF_COL.designPiece] ?? '').trim();
+            const qte      = Number(row[OF_COL.qtePiece])   || 1;
+
+            if (nomPiece) {
+                index[empId][kitId].composants.push({
+                    nom:              nomPiece,
+                    code_piece:       String(row[OF_COL.codePiece] ?? '').trim(),
+                    quantite_requise: qte,
+                });
+            }
+        }
+
+        return index;
+    }
+
+    // ── Injection Firestore ──────────────────────────────
+    async function injecterDansFirebase(index) {
+        let totalKits = 0;
+        Object.values(index).forEach(kits => { totalKits += Object.keys(kits).length; });
+
+        if (!totalKits) {
+            setStatusOF('❌ Aucun kit valide détecté dans le fichier.', 'error');
+            return;
+        }
+
+        setStatusOF(`⏳ Injection de ${totalKits} kit(s)…`, 'info');
+
+        let ecrits  = 0;
+        let ignores = 0;
+        let erreurs = 0;
+
+        for (const [empId, kits] of Object.entries(index)) {
+            try {
+                await setDoc(doc(db, 'emplacements', empId), { id: empId }, { merge: true });
+            } catch (err) {
+                console.warn('[ImportOF] emplacement', empId, err);
+            }
+
+            for (const [kitId, kitData] of Object.entries(kits)) {
+                try {
+                    const kitRef  = doc(db, 'emplacements', empId, 'kits', kitId);
+                    const kitSnap = await getDoc(kitRef);
+
+                    if (kitSnap.exists()) {
+                        ignores++;
+                    } else {
+                        await setDoc(kitRef, {
+                            ...kitData,
+                            statut_conformite:    'Non vérifié',
+                            derniere_mise_a_jour: new Date().toISOString(),
+                        });
+
+                        const nomRef  = doc(db, 'nomenclature_kits', kitId);
+                        const nomSnap = await getDoc(nomRef);
+                        if (!nomSnap.exists()) await setDoc(nomRef, kitData);
+
+                        ecrits++;
+                    }
+                } catch (err) {
+                    console.error(`[ImportOF] Kit ${kitId} :`, err);
+                    erreurs++;
+                }
+
+                const done = ecrits + ignores + erreurs;
+                const pct  = Math.round((done / totalKits) * 100);
+                progBarOF.style.width   = pct + '%';
+                progLabelOF.textContent = `${done} / ${totalKits} kits traités…`;
+
+                if (done % 20 === 0) await sleep(300);
+            }
+        }
+
+        progBarOF.style.width = '100%';
+        setStatusOF(
+            `✅ ${ecrits} kit(s) ajouté(s)` +
+            `${ignores ? ` · ${ignores} déjà présent(s)` : ''}` +
+            `${erreurs ? ` · ${erreurs} erreur(s)` : ''}`,
+            erreurs ? 'error' : 'success'
+        );
+    }
 }
 
 initImportOF();
