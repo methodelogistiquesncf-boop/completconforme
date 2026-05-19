@@ -11,11 +11,11 @@
 <meta name="apple-mobile-web-app-title" content="CompletConf">
 
 <!-- Manifest PWA -->
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="/.manifest.json">
 
 <!-- Icônes -->
-<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
     <title>Complet Conforme</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -496,7 +496,7 @@
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
             try {
-                const reg = await navigator.serviceWorker.register('/sw.js');
+                const reg = await navigator.serviceWorker.register('./sw.js');
                 console.log('[PWA] Service Worker enregistré :', reg.scope);
 
                 // Détection d'une mise à jour disponible
