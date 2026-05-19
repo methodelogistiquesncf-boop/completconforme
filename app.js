@@ -1524,3 +1524,175 @@ function initGithubConfig() {
 }
  
 initGithubConfig();
+// ═══════════════════════════════════════════════════════════════════════════════
+// PUSH fichier Excel → GitHub : imports/pending/{nom_du_fichier}
+// À ajouter à la fin de app.js, après initGithubConfig()
+//
+// Réutilise le token PAT déjà stocké dans Firestore par initGithubConfig().
+// Aucune configuration supplémentaire nécessaire.
+// ═══════════════════════════════════════════════════════════════════════════════
+ 
+function initImportGithubXls() {
+ 
+    // ── ⚙️  Mêmes constantes que initGithubConfig ────────────────────────────
+    const GITHUB_OWNER     = "methodelogistiquesncf-boop";
+    const GITHUB_REPO      = "completconforme";
+    const TARGET_FOLDER    = "imports/pending";           // dossier cible dans le repo
+    const ACCEPTED_EXT     = ["xlsx", "xls", "csv"];
+    const FIRESTORE_SECRET = { col: "config", doc: "secrets", field: "github_token" };
+    const API_BASE = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
+ 
+    // ── Refs DOM ──────────────────────────────────────────────────────────────
+    const dropZoneXls  = document.getElementById("drop-zone-xls");
+    const fileInputXls = document.getElementById("file-input-xls");
+    const progAreaXls  = document.getElementById("progress-area-xls");
+    const progBarXls   = document.getElementById("progress-bar-xls");
+    const progLabelXls = document.getElementById("progress-label-xls");
+    const statusXls    = document.getElementById("admin-status-xls");
+ 
+    if (!dropZoneXls) return;
+ 
+    // ── Helpers ───────────────────────────────────────────────────────────────
+ 
+    function setStatusXls(msg, type = "info") {
+        statusXls.textContent = msg;
+        statusXls.className   = `admin-status ${type}`;
+    }
+ 
+    function setProgress(pct, label) {
+        progBarXls.style.width   = pct + "%";
+        progLabelXls.textContent = label;
+    }
+ 
+    async function lireToken() {
+        const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
+        if (!snap.exists()) throw new Error("Aucun token GitHub configuré. Enregistrez-en un dans la carte « Configuration GitHub ».");
+        const token = snap.data()[FIRESTORE_SECRET.field];
+        if (!token)  throw new Error("Champ token vide dans Firestore.");
+        return token;
+    }
+ 
+    // ── Drag & drop ───────────────────────────────────────────────────────────
+ 
+    dropZoneXls.addEventListener("dragover", e => {
+        e.preventDefault();
+        dropZoneXls.classList.add("dragover");
+    });
+    dropZoneXls.addEventListener("dragleave", () =>
+        dropZoneXls.classList.remove("dragover")
+    );
+    dropZoneXls.addEventListener("drop", e => {
+        e.preventDefault();
+        dropZoneXls.classList.remove("dragover");
+        const file = e.dataTransfer?.files?.[0];
+        if (file) traiterFichierXls(file);
+    });
+    fileInputXls.addEventListener("change", e => {
+        const file = e.target.files?.[0];
+        if (file) traiterFichierXls(file);
+        e.target.value = "";
+    });
+ 
+    // ── Push vers GitHub ──────────────────────────────────────────────────────
+ 
+    async function traiterFichierXls(file) {
+ 
+        // 1. Validation de l'extension
+        const ext = file.name.split(".").pop().toLowerCase();
+        if (!ACCEPTED_EXT.includes(ext)) {
+            setStatusXls(
+                `❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`,
+                "error"
+            );
+            return;
+        }
+ 
+        progAreaXls.classList.remove("hidden");
+        setProgress(5, "Lecture du fichier…");
+        setStatusXls("⏳ Lecture du fichier…", "info");
+ 
+        try {
+            // 2. Lecture en ArrayBuffer puis conversion base64
+            const buffer       = await file.arrayBuffer();
+            const uint8        = new Uint8Array(buffer);
+            const base64Content = btoa(
+                uint8.reduce((data, byte) => data + String.fromCharCode(byte), "")
+            );
+ 
+            setProgress(25, "Récupération du token…");
+ 
+            // 3. Token depuis Firestore
+            const token = await lireToken();
+ 
+            // 4. Chemin cible dans le repo
+            const targetPath = `${TARGET_FOLDER}/${file.name}`;
+ 
+            setProgress(45, "Vérification du fichier existant…");
+            setStatusXls("⏳ Connexion à GitHub…", "info");
+ 
+            // 5. Récupérer le SHA si le fichier existe déjà (requis pour écraser)
+            let sha = null;
+            const getResp = await fetch(`${API_BASE}/${targetPath}`, {
+                headers: {
+                    Authorization:          `Bearer ${token}`,
+                    Accept:                 "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                }
+            });
+ 
+            if (getResp.ok) {
+                const existing = await getResp.json();
+                sha = existing.sha;
+                setProgress(60, "Fichier existant trouvé, écrasement…");
+            } else if (getResp.status === 404) {
+                setProgress(60, "Nouveau fichier, envoi…");
+            } else {
+                const err = await getResp.json();
+                throw new Error(`GitHub GET : ${err.message}`);
+            }
+ 
+            setStatusXls("⏳ Push vers GitHub…", "info");
+ 
+            // 6. PUT vers imports/pending/{nom_du_fichier}
+            const putResp = await fetch(`${API_BASE}/${targetPath}`, {
+                method:  "PUT",
+                headers: {
+                    Authorization:          `Bearer ${token}`,
+                    Accept:                 "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                    "Content-Type":         "application/json",
+                },
+                body: JSON.stringify({
+                    message: `[Admin] Import ${file.name} → ${TARGET_FOLDER}`,
+                    content: base64Content,
+                    ...(sha ? { sha } : {}),
+                }),
+            });
+ 
+            if (!putResp.ok) {
+                const err = await putResp.json();
+                throw new Error(`GitHub PUT : ${err.message}`);
+            }
+ 
+            const result    = await putResp.json();
+            const commitSha = result.commit?.sha?.slice(0, 7) || "ok";
+            const commitUrl = result.commit?.html_url || "#";
+ 
+            setProgress(100, "Terminé.");
+            statusXls.className = "admin-status success";
+            statusXls.innerHTML =
+                `✅ « ${file.name} » envoyé dans <code style="font-family:var(--mono);font-size:.8rem;">${TARGET_FOLDER}/</code> · Commit : ` +
+                `<a href="${commitUrl}" target="_blank" rel="noopener"
+                    style="color:var(--green);font-family:var(--mono);font-size:.8rem;">
+                    ${commitSha} ↗
+                </a>`;
+ 
+        } catch (err) {
+            console.error("[PushXls]", err);
+            setStatusXls("❌ " + err.message, "error");
+            progAreaXls.classList.add("hidden");
+        }
+    }
+}
+ 
+initImportGithubXls();
