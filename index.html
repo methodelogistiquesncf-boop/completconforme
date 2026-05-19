@@ -292,7 +292,179 @@
                 </div>
 
                 <!-- ── Contenu admin (déverrouillé) ──────────────────────── -->
-                <div id="admin-content" class="hidden" style="display:none;flex-direction:column;gap:1rem;">
+
+
+<div id="admin-content" class="hidden" style="display:none;flex-direction:column;gap:1rem;">
+
+    <!-- ── Onglets ─────────────────────────────────────────── -->
+    <div class="admin-tabs">
+        <button class="admin-tab-btn active" data-tab="github">⚙️ Config GitHub</button>
+        <button class="admin-tab-btn" data-tab="emplacements">📄 Emplacements autorisés</button>
+        <button class="admin-tab-btn" data-tab="import">📊 Import kits</button>
+    </div>
+
+    <!-- ── Panneau 1 : Configuration GitHub ──────────────────── -->
+    <div class="admin-tab-panel" id="admin-tab-github">
+        <div class="card">
+            <p class="card-title">Configuration GitHub</p>
+            <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
+                Le token est stocké dans Firestore et
+                <strong style="color:var(--text)">jamais dans le code source</strong>.
+                Scope requis :
+                <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">Contents: Read &amp; Write</code>
+            </p>
+            <div class="field-group" style="margin-bottom:.9rem;">
+                <label for="github-token-input">Personal Access Token (PAT)</label>
+                <div class="pwd-wrapper">
+                    <input type="password" id="github-token-input" class="field-input"
+                           placeholder="ghp_••••••••••••••••••••" autocomplete="off" spellcheck="false">
+                    <button type="button" class="btn-toggle-pwd" data-target="github-token-input">👁</button>
+                </div>
+            </div>
+            <button class="btn-search" id="btn-save-token" style="max-width:220px;">
+                Enregistrer le token →
+            </button>
+            <div class="admin-status" id="token-status"></div>
+        </div>
+    </div>
+
+    <!-- ── Panneau 2 : Emplacements autorisés ────────────────── -->
+    <div class="admin-tab-panel hidden" id="admin-tab-emplacements">
+        <div class="card">
+            <p class="card-title">Emplacements autorisés — pour contrôle complet/conforme</p>
+            <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
+                Importez
+                <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">emplacements_autorises.txt</code>
+                pour <strong style="color:var(--text)">écraser</strong> le fichier présent.
+                Le fichier doit exactement porter ce nom et contenir un identifiant par ligne.
+            </p>
+            <div class="drop-zone" id="drop-zone-emp">
+                <input type="file" id="file-input-emp" accept=".txt">
+                <span class="drop-icon">📄</span>
+                <p class="drop-title">Glisser-déposer emplacements_autorises.txt</p>
+                <p class="drop-sub">Fichier .txt uniquement · 1 identifiant par ligne</p>
+            </div>
+            <div id="progress-area-emp" class="hidden" style="margin-top:1rem;">
+                <div class="progress-wrap">
+                    <div class="progress-bar" id="progress-bar-emp"></div>
+                </div>
+                <p class="progress-label" id="progress-label-emp">Traitement…</p>
+            </div>
+            <div class="admin-status" id="admin-status-emp"></div>
+            <div id="emp-preview-wrap" class="hidden" style="margin-top:1.25rem;">
+                <p class="card-title" style="margin-bottom:.6rem;">Contenu envoyé</p>
+                <div id="emp-preview-list"
+                     style="display:flex;flex-wrap:wrap;gap:.4rem;max-height:220px;overflow-y:auto;
+                            padding:.75rem;background:var(--input-bg);border:1px solid var(--border);
+                            border-radius:var(--radius);"></div>
+                <p id="emp-preview-count"
+                   style="font-family:var(--mono);font-size:.7rem;color:var(--muted);
+                          margin-top:.5rem;text-align:right;"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Panneau 3 : Import fichier kits ───────────────────── -->
+    <div class="admin-tab-panel hidden" id="admin-tab-import">
+        <div class="card">
+            <p class="card-title">Import fichier kits — Dépôt GitHub</p>
+            <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
+                Déposez le fichier Excel pour l'envoyer dans
+                <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);
+                             border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">
+                    imports/pending/
+                </code>.
+                Le pipeline GitHub Actions s'exécutera automatiquement.
+            </p>
+            <div class="drop-zone" id="drop-zone-xls">
+                <input type="file" id="file-input-xls" accept=".xlsx,.xls,.csv">
+                <span class="drop-icon">📊</span>
+                <p class="drop-title">Glisser-déposer le fichier Excel</p>
+                <p class="drop-sub">Fichiers .xlsx, .xls ou .csv · envoyé dans imports/pending/</p>
+            </div>
+            <div id="progress-area-xls" class="hidden" style="margin-top:1rem;">
+                <div class="progress-wrap">
+                    <div class="progress-bar" id="progress-bar-xls"></div>
+                </div>
+                <p class="progress-label" id="progress-label-xls">Traitement…</p>
+            </div>
+            <div class="admin-status" id="admin-status-xls"></div>
+
+            <!-- Suivi workflow -->
+            <div id="workflow-panel" class="hidden" style="margin-top:1.5rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;
+                            margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem;">
+                    <p class="card-title" style="margin-bottom:0;">Pipeline GitHub Actions</p>
+                    <a id="workflow-link" href="#" target="_blank" rel="noopener"
+                       style="font-family:var(--mono);font-size:.72rem;color:var(--accent);
+                              text-decoration:none;display:none;">
+                        Voir sur GitHub ↗
+                    </a>
+                </div>
+                <div id="workflow-run-status"
+                     style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;
+                            background:var(--input-bg);border:1.5px solid var(--border);
+                            border-radius:var(--radius);margin-bottom:1rem;">
+                    <div class="spinner" id="workflow-spinner" style="flex-shrink:0;"></div>
+                    <span id="workflow-run-label"
+                          style="font-size:.85rem;font-weight:600;color:var(--text);">
+                        En attente du démarrage du pipeline…
+                    </span>
+                </div>
+                <div id="workflow-steps" style="display:flex;flex-direction:column;gap:.4rem;"></div>
+                <p id="workflow-duration"
+                   style="font-family:var(--mono);font-size:.7rem;color:var(--muted);
+                          margin-top:.65rem;text-align:right;display:none;"></p>
+            </div>
+        </div>
+
+        <!-- Format attendu -->
+        <div class="card">
+            <p class="card-title">Format de fichier attendu</p>
+            <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
+                    <thead>
+                        <tr style="border-bottom:1px solid var(--border);">
+                            <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">Engin</th>
+                            <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">Code kit</th>
+                            <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">designations kit</th>
+                            <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">emplacement</th>
+                            <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">designation article</th>
+                            <th style="padding:.5rem .75rem;text-align:left;color:var(--muted);font-family:var(--mono);">quantite</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom:1px solid var(--border);">
+                            <td style="padding:.5rem .75rem;font-family:var(--mono);color:var(--accent-hi);">X76562</td>
+                            <td style="padding:.5rem .75rem;font-family:var(--mono);">k21opm18</td>
+                            <td style="padding:.5rem .75rem;">Kit Sécurité</td>
+                            <td style="padding:.5rem .75rem;">ETKI.001.01</td>
+                            <td style="padding:.5rem .75rem;">Extincteur CO₂</td>
+                            <td style="padding:.5rem .75rem;text-align:center;">2</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid var(--border);">
+                            <td style="padding:.5rem .75rem;font-family:var(--mono);color:var(--accent-hi);">X76562</td>
+                            <td style="padding:.5rem .75rem;font-family:var(--mono);">k21opm18</td>
+                            <td style="padding:.5rem .75rem;">Kit Sécurité</td>
+                            <td style="padding:.5rem .75rem;">ETKI.001.01</td>
+                            <td style="padding:.5rem .75rem;">Trousse premiers secours</td>
+                            <td style="padding:.5rem .75rem;text-align:center;">1</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:.5rem .75rem;font-family:var(--mono);color:var(--accent-hi);">X76562</td>
+                            <td style="padding:.5rem .75rem;font-family:var(--mono);">k21opm19</td>
+                            <td style="padding:.5rem .75rem;">Kit Maintenance</td>
+                            <td style="padding:.5rem .75rem;">ETKI.001.02</td>
+                            <td style="padding:.5rem .75rem;">Jeu de tournevis</td>
+                            <td style="padding:.5rem .75rem;text-align:center;">1</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
 
 
 
