@@ -1473,3 +1473,22 @@ section.hidden { display: none; }
     transition: background .15s;
 }
 #pwa-update-btn:hover { background: var(--accent-hi); }
+/* ─── VERSION BADGE ──────────────────────────────────── */
+.app-version {
+    display: block;
+    font-family: var(--mono);
+    font-size: .52rem;
+    font-weight: 400;
+    color: var(--muted);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-top: .12rem;
+    font-style: normal;
+}
+
+/* Dans le header, on centre sous le logo */
+.logo { display: flex; flex-direction: column; align-items: flex-start; }
+
+/* Dans la carte login, on centre */
+.login-logo { display: flex; flex-direction: column; align-items: center; }
