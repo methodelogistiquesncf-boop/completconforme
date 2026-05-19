@@ -1681,4 +1681,14 @@ function initImportGithubXls() {
 }
  
 initImportGithubXls();
- 
+ / ═══════════════════════════════════════════════════════
+// ADMIN — NAVIGATION ONGLETS
+// ═══════════════════════════════════════════════════════
+document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.add('hidden'));
+        btn.classList.add('active');
+        document.getElementById('admin-tab-' + btn.dataset.tab)?.classList.remove('hidden');
+    });
+});
