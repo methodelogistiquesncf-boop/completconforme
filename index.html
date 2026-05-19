@@ -331,6 +331,55 @@
   <div class="admin-status" id="admin-status-of"></div>
 </div>
 
+
+<div class="card">
+  <p class="card-title">Emplacements autorisés — Dépôt GitHub</p>
+  <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
+    Importez
+    <code style="font-family:var(--mono);font-size:.78rem;background:var(--input-bg);
+                 border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">
+      emplacements_autorises.txt
+    </code>
+    pour <strong style="color:var(--text)">écraser</strong> le fichier présent
+    à la racine du dépôt. Le fichier doit exactement porter ce nom.
+  </p>
+ 
+  <!-- Zone de dépôt -->
+  <div class="drop-zone" id="drop-zone-emp">
+    <input type="file" id="file-input-emp" accept=".txt">
+    <span class="drop-icon">📄</span>
+    <p class="drop-title">Glisser-déposer emplacements_autorises.txt</p>
+    <p class="drop-sub">Fichier .txt uniquement · 1 identifiant par ligne</p>
+  </div>
+ 
+  <!-- Barre de progression -->
+  <div id="progress-area-emp" class="hidden" style="margin-top:1rem;">
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progress-bar-emp"></div>
+    </div>
+    <p class="progress-label" id="progress-label-emp">Traitement…</p>
+  </div>
+ 
+  <!-- Statut -->
+  <div class="admin-status" id="admin-status-emp"></div>
+ 
+  <!-- Aperçu -->
+  <div id="emp-preview-wrap" class="hidden" style="margin-top:1.25rem;">
+    <p class="card-title" style="margin-bottom:.6rem;">Contenu envoyé</p>
+    <div id="emp-preview-list"
+         style="display:flex;flex-wrap:wrap;gap:.4rem;max-height:220px;overflow-y:auto;
+                padding:.75rem;background:var(--input-bg);border:1px solid var(--border);
+                border-radius:var(--radius);">
+    </div>
+    <p id="emp-preview-count"
+       style="font-family:var(--mono);font-size:.7rem;color:var(--muted);
+              margin-top:.5rem;text-align:right;"></p>
+  </div>
+</div>
+
+
+                    
+
                     <div class="card">
                         <p class="card-title">Format de fichier attendu</p>
                         <div style="overflow-x:auto;">
