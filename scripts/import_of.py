@@ -119,7 +119,6 @@ def lire_fichier(path: str) -> pd.DataFrame:
     c_kit = resolve_col(list(df.columns), "code_kit")
 
     if c_engin and c_kit:
-        # On crée la colonne 'id_kit' par concaténation (ex: ENGIN_CODEKIT)
         df["id_kit"] = df[c_engin].str.strip() + "_" + df[c_kit].str.strip()
         print("   [DATA] Colonne 'id_kit' générée avec succès.", flush=True)
 
@@ -169,7 +168,7 @@ def construire_index(df: pd.DataFrame) -> dict:
 
         if kit_id not in index[emp_id]:
             index[emp_id][kit_id] = {
-                "id_kit":         kit_id,  # Ajouté aussi dans le payload pour Firebase
+                "id_kit":         kit_id,
                 "engin":          engin,
                 "code_kit":       code_kit,
                 "nom_du_kit":     nom_kit,
@@ -195,50 +194,62 @@ def construire_index(df: pd.DataFrame) -> dict:
     return index
 
 
-# ─── INJECTION FIRESTORE ─────────────────────────────────────────────────────
+# ─── INJECTION FIRESTORE OPTIMISÉE (BATCHES) ──────────────────────────────────
 
 def injecter(db, index: dict) -> dict:
     stats = {"ecrits": 0, "ignores": 0, "erreurs": 0}
     maintenant = datetime.datetime.utcnow().isoformat() + "Z"
 
-    for emp_id, kits in index.items():
-        try:
-            db.collection("emplacements").document(emp_id).set(
-                {"id": emp_id}, merge=True
-            )
-        except Exception as e:
-            print(f"  [WARN] emplacement {emp_id} : {e}", flush=True)
+    # Initialisation du lot (batch) Firestore et du compteur
+    batch = db.batch()
+    operations_dans_le_batch = 0
 
+    for emp_id, kits in index.items():
+        # 1. Préparation de l'emplacement
+        try:
+            emp_ref = db.collection("emplacements").document(emp_id)
+            batch.set(emp_ref, {"id": emp_id}, merge=True)
+            operations_dans_le_batch += 1
+        except Exception as e:
+            print(f"  [WARN] Préparation emplacement {emp_id} : {e}", flush=True)
+
+        # 2. Préparation des kits et nomenclatures
         for kit_id, kit_data in kits.items():
             try:
-                kit_ref  = db.collection("emplacements").document(emp_id)\
-                             .collection("kits").document(kit_id)
-                kit_snap = kit_ref.get()
-
-                if kit_snap.exists:
-                    stats["ignores"] += 1
-                    print(f"  [SKIP] {emp_id}/{kit_id} déjà présent", flush=True)
-                    continue
-
+                # Kit lié à l'emplacement
+                kit_ref = db.collection("emplacements").document(emp_id)\
+                            .collection("kits").document(kit_id)
+                
                 payload = {
                     **kit_data,
                     "statut_conformite":    "Non vérifié",
                     "derniere_mise_a_jour": maintenant,
                 }
-                kit_ref.set(payload)
+                batch.set(kit_ref, payload)
+                operations_dans_le_batch += 1
 
-                nom_ref  = db.collection("nomenclature_kits").document(kit_id)
-                nom_snap = nom_ref.get()
-                if not nom_snap.exists:
-                    nom_ref.set(kit_data)
-
+                # Nomenclature globale
+                nom_ref = db.collection("nomenclature_kits").document(kit_id)
+                batch.set(nom_ref, kit_data)
+                operations_dans_le_batch += 1
+                
                 stats["ecrits"] += 1
-                print(f"  [OK]   {emp_id}/{kit_id} ({len(kit_data['composants'])} pièces)", flush=True)
 
             except Exception as e:
                 stats["erreurs"] += 1
-                print(f"  [ERR]  {emp_id}/{kit_id} : {e}", flush=True)
-                traceback.print_exc()
+                print(f"  [ERR]  Préparation {emp_id}/{kit_id} : {e}", flush=True)
+
+            # Firestore limite à 500 opérations max par batch. On valide à 450 par sécurité.
+            if operations_dans_le_batch >= 450:
+                print("→ Envoi d'un groupe de données vers Firestore...", flush=True)
+                batch.commit()
+                batch = db.batch()  # On réouvre un nouveau lot vide
+                operations_dans_le_batch = 0
+
+    # Envoi des dernières opérations restantes après la boucle
+    if operations_dans_le_batch > 0:
+        print("→ Envoi du dernier groupe de données vers Firestore...", flush=True)
+        batch.commit()
 
     return stats
 
@@ -296,10 +307,9 @@ def main():
 
     # Résumé final
     print(f"\n{'='*60}", flush=True)
-    print(f"  ✅ {stats['ecrits']} kit(s) ajouté(s)", flush=True)
-    print(f"  ⏭  {stats['ignores']} kit(s) ignoré(s) (déjà présents)", flush=True)
+    print(f"  ✅ {stats['ecrits']} kit(s) traité(s) avec succès", flush=True)
     if stats["erreurs"]:
-        print(f"  ❌ {stats['erreurs']} erreur(s)", flush=True)
+        print(f"  ❌ {stats['erreurs']} erreur(s) rencontrée(s)", flush=True)
     print(f"{'='*60}\n", flush=True)
 
     if stats["erreurs"] and stats["ecrits"] == 0:
