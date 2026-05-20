@@ -1375,6 +1375,8 @@ function initImportGithubXls() {
     const workflowDur     = document.getElementById("workflow-duration");
  
     if (!dropZoneXls) return;
+    // ✅ AJOUT — clic sur la drop zone = ouvre le sélecteur de fichiers
+dropZoneXls.addEventListener("click", () => fileInputXls.click());
  
     // ── Helpers ───────────────────────────────────────────────────────────────
     function setStatusXls(msg, type = "info") {
@@ -1745,11 +1747,12 @@ function initImportGithubXls() {
  
             if (commitSha) await pollWorkflow(commitSha, token);
  
-        } catch (err) {
-            console.error("[PushXls]", err);
-            setStatusXls("❌ " + err.message, "error");
-            progAreaXls.classList.add("hidden");
-        }
+} catch (err) {
+    console.error("[PushXls]", err);
+    setStatusXls("❌ " + err.message, "error");
+    progAreaXls.classList.add("hidden");
+    showToast("❌ " + err.message, "error"); // ✅ AJOUT — toast visible
+}
     }
 }
 
