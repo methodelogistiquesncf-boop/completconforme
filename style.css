@@ -1530,3 +1530,15 @@ section.hidden { display: none; }
     color: #fff;
     box-shadow: 0 2px 8px rgba(192,53,74,.25);
 }
+.kit-liste-contenant {
+    font-family: var(--mono);
+    font-size: .65rem;
+    font-weight: 700;
+    background: var(--blue-soft);
+    color: var(--blue);
+    border: 1px solid rgba(74,127,212,.18);
+    border-radius: 5px;
+    padding: .1rem .45rem;
+    letter-spacing: .04em;
+    white-space: nowrap;
+}
