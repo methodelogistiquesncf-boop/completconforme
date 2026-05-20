@@ -120,22 +120,37 @@
                 <!-- ── VUE CALENDRIER — niveau 1 ──────────── -->
                 <div id="view-calendrier">
 
-                    <!-- Filtre emplacement -->
-                    <div class="card" style="padding:1.1rem 1.25rem;">
-                             <input type="text" id="cal-emp-input" class="cal-emp-input"
-                               placeholder="Ex: ETKI.001.01" autocomplete="off" spellcheck="false"
-                               style="max-width:100%; margin-bottom: .6rem;">
-                             <input type="text" id="cal-wms-input" class="cal-emp-input"
-                               placeholder="Ex: MAG2-E-PRE" value="MAG2-E-PRE" autocomplete="off" spellcheck="false"
-                               style="max-width:100%;">
+                    <!-- Filtres -->
+                    <div class="card" style="padding: 1.5rem 1.5rem 1.4rem;">
+
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+
+                            <div style="display: flex; flex-direction: column; gap: .45rem; flex: 1; min-width: 160px;">
+                                <label for="cal-emp-input"
+                                       style="font-size: .68rem; font-weight: 700; letter-spacing: .09em;
+                                              text-transform: uppercase; color: var(--muted);">
+                                    Emplacement
+                                </label>
+                                <input type="text" id="cal-emp-input" class="cal-emp-input"
+                                       placeholder="Ex: ETKI.001.01" autocomplete="off" spellcheck="false">
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: .45rem; flex: 1; min-width: 160px;">
+                                <label for="cal-wms-input"
+                                       style="font-size: .68rem; font-weight: 700; letter-spacing: .09em;
+                                              text-transform: uppercase; color: var(--muted);">
+                                    WMS Remontage
+                                </label>
+                                <input type="text" id="cal-wms-input" class="cal-emp-input"
+                                       placeholder="Ex: MAG2-E-PRE" value="MAG2-E-PRE"
+                                       autocomplete="off" spellcheck="false">
+                            </div>
+
+                        </div>
                     </div>
 
-
-
-
-
                     <!-- Navigation semaine -->
-                    <div class="cal-nav">
+                    <div class="cal-nav" style="padding: 1rem 0; margin: .25rem 0;">
                         <button class="cal-nav-btn" id="cal-prev" title="Semaine précédente">‹</button>
                         <span class="cal-week-label" id="cal-week-label">—</span>
                         <button class="cal-nav-btn" id="cal-next" title="Semaine suivante">›</button>
