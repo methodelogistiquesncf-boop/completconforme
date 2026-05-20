@@ -1349,7 +1349,7 @@ document.getElementById("btn-refresh-emp")?.addEventListener("click", chargerLis
 // ═══════════════════════════════════════════════════════════════════════════════
 // PUSH Excel → imports/pending/ + suivi live workflow GitHub Actions
 // ═══════════════════════════════════════════════════════════════════════════════
-
+ 
 function initImportGithubXls() {
     const GITHUB_OWNER     = "methodelogistiquesncf-boop";
     const GITHUB_REPO      = "completconforme";
@@ -1359,18 +1359,7 @@ function initImportGithubXls() {
     const API_ACTIONS      = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions`;
     const POLL_INTERVAL_MS = 4000;
     const POLL_TIMEOUT_MS  = 300000;
-
-    const STEP_LABELS = {
-        "Checkout":                             "📥 Récupération du dépôt",
-        "Setup Python 3.11":                    "🐍 Installation Python 3.11",
-        "Installer les dépendances":            "📦 Installation des dépendances",
-        "Identifier le fichier importé":        "🔍 Détection du fichier",
-        "Vérifier qu'un fichier a été détecté": "✔️ Vérification",
-        "Importer dans Firestore":              "🔥 Injection dans Firestore",
-        "Archiver le fichier traité":           "🗃️ Archivage du fichier",
-        "Télécharger le fichier nettoyé":       "⬇️ Téléchargement fichier nettoyé",
-    };
-
+ 
     const dropZoneXls     = document.getElementById("drop-zone-xls");
     const fileInputXls    = document.getElementById("file-input-xls");
     const progAreaXls     = document.getElementById("progress-area-xls");
@@ -1384,9 +1373,10 @@ function initImportGithubXls() {
     const workflowRunSt   = document.getElementById("workflow-run-status");
     const workflowSteps   = document.getElementById("workflow-steps");
     const workflowDur     = document.getElementById("workflow-duration");
-
+ 
     if (!dropZoneXls) return;
-
+ 
+    // ── Helpers ───────────────────────────────────────────────────────────────
     function setStatusXls(msg, type = "info") {
         statusXls.textContent = msg;
         statusXls.className   = `admin-status ${type}`;
@@ -1394,67 +1384,6 @@ function initImportGithubXls() {
     function setProgress(pct, label) {
         progBarXls.style.width   = pct + "%";
         progLabelXls.textContent = label;
-    }
-    function iconStep(status, conclusion) {
-        if (status === "queued")      return { icon: "⏳", color: "var(--muted)" };
-        if (status === "in_progress") return { icon: "🔄", color: "var(--blue)" };
-        if (status === "completed") {
-            if (conclusion === "success")   return { icon: "✅", color: "var(--green)" };
-            if (conclusion === "skipped")   return { icon: "⏭️", color: "var(--muted)" };
-            if (conclusion === "failure")   return { icon: "❌", color: "var(--red)" };
-            if (conclusion === "cancelled") return { icon: "🚫", color: "var(--muted)" };
-        }
-        return { icon: "⏸️", color: "var(--muted)" };
-    }
-    function iconRun(status, conclusion) {
-        if (status === "queued")      return { icon: "⏳", label: "En file d'attente…",            color: "var(--muted)" };
-        if (status === "in_progress") return { icon: "🔄", label: "Pipeline en cours…",            color: "var(--blue)"  };
-        if (status === "completed") {
-            if (conclusion === "success")   return { icon: "✅", label: "Pipeline terminé avec succès !", color: "var(--green)" };
-            if (conclusion === "failure")   return { icon: "❌", label: "Pipeline échoué.",                color: "var(--red)"   };
-            if (conclusion === "cancelled") return { icon: "🚫", label: "Pipeline annulé.",                color: "var(--muted)" };
-        }
-        return { icon: "⏳", label: "Démarrage…", color: "var(--muted)" };
-    }
-    function renderSteps(steps) {
-        workflowSteps.innerHTML = "";
-        steps.forEach(step => {
-            if (step.name === "Set up job" || step.name === "Complete job") return;
-            const { icon, color } = iconStep(step.status, step.conclusion);
-            const label = STEP_LABELS[step.name] || step.name;
-            const row = document.createElement("div");
-            row.style.cssText = `
-                display:flex;align-items:center;gap:.65rem;padding:.55rem .85rem;
-                background:var(--input-bg);border:1.5px solid var(--border);
-                border-radius:var(--radius);transition:border-color .2s;
-            `;
-            if (step.status === "in_progress")   row.style.borderColor = "var(--blue)";
-            if (step.conclusion === "success")   row.style.borderColor = "rgba(63,168,118,.4)";
-            if (step.conclusion === "failure")   row.style.borderColor = "rgba(192,53,74,.4)";
-            row.innerHTML = `
-                <span style="font-size:.95rem;flex-shrink:0;">${icon}</span>
-                <span style="font-size:.83rem;font-weight:600;color:${color};flex:1;">${label}</span>
-                ${step.status === "in_progress"
-                    ? `<div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0;"></div>`
-                    : `<span style="font-family:var(--mono);font-size:.68rem;color:var(--muted);">${step.conclusion || step.status}</span>`
-                }
-            `;
-            workflowSteps.appendChild(row);
-        });
-    }
-    function renderRunStatus(status, conclusion) {
-        const { icon, label, color } = iconRun(status, conclusion);
-        workflowSpinner.style.display = status !== "completed" ? "block" : "none";
-        workflowRunLbl.textContent    = `${icon} ${label}`;
-        workflowRunLbl.style.color    = color;
-        if (status === "completed") {
-            workflowRunSt.style.borderColor = conclusion === "success" ? "rgba(63,168,118,.45)" : "rgba(192,53,74,.35)";
-            workflowRunSt.style.background  = conclusion === "success" ? "rgba(63,168,118,.05)" : "rgba(192,53,74,.05)";
-        }
-    }
-    function formatDuration(start, end) {
-        const secs = Math.round((new Date(end) - new Date(start)) / 1000);
-        return secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}min ${secs % 60}s`;
     }
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
     function githubHeaders(token) {
@@ -1464,50 +1393,277 @@ function initImportGithubXls() {
             "X-GitHub-Api-Version": "2022-11-28",
         };
     }
-    async function pollWorkflow(commitSha, token) {
-        workflowPanel.classList.remove("hidden");
-        renderRunStatus("queued", null);
-        const deadline = Date.now() + POLL_TIMEOUT_MS;
-        while (Date.now() < deadline) {
-            await sleep(POLL_INTERVAL_MS);
-            const res = await fetch(`${API_ACTIONS}/runs?head_sha=${commitSha}&per_page=5`, { headers: githubHeaders(token) });
-            if (!res.ok) continue;
-            const data = await res.json();
-            const run  = data.workflow_runs?.[0];
-            if (!run) continue;
-            workflowLink.href          = run.html_url;
-            workflowLink.style.display = "inline";
-            renderRunStatus(run.status, run.conclusion);
-            await pollRunJobs(run.id, run, token, deadline);
-            return;
-        }
-        workflowRunLbl.textContent    = "⚠️ Délai dépassé — vérifiez GitHub Actions.";
-        workflowRunLbl.style.color    = "var(--amber)";
-        workflowSpinner.style.display = "none";
+    function formatDuration(start, end) {
+        const secs = Math.round((new Date(end) - new Date(start)) / 1000);
+        return secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}min ${secs % 60}s`;
     }
-    async function pollRunJobs(runId, initialRun, token, deadline) {
-        let run = initialRun;
-        while (Date.now() < deadline) {
-            const jobsRes = await fetch(`${API_ACTIONS}/runs/${runId}/jobs`, { headers: githubHeaders(token) });
-            if (jobsRes.ok) {
-                const job = (await jobsRes.json()).jobs?.[0];
-                if (job?.steps) renderSteps(job.steps);
+    function iconRun(status, conclusion) {
+        if (status === "queued")      return { icon: "⏳", label: "En file d'attente…",             color: "var(--muted)" };
+        if (status === "in_progress") return { icon: "🔄", label: "Pipeline en cours…",             color: "var(--blue)"  };
+        if (status === "completed") {
+            if (conclusion === "success")   return { icon: "✅", label: "Pipeline terminé avec succès !", color: "var(--green)" };
+            if (conclusion === "failure")   return { icon: "❌", label: "Pipeline échoué.",                color: "var(--red)"   };
+            if (conclusion === "cancelled") return { icon: "🚫", label: "Pipeline annulé.",                color: "var(--muted)" };
+        }
+        return { icon: "⏳", label: "Démarrage…", color: "var(--muted)" };
+    }
+    function renderRunStatus(status, conclusion) {
+        const { icon, label, color } = iconRun(status, conclusion);
+        workflowSpinner.style.display = status !== "completed" ? "block" : "none";
+        workflowRunLbl.textContent    = `${icon} ${label}`;
+        workflowRunLbl.style.color    = color;
+        if (status === "completed") {
+            workflowRunSt.style.borderColor = conclusion === "success"
+                ? "rgba(63,168,118,.45)" : "rgba(192,53,74,.35)";
+            workflowRunSt.style.background  = conclusion === "success"
+                ? "rgba(63,168,118,.05)" : "rgba(192,53,74,.05)";
+        }
+    }
+ 
+    // ── Étapes métier (4 étapes lisibles) ─────────────────────────────────────
+    //
+    // Correspondance avec les noms réels de vos steps GitHub Actions :
+    //   ÉTAPE 2 — "process"  : Checkout, Setup Python, Installer, Identifier, Vérifier
+    //   ÉTAPE 3 — "firestore": Importer dans Firestore
+    //   ÉTAPE 4 — "result"   : Archiver, Télécharger, ou déduit si run = success
+ 
+    function resolveBusinessSteps(githubSteps, runConclusion, kitCount) {
+ 
+        // Calcule le statut agrégé d'un groupe de steps GitHub à partir de mots-clés
+        function groupState(matches) {
+            const relevant = githubSteps.filter(s =>
+                matches.some(m => s.name.toLowerCase().includes(m.toLowerCase()))
+            );
+            if (!relevant.length)
+                return { status: "queued", conclusion: null };
+            if (relevant.some(s => s.conclusion === "failure"))
+                return { status: "completed", conclusion: "failure" };
+            if (relevant.every(s => s.conclusion === "success" || s.conclusion === "skipped"))
+                return { status: "completed", conclusion: "success" };
+            if (relevant.some(s => s.status === "in_progress"))
+                return { status: "in_progress", conclusion: null };
+            return { status: "queued", conclusion: null };
+        }
+ 
+        // Étape 1 : toujours ✅ (le fichier a déjà été poussé avant le pipeline)
+        const s1 = {
+            icon: "📥",
+            label: "Fichier importé avec succès",
+            status: "completed",
+            conclusion: "success",
+        };
+ 
+        // Étape 2 : traitement (checkout + setup + vérifications)
+        const s2 = {
+            icon: "⚙️",
+            label: "Traitement du fichier",
+            ...groupState(["checkout", "python", "instal", "identifier", "vérif", "detect"]),
+        };
+ 
+        // Étape 3 : injection Firestore
+        const s3 = {
+            icon: "🔥",
+            label: "Exportation dans la base de données",
+            ...groupState(["importer", "firestore", "injection"]),
+        };
+ 
+        // Étape 4 : résultat — label dynamique avec le nombre de kits
+        const resultLabel = kitCount !== null
+            ? `${kitCount} kit${kitCount > 1 ? "s" : ""} importé${kitCount > 1 ? "s" : ""} avec succès`
+            : "Finalisation de l'import";
+ 
+        let s4State;
+        if (runConclusion === "success") {
+            // Le run est terminé avec succès → toutes les étapes sont ✅
+            s4State = { status: "completed", conclusion: "success" };
+        } else if (s2.conclusion === "failure" || s3.conclusion === "failure") {
+            // Une étape amont a échoué → résultat non atteint
+            s4State = { status: "queued", conclusion: null };
+        } else {
+            // Chercher les steps d'archivage/finalisation
+            s4State = groupState(["archiver", "télécharger", "nettoy", "archiv"]);
+            // Si aucune step ne correspond encore mais que l'étape 3 est finie → en cours
+            if (s4State.status === "queued" && s3.conclusion === "success") {
+                s4State = { status: "in_progress", conclusion: null };
             }
+        }
+ 
+        const s4 = { icon: "📦", label: resultLabel, ...s4State };
+ 
+        return [s1, s2, s3, s4];
+    }
+ 
+    function renderBusinessSteps(githubSteps, runConclusion = null, kitCount = null) {
+        workflowSteps.innerHTML = "";
+        const steps = resolveBusinessSteps(githubSteps, runConclusion, kitCount);
+ 
+        steps.forEach(step => {
+            let displayIcon, color, rightEl;
+ 
+            switch (true) {
+                case step.conclusion === "success":
+                    displayIcon = "✅"; color = "var(--green)";
+                    rightEl = `<span style="font-family:var(--mono);font-size:.68rem;color:var(--muted);">succès</span>`;
+                    break;
+                case step.conclusion === "failure":
+                    displayIcon = "❌"; color = "var(--red)";
+                    rightEl = `<span style="font-family:var(--mono);font-size:.68rem;color:var(--muted);">échec</span>`;
+                    break;
+                case step.status === "in_progress":
+                    displayIcon = step.icon; color = "var(--blue)";
+                    rightEl = `<div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0;"></div>`;
+                    break;
+                default: // queued
+                    displayIcon = step.icon; color = "var(--muted)";
+                    rightEl = `<span style="font-family:var(--mono);font-size:.68rem;color:var(--muted);">en attente</span>`;
+            }
+ 
+            const borderColor = step.conclusion === "success"  ? "rgba(63,168,118,.4)"
+                               : step.conclusion === "failure"  ? "rgba(192,53,74,.4)"
+                               : step.status    === "in_progress" ? "var(--blue)"
+                               : "var(--border)";
+ 
+            const row = document.createElement("div");
+            row.style.cssText = `
+                display:flex;align-items:center;gap:.7rem;padding:.7rem .9rem;
+                background:var(--input-bg);border:1.5px solid ${borderColor};
+                border-radius:var(--radius);transition:border-color .2s;
+            `;
+            row.innerHTML = `
+                <span style="font-size:1.05rem;flex-shrink:0;min-width:1.3rem;text-align:center;">
+                    ${displayIcon}
+                </span>
+                <span style="font-size:.84rem;font-weight:600;color:${color};flex:1;line-height:1.35;">
+                    ${step.label}
+                </span>
+                ${rightEl}
+            `;
+            workflowSteps.appendChild(row);
+        });
+    }
+ 
+    // ── Récupération du nombre de kits depuis les logs du job ─────────────────
+    async function fetchKitCount(jobId, token) {
+        try {
+            const res = await fetch(
+                `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/jobs/${jobId}/logs`,
+                { headers: githubHeaders(token), redirect: "follow" }
+            );
+            if (!res.ok) return null;
+            const log = await res.text();
+            // Cherche des patterns comme "825 kit(s) traité(s)" ou "825 kits importés"
+            const m = log.match(/(\d+)\s+kit[s(]*\s*[\w\s]*trait/)
+                   || log.match(/(\d+)\s+kit[s]?\s+import/i)
+                   || log.match(/kit[s]?\s+traité[s]?\s*:\s*(\d+)/i)
+                   || log.match(/(\d[\s\d]*)\s+kit/i);
+            if (!m) return null;
+            const n = parseInt(m[1].replace(/\s/g, ""), 10);
+            return isNaN(n) ? null : n;
+        } catch {
+            return null;
+        }
+    }
+ 
+    // ── Polling du run GitHub Actions ─────────────────────────────────────────
+    async function pollRunJobs(runId, initialRun, token, deadline) {
+        let run   = initialRun;
+        let jobId = null;
+ 
+        while (Date.now() < deadline) {
+            // 1. Récupérer les jobs et mettre à jour l'affichage des étapes
+            try {
+                const jobsRes = await fetch(
+                    `${API_ACTIONS}/runs/${runId}/jobs`,
+                    { headers: githubHeaders(token) }
+                );
+                if (jobsRes.ok) {
+                    const job = (await jobsRes.json()).jobs?.[0];
+                    if (job) {
+                        jobId = job.id;
+                        renderBusinessSteps(job.steps || [], run.conclusion);
+                    }
+                }
+            } catch { /* réseau instable, on réessaiera */ }
+ 
             renderRunStatus(run.status, run.conclusion);
+ 
+            // 2. Run terminé ?
             if (run.status === "completed") {
                 workflowSpinner.style.display = "none";
                 if (run.created_at && run.updated_at) {
                     workflowDur.textContent   = `⏱ Durée totale : ${formatDuration(run.created_at, run.updated_at)}`;
                     workflowDur.style.display = "block";
                 }
+                // Tenter de lire le nombre de kits dans les logs
+                if (jobId) {
+                    const kitCount = await fetchKitCount(jobId, token);
+                    // Re-rendre avec le compte final
+                    try {
+                        const jobsRes2 = await fetch(
+                            `${API_ACTIONS}/runs/${runId}/jobs`,
+                            { headers: githubHeaders(token) }
+                        );
+                        const job2 = jobsRes2.ok ? (await jobsRes2.json()).jobs?.[0] : null;
+                        renderBusinessSteps(job2?.steps || [], run.conclusion, kitCount);
+                    } catch {
+                        renderBusinessSteps([], run.conclusion, kitCount);
+                    }
+                }
                 return;
             }
+ 
             await sleep(POLL_INTERVAL_MS);
-            const runRes = await fetch(`${API_ACTIONS}/runs/${runId}`, { headers: githubHeaders(token) });
-            if (runRes.ok) run = await runRes.json();
+ 
+            // 3. Rafraîchir l'état du run
+            try {
+                const runRes = await fetch(
+                    `${API_ACTIONS}/runs/${runId}`,
+                    { headers: githubHeaders(token) }
+                );
+                if (runRes.ok) run = await runRes.json();
+            } catch { /* on garde l'état précédent */ }
         }
     }
-
+ 
+    async function pollWorkflow(commitSha, token) {
+        workflowPanel.classList.remove("hidden");
+        renderRunStatus("queued", null);
+        renderBusinessSteps([]); // Afficher l'état initial (étape 1 ✅, rest en attente)
+ 
+        const deadline = Date.now() + POLL_TIMEOUT_MS;
+        while (Date.now() < deadline) {
+            await sleep(POLL_INTERVAL_MS);
+            try {
+                const res = await fetch(
+                    `${API_ACTIONS}/runs?head_sha=${commitSha}&per_page=10`,
+                    { headers: githubHeaders(token) }
+                );
+                if (!res.ok) continue;
+                const data = await res.json();
+ 
+                // Exclure le workflow pages-build-deployment (Jekyll/GitHub Pages)
+                // et prendre le premier workflow d'import
+                const run = data.workflow_runs?.find(r =>
+                    !r.name?.toLowerCase().includes("pages") &&
+                    !r.path?.toLowerCase().includes("pages")
+                ) ?? data.workflow_runs?.[0];
+ 
+                if (!run) continue;
+ 
+                workflowLink.href          = run.html_url;
+                workflowLink.style.display = "inline";
+                renderRunStatus(run.status, run.conclusion);
+                await pollRunJobs(run.id, run, token, deadline);
+                return;
+            } catch { /* réseau, on réessaiera */ }
+        }
+ 
+        workflowRunLbl.textContent    = "⚠️ Délai dépassé — vérifiez GitHub Actions.";
+        workflowRunLbl.style.color    = "var(--amber)";
+        workflowSpinner.style.display = "none";
+    }
+ 
+    // ── Drop zone ─────────────────────────────────────────────────────────────
     dropZoneXls.addEventListener("dragover",  e => { e.preventDefault(); dropZoneXls.classList.add("dragover"); });
     dropZoneXls.addEventListener("dragleave", ()  => dropZoneXls.classList.remove("dragover"));
     dropZoneXls.addEventListener("drop", e => {
@@ -1521,13 +1677,14 @@ function initImportGithubXls() {
         if (file) traiterFichierXls(file);
         e.target.value = "";
     });
-
+ 
     async function traiterFichierXls(file) {
         const ext = file.name.split(".").pop().toLowerCase();
         if (!ACCEPTED_EXT.includes(ext)) {
             setStatusXls(`❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`, "error");
             return;
         }
+ 
         workflowPanel.classList.add("hidden");
         workflowSteps.innerHTML    = "";
         workflowLink.style.display = "none";
@@ -1535,15 +1692,19 @@ function initImportGithubXls() {
         progAreaXls.classList.remove("hidden");
         setProgress(5, "Lecture du fichier…");
         setStatusXls("⏳ Lecture du fichier…", "info");
+ 
         try {
             const buffer = await file.arrayBuffer();
             const uint8  = new Uint8Array(buffer);
             const base64 = btoa(uint8.reduce((d, b) => d + String.fromCharCode(b), ""));
+ 
             setProgress(20, "Récupération du token…");
             const token = await lireToken();
+ 
             const targetPath = `${TARGET_FOLDER}/${file.name}`;
             setProgress(40, "Vérification du fichier existant…");
             setStatusXls("⏳ Connexion à GitHub…", "info");
+ 
             let sha = null;
             const getResp = await fetch(`${API_BASE}/${targetPath}`, { headers: githubHeaders(token) });
             if (getResp.ok) {
@@ -1551,8 +1712,10 @@ function initImportGithubXls() {
             } else if (getResp.status !== 404) {
                 throw new Error(`GitHub GET : ${(await getResp.json()).message}`);
             }
+ 
             setProgress(65, "Envoi vers le dépôt…");
             setStatusXls("⏳ Push vers GitHub…", "info");
+ 
             const putResp = await fetch(`${API_BASE}/${targetPath}`, {
                 method: "PUT",
                 headers: { ...githubHeaders(token), "Content-Type": "application/json" },
@@ -1563,19 +1726,25 @@ function initImportGithubXls() {
                 }),
             });
             if (!putResp.ok) throw new Error(`GitHub PUT : ${(await putResp.json()).message}`);
+ 
             const result    = await putResp.json();
             const commitSha = result.commit?.sha;
             const commitUrl = result.commit?.html_url || "#";
             const shortSha  = commitSha?.slice(0, 7) || "ok";
+ 
             setProgress(100, "Fichier envoyé — pipeline en attente…");
             statusXls.className = "admin-status success";
             statusXls.innerHTML =
-                `✅ « ${file.name} » envoyé dans <code style="font-family:var(--mono);font-size:.8rem;">${TARGET_FOLDER}/</code> · Commit : ` +
+                `✅ « ${file.name} » envoyé dans ` +
+                `<code style="font-family:var(--mono);font-size:.8rem;">${TARGET_FOLDER}/</code>` +
+                ` · Commit : ` +
                 `<a href="${commitUrl}" target="_blank" rel="noopener"
                     style="color:var(--green);font-family:var(--mono);font-size:.8rem;">
                     ${shortSha} ↗
                 </a>`;
+ 
             if (commitSha) await pollWorkflow(commitSha, token);
+ 
         } catch (err) {
             console.error("[PushXls]", err);
             setStatusXls("❌ " + err.message, "error");
@@ -1583,8 +1752,6 @@ function initImportGithubXls() {
         }
     }
 }
-
-initImportGithubXls();
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CHARGEMENT DE LA LISTE DES EMPLACEMENTS AUTORISÉS
