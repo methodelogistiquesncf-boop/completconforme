@@ -8,7 +8,8 @@ import {
     persistentLocalCache,
     persistentMultipleTabManager,
     doc, setDoc, getDoc, getDocs,
-    collection
+    collection, collectionGroup,
+    query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import {
     getAuth,
@@ -37,11 +38,10 @@ const auth = getAuth(app);
 
 let db;
 try {
-    // 2. MODIFIEZ CETTE LIGNE pour gérer le multi-onglet :
-    db = initializeFirestore(app, { 
+    db = initializeFirestore(app, {
         localCache: persistentLocalCache({
-            tabManager: persistentMultipleTabManager() // <--- À AJOUTER
-        }) 
+            tabManager: persistentMultipleTabManager()
+        })
     });
     console.log("[Offline] Cache activé avec succès (multi-onglets).");
 } catch (err) {
@@ -68,6 +68,16 @@ async function lireToken() {
 let currentEmpId = "";
 let currentKitId = "";
 
+// ─── ÉTAT CALENDRIER ──────────────────────────────────────────────────────────
+const CAL = {
+    period:      "semaine",   // "jour" | "semaine" | "mois" | "custom"
+    weekOffset:  0,
+    selectedIso: null,        // "YYYY-MM-DD"
+    empFilter:   "",
+    cache:       {},          // iso → [{...kit}]
+    loading:     false,
+};
+
 // ─── REFS DOM ─────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
@@ -93,20 +103,12 @@ const secProfil     = $('sec-profil');
 const offlineBanner = $('offline-banner');
 
 // Vues terrain
-const viewListe  = $('view-liste');
-const viewKits   = $('view-kits');
-const viewDetail = $('view-detail');
-
-// Vue liste niveau 1
-const inputEmp     = $('input-emplacement');
-const btnVerifier  = $('btn-verifier');
-const searchStatus = $('search-status');
-const listeLoading = $('liste-loading');
-const listeVide    = $('liste-vide');
-const listeKits    = $('liste-kits');
+const viewCalendrier = $('view-calendrier');
+const viewKits       = $('view-kits');
+const viewDetail     = $('view-detail');
 
 // Vue kits niveau 2
-const btnRetourListe = $('btn-retour-liste');
+const btnRetourCal   = $('btn-retour-cal');
 const kitsEmpTitle   = $('kits-emp-title');
 const kitsEmpLoading = $('kits-emp-loading');
 const kitsEmpVide    = $('kits-emp-vide');
@@ -238,8 +240,8 @@ function showTab(tab) {
     secProfil.classList.toggle('hidden',     tab !== 'profil');
 
     if (tab === 'historique') chargerHistorique();
-    if (tab === 'terrain')   { afficherVue('liste'); chargerListeKits(); }
-    if (tab === 'profil')    afficherProfil();
+    if (tab === 'terrain')    { afficherVue('calendrier'); renderCalendrier(); }
+    if (tab === 'profil')     afficherProfil();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -247,134 +249,315 @@ function showTab(tab) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function afficherVue(vue) {
-    viewListe.classList.toggle('hidden',  vue !== 'liste');
-    viewKits.classList.toggle('hidden',   vue !== 'kits');
-    viewDetail.classList.toggle('hidden', vue !== 'detail');
+    viewCalendrier.classList.toggle('hidden', vue !== 'calendrier');
+    viewKits.classList.toggle('hidden',       vue !== 'kits');
+    viewDetail.classList.toggle('hidden',     vue !== 'detail');
 }
 
-btnRetourListe?.addEventListener('click', () => {
-    afficherVue('liste');
-    chargerListeKits();
+btnRetourCal?.addEventListener('click', () => {
+    afficherVue('calendrier');
 });
 
 btnRetourKits?.addEventListener('click', () => {
     afficherVue('kits');
-    chargerKitsEmplacement(currentEmpId);
+    if (currentEmpId) chargerKitsEmplacement(currentEmpId);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// NIVEAU 1 — LISTE GLOBALE DES KITS NON CONFORMES
+// UTILITAIRES DATE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-let tousLesKits = [];
+const JOURS_COURTS  = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+const MOIS_LONGS    = ['Janvier','Février','Mars','Avril','Mai','Juin',
+                       'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
-async function chargerListeKits() {
-    listeLoading.classList.remove('hidden');
-    listeVide.classList.add('hidden');
-    listeKits.innerHTML      = '';
-    searchStatus.textContent = '';
+function aujourd_hui() {
+    const d = new Date();
+    return toIso(d);
+}
 
+function toIso(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function fromIso(iso) {
+    const [y,m,d] = iso.split('-').map(Number);
+    return new Date(y, m-1, d);
+}
+
+function isoToDisplay(iso) {
+    const d = fromIso(iso);
+    return `${d.getDate()} ${MOIS_LONGS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// Retourne les 7 jours de la semaine à partir d'un offset
+function getWeekDays(offset = 0) {
+    const now  = new Date();
+    const dow  = now.getDay() || 7;           // lundi = 1
+    const lun  = new Date(now);
+    lun.setDate(now.getDate() - dow + 1 + offset * 7);
+    return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(lun);
+        d.setDate(lun.getDate() + i);
+        return d;
+    });
+}
+
+// Numéro de semaine ISO
+function isoWeek(d) {
+    const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = tmp.getUTCDay() || 7;
+    tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+    return Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CALENDRIER — CHARGEMENT FIRESTORE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Charge tous les kits d'une semaine via collectionGroup
+async function chargerKitsSemaine(days) {
+    const isos = days.map(toIso);
+    // On récupère par plage de dates iso (tri alphabétique = chronologique)
+    const debut = isos[0];
+    const fin   = isos[6];
+
+    // On vérifie si déjà en cache
+    const tousEnCache = isos.every(iso => iso in CAL.cache);
+    if (tousEnCache) return;
+
+    CAL.loading = true;
     try {
-        const empSnap = await getDocs(collection(db, "emplacements"));
-        tousLesKits   = [];
+        const q = query(
+            collectionGroup(db, "kits"),
+            where("date_debut_iso", ">=", debut),
+            where("date_debut_iso", "<=", fin)
+        );
+        const snap = await getDocs(q);
 
-        const promises = empSnap.docs.map(async empDoc => {
-            const empId    = empDoc.id;
-            const kitsSnap = await getDocs(collection(db, "emplacements", empId, "kits"));
-            kitsSnap.forEach(kitDoc => {
-                const data = kitDoc.data();
-                if (data.statut_conformite !== "Conforme") {
-                    tousLesKits.push({
-                        empId,
-                        kitId:             kitDoc.id,
-                        statut_conformite: data.statut_conformite || "Non vérifié",
-                        nom_du_kit:        data.nom_du_kit        || kitDoc.id,
-                        engin:             data.engin             || "",
-                        code_kit:          data.code_kit          || "",
-                        code_contenant:    data.code_contenant    || "",
-                    });
-                }
+        // Initialiser les jours vides
+        isos.forEach(iso => { if (!(iso in CAL.cache)) CAL.cache[iso] = []; });
+
+        snap.forEach(kitDoc => {
+            const data = kitDoc.data();
+            const iso  = data.date_debut_iso;
+            if (!iso) return;
+            if (!CAL.cache[iso]) CAL.cache[iso] = [];
+
+            // Récupérer l'empId depuis le chemin : emplacements/{empId}/kits/{kitId}
+            const pathParts = kitDoc.ref.path.split('/');
+            const empId = pathParts[1] || "";
+
+            CAL.cache[iso].push({
+                kitId:             kitDoc.id,
+                empId,
+                nom_du_kit:        data.nom_du_kit        || kitDoc.id,
+                engin:             data.engin             || "",
+                code_kit:          data.code_kit          || "",
+                code_contenant:    data.code_contenant    || "",
+                statut_conformite: data.statut_conformite || "Non vérifié",
+                emplacement_wms:   data.emplacement_wms_remontage || "",
+                date_debut_iso:    iso,
             });
         });
-
-        await Promise.all(promises);
-
-        tousLesKits.sort((a, b) => {
-            const ordre = { "Incomplet": 0, "Non vérifié": 1 };
-            const oa = ordre[a.statut_conformite] ?? 2;
-            const ob = ordre[b.statut_conformite] ?? 2;
-            if (oa !== ob) return oa - ob;
-            return a.empId.localeCompare(b.empId);
-        });
-
-        renderListeKits(tousLesKits);
-
     } catch (err) {
-        listeLoading.classList.add('hidden');
-        searchStatus.textContent = '⚠️ Erreur : ' + err.message;
+        console.error("[CAL] Erreur chargement semaine :", err);
+        showToast("⚠️ Erreur chargement calendrier : " + err.message, 'error');
+    } finally {
+        CAL.loading = false;
     }
 }
 
-function renderListeKits(liste) {
-    listeLoading.classList.add('hidden');
-    listeKits.innerHTML = '';
+// ═══════════════════════════════════════════════════════════════════════════════
+// CALENDRIER — RENDU
+// ═══════════════════════════════════════════════════════════════════════════════
 
-    const searchVal = (inputEmp?.value || '').trim().toUpperCase();
-    const filtered  = searchVal
-        ? liste.filter(k =>
-            k.empId.includes(searchVal) ||
-            k.kitId.toUpperCase().includes(searchVal) ||
-            (k.engin || '').toUpperCase().includes(searchVal)
-          )
-        : liste;
+async function renderCalendrier() {
+    const days = getWeekDays(CAL.weekOffset);
+    _renderWeekLabel(days);
+    _renderCalStrip(days, true); // skeleton d'abord
+
+    await chargerKitsSemaine(days);
+    _renderCalStrip(days, false);
+
+    if (CAL.selectedIso) {
+        renderKitsJour(CAL.selectedIso);
+    } else {
+        _renderEmptyState();
+    }
+}
+
+function _renderWeekLabel(days) {
+    const lbl = $('cal-week-label');
+    if (!lbl) return;
+    lbl.textContent = `${days[0].getDate()} ${MOIS_LONGS[days[0].getMonth()]} — ${days[6].getDate()} ${MOIS_LONGS[days[6].getMonth()]} ${days[6].getFullYear()}`;
+}
+
+function _renderCalStrip(days, skeleton = false) {
+    const strip = $('cal-strip');
+    if (!strip) return;
+    strip.innerHTML = '';
+    const today = aujourd_hui();
+
+    days.forEach((d, i) => {
+        const iso   = toIso(d);
+        const kits  = skeleton ? [] : (CAL.cache[iso] || []);
+        const emp   = CAL.empFilter.toUpperCase();
+        const kitsFiltered = emp
+            ? kits.filter(k => k.empId.toUpperCase().includes(emp) || k.engin.toUpperCase().includes(emp))
+            : kits;
+
+        const nbKo      = kitsFiltered.filter(k => k.statut_conformite === 'Incomplet').length;
+        const nbPending = kitsFiltered.filter(k => k.statut_conformite !== 'Conforme' && k.statut_conformite !== 'Incomplet').length;
+        const nbOk      = kitsFiltered.filter(k => k.statut_conformite === 'Conforme').length;
+
+        const isToday    = iso === today;
+        const isSelected = iso === CAL.selectedIso;
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-day'
+            + (isToday    ? ' cal-today'    : '')
+            + (isSelected ? ' cal-selected' : '')
+            + (skeleton   ? ' cal-skeleton' : '');
+
+        if (!skeleton) {
+            cell.innerHTML = `
+                <div class="cal-day-header">
+                    <span class="cal-dow">${JOURS_COURTS[i]}</span>
+                    <span class="cal-num">${d.getDate()}</span>
+                </div>
+                <div class="cal-dots">
+                    ${nbKo      ? `<span class="cal-dot dot-amber" title="${nbKo} incomplet(s)"></span>` : ''}
+                    ${nbPending ? `<span class="cal-dot dot-red"   title="${nbPending} à contrôler"></span>` : ''}
+                    ${nbOk      ? `<span class="cal-dot dot-green" title="${nbOk} conforme(s)"></span>` : ''}
+                </div>
+                ${kitsFiltered.length ? `<span class="cal-count">${kitsFiltered.length}</span>` : ''}
+            `;
+            cell.addEventListener('click', () => selectJour(iso));
+        } else {
+            cell.innerHTML = `
+                <div class="cal-day-header">
+                    <span class="cal-dow">${JOURS_COURTS[i]}</span>
+                    <span class="cal-num">${d.getDate()}</span>
+                </div>
+            `;
+        }
+        strip.appendChild(cell);
+    });
+}
+
+function selectJour(iso) {
+    CAL.selectedIso = iso;
+    _renderCalStrip(getWeekDays(CAL.weekOffset), false);
+    renderKitsJour(iso);
+}
+
+function renderKitsJour(iso) {
+    const container = $('cal-kits-container');
+    const header    = $('cal-kits-header');
+    const listEl    = $('cal-kits-list');
+    if (!container || !listEl) return;
+
+    container.classList.remove('hidden');
+
+    const kits = CAL.cache[iso] || [];
+    const emp  = CAL.empFilter.toUpperCase();
+    const filtered = emp
+        ? kits.filter(k => k.empId.toUpperCase().includes(emp) || k.engin.toUpperCase().includes(emp))
+        : kits;
+
+    // Trier : Incomplet > Non vérifié > Conforme
+    filtered.sort((a, b) => {
+        const ordre = { "Incomplet": 0, "Non vérifié": 1, "Conforme": 2 };
+        return (ordre[a.statut_conformite] ?? 1) - (ordre[b.statut_conformite] ?? 1);
+    });
+
+    if (header) {
+        header.innerHTML = `
+            <span class="cal-kits-date">${isoToDisplay(iso)}</span>
+            <span class="cal-kits-count">${filtered.length} kit${filtered.length > 1 ? 's' : ''}</span>
+        `;
+    }
+
+    listEl.innerHTML = '';
 
     if (!filtered.length) {
-        listeVide.classList.remove('hidden');
-        listeVide.textContent = searchVal
-            ? `Aucun résultat pour « ${searchVal} ».`
-            : 'Tous les kits sont conformes. 🎉';
+        listEl.innerHTML = `
+            <div class="cal-empty">
+                <span class="cal-empty-icon">✓</span>
+                <span>Aucun kit pour cette date${emp ? ' et cet emplacement' : ''}</span>
+            </div>
+        `;
         return;
     }
 
-    listeVide.classList.add('hidden');
-
-    let lastEmp = null;
     filtered.forEach(k => {
-        if (k.empId !== lastEmp) {
-            const sep = document.createElement('div');
-            sep.className = 'liste-emp-sep';
-            sep.innerHTML = `<span class="liste-emp-label">📍 ${k.empId}</span>`;
-            listeKits.appendChild(sep);
-            lastEmp = k.empId;
-        }
-
+        const isOk = k.statut_conformite === 'Conforme';
         const isKo = k.statut_conformite === 'Incomplet';
+
         const card = document.createElement('div');
-        card.className = 'kit-liste-item' + (isKo ? ' kit-liste-ko' : '');
+        card.className = 'kit-liste-item' + (isOk ? ' kit-liste-ok' : isKo ? ' kit-liste-ko' : '');
         card.innerHTML = `
             <div class="kit-liste-left">
                 <div class="kit-liste-meta">
                     ${k.engin ? `<span class="kit-liste-engin-badge">${k.engin}</span>` : ''}
                     <span class="kit-liste-code">${k.code_kit || k.kitId}</span>
                     ${k.code_contenant ? `<span class="kit-liste-contenant">📦 ${k.code_contenant}</span>` : ''}
+                    ${k.empId ? `<span class="kit-liste-emp-badge">📍 ${k.empId}</span>` : ''}
                 </div>
                 <span class="kit-liste-nom">${k.nom_du_kit}</span>
+                ${k.emplacement_wms ? `<span class="kit-liste-wms">🔧 WMS : ${k.emplacement_wms}</span>` : ''}
             </div>
             <div class="kit-liste-right">
-                <span class="kit-liste-statut ${isKo ? 'ko' : 'pending'}">
-                    ${isKo ? '⚠️ Incomplet' : '· À contrôler'}
+                <span class="kit-liste-statut ${isOk ? 'ok' : isKo ? 'ko' : 'pending'}">
+                    ${isOk ? '✅ Conforme' : isKo ? '⚠️ Incomplet' : '· À contrôler'}
                 </span>
                 <span class="kit-liste-arrow">›</span>
             </div>
         `;
         card.addEventListener('click', () => ouvrirDetailKit(k.empId, k.kitId));
-        listeKits.appendChild(card);
+        listEl.appendChild(card);
     });
 }
 
-inputEmp?.addEventListener('input',    () => renderListeKits(tousLesKits));
-btnVerifier?.addEventListener('click', () => renderListeKits(tousLesKits));
-inputEmp?.addEventListener('keydown',  e => { if (e.key === 'Enter') btnVerifier.click(); });
+function _renderEmptyState() {
+    const container = $('cal-kits-container');
+    if (container) container.classList.add('hidden');
+}
+
+// Contrôles calendrier
+$('cal-prev')?.addEventListener('click', async () => {
+    CAL.weekOffset--;
+    await renderCalendrier();
+});
+$('cal-next')?.addEventListener('click', async () => {
+    CAL.weekOffset++;
+    await renderCalendrier();
+});
+$('cal-today')?.addEventListener('click', async () => {
+    CAL.weekOffset  = 0;
+    CAL.selectedIso = aujourd_hui();
+    await renderCalendrier();
+});
+
+// Filtre emplacement
+$('cal-emp-input')?.addEventListener('input', e => {
+    CAL.empFilter = e.target.value.trim();
+    const days = getWeekDays(CAL.weekOffset);
+    _renderCalStrip(days, false);
+    if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
+});
+
+// Sélecteur de période
+document.querySelectorAll('.cal-period-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.cal-period-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        CAL.period = btn.dataset.period;
+        $('cal-custom-range')?.classList.toggle('hidden', CAL.period !== 'custom');
+    });
+});
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // NIVEAU 2 — TOUS LES KITS D'UN EMPLACEMENT
@@ -469,7 +652,7 @@ async function ouvrirDetailKit(empId, kitId) {
     } catch (err) {
         detailLoadingCard.classList.add('hidden');
         showToast('⚠️ ' + err.message, 'error');
-        afficherVue('liste');
+        afficherVue('calendrier');
     }
 }
 
@@ -482,9 +665,11 @@ function afficherDetailKit(kitId, data, empId) {
     detailEmp.textContent      = empId;
     if (detailEngin) {
         const parts = [];
-        if (data.engin)           parts.push(`🚂 Engin : ${data.engin}`);
-        if (data.code_kit)        parts.push(`Code : ${data.code_kit}`);
-        if (data.code_contenant)  parts.push(`📦 Contenant : ${data.code_contenant}`);
+        if (data.engin)                      parts.push(`🚂 Engin : ${data.engin}`);
+        if (data.code_kit)                   parts.push(`Code : ${data.code_kit}`);
+        if (data.code_contenant)             parts.push(`📦 Contenant : ${data.code_contenant}`);
+        if (data.emplacement_wms_remontage)  parts.push(`🔧 WMS : ${data.emplacement_wms_remontage}`);
+        if (data.date_debut_iso)             parts.push(`📅 Date : ${isoToDisplay(data.date_debut_iso)}`);
         detailEngin.textContent = parts.join('  ·  ');
     }
 
@@ -505,7 +690,7 @@ function afficherDetailKit(kitId, data, empId) {
                     </svg>
                 </div>
                 ${comp.code_piece ? `<span class="comp-code-piece">${comp.code_piece}</span>` : ''}
-<span class="comp-name">${comp.nom}</span>
+                <span class="comp-name">${comp.nom}</span>
             </div>
             <span class="comp-qty-required">${comp.quantite_requise}</span>
             <input type="number" class="qty-input" min="0" placeholder="—"
@@ -576,12 +761,17 @@ async function valider(statut) {
             { merge: true }
         );
 
+        // Invalider le cache du jour concerné pour forcer le rechargement
+        if (CAL.selectedIso && CAL.cache[CAL.selectedIso]) {
+            delete CAL.cache[CAL.selectedIso];
+        }
+
         showToast(`✅ Statut « ${statut} » enregistré.`, 'success');
         setTimeout(() => {
             currentEmpId = '';
             currentKitId = '';
-            afficherVue('liste');
-            chargerListeKits();
+            afficherVue('calendrier');
+            renderCalendrier();
         }, 1500);
 
     } catch (err) {
@@ -788,8 +978,6 @@ function afficherProfil() {
     if ($('pwd-strength-label')) $('pwd-strength-label').textContent = '';
 }
 
-// ─── INDICATEUR DE FORCE DU MOT DE PASSE ─────────────────────────────────────
-
 $('pwd-new')?.addEventListener('input', () => {
     const val  = $('pwd-new').value;
     const wrap = $('pwd-strength-wrap');
@@ -818,8 +1006,6 @@ $('pwd-new')?.addEventListener('input', () => {
     lbl.textContent = level.label;
 });
 
-// ─── TOGGLE MOT DE PASSE (formulaire profil, via data-target) ─────────────────
-
 document.querySelectorAll('.btn-toggle-pwd[data-target]').forEach(btn => {
     btn.addEventListener('click', () => {
         const input = $(btn.dataset.target);
@@ -829,8 +1015,6 @@ document.querySelectorAll('.btn-toggle-pwd[data-target]').forEach(btn => {
         btn.textContent     = isPassword ? '🙈' : '👁';
     });
 });
-
-// ─── CHANGEMENT DE MOT DE PASSE ───────────────────────────────────────────────
 
 $('btn-change-pwd')?.addEventListener('click', async () => {
     const currentPwd = $('pwd-current').value;
@@ -960,7 +1144,6 @@ detectAppVersion();
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function initGithubConfig() {
-
     const GITHUB_OWNER      = "methodelogistiquesncf-boop";
     const GITHUB_REPO       = "completconforme";
     const EXPECTED_FILENAME = "emplacements_autorises.txt";
@@ -985,17 +1168,14 @@ function initGithubConfig() {
         tokenStatus.textContent = msg;
         tokenStatus.className   = `admin-status ${type}`;
     }
-
     function setStatusEmp(msg, type = "info") {
         statusEmp.textContent = msg;
         statusEmp.className   = `admin-status ${type}`;
     }
-
     function setProgress(pct, label) {
         progBarEmp.style.width   = pct + "%";
         progLabelEmp.textContent = label;
     }
-
     function afficherApercu(lignes) {
         previewList.innerHTML = "";
         lignes.forEach(id => {
@@ -1032,11 +1212,9 @@ function initGithubConfig() {
             setTokenStatus("⚠️ Format inattendu. Un PAT GitHub commence par ghp_ ou github_pat_.", "error");
             return;
         }
-
         btnSaveToken.disabled    = true;
         btnSaveToken.textContent = "Enregistrement…";
         setTokenStatus("⏳ Enregistrement dans Firestore…", "info");
-
         try {
             await setDoc(
                 doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc),
@@ -1077,28 +1255,22 @@ function initGithubConfig() {
             setStatusEmp(`❌ Nom invalide : « ${file.name} ». Le fichier doit s'appeler exactement « ${EXPECTED_FILENAME} ».`, "error");
             return;
         }
-
         previewWrap.classList.add("hidden");
         progAreaEmp.classList.remove("hidden");
         setProgress(5, "Lecture du fichier…");
         setStatusEmp("⏳ Lecture du fichier…", "info");
-
         try {
             const text = await file.text();
             const lignes = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0 && !l.startsWith("#"));
-
             if (!lignes.length) {
                 setStatusEmp("❌ Le fichier est vide ou ne contient aucun identifiant valide.", "error");
                 progAreaEmp.classList.add("hidden");
                 return;
             }
-
             setProgress(20, "Récupération du token…");
             const token = await lireToken();
-
             setProgress(40, "Récupération du SHA actuel…");
             setStatusEmp("⏳ Connexion à GitHub…", "info");
-
             let sha = null;
             const getResp = await fetch(`${API_BASE}/${EXPECTED_FILENAME}`, {
                 headers: {
@@ -1107,18 +1279,14 @@ function initGithubConfig() {
                     "X-GitHub-Api-Version": "2022-11-28",
                 }
             });
-
             if (getResp.ok) {
                 sha = (await getResp.json()).sha;
             } else if (getResp.status !== 404) {
                 throw new Error(`GitHub GET : ${(await getResp.json()).message}`);
             }
-
             setProgress(65, "Envoi vers le dépôt…");
             setStatusEmp("⏳ Push vers GitHub…", "info");
-
             const base64Content = btoa(unescape(encodeURIComponent(text)));
-
             const putResp = await fetch(`${API_BASE}/${EXPECTED_FILENAME}`, {
                 method: "PUT",
                 headers: {
@@ -1133,13 +1301,10 @@ function initGithubConfig() {
                     ...(sha ? { sha } : {}),
                 }),
             });
-
             if (!putResp.ok) throw new Error(`GitHub PUT : ${(await putResp.json()).message}`);
-
             const result    = await putResp.json();
             const commitSha = result.commit?.sha?.slice(0, 7) || "ok";
             const commitUrl = result.commit?.html_url || "#";
-
             setProgress(100, "Terminé.");
             statusEmp.className = "admin-status success";
             statusEmp.innerHTML =
@@ -1148,7 +1313,6 @@ function initGithubConfig() {
                     style="color:var(--green);font-family:var(--mono);font-size:.8rem;">
                     ${commitSha} ↗
                 </a>`;
-
             afficherApercu(lignes);
             await chargerListeEmplacementsAutorises();
         } catch (err) {
@@ -1161,16 +1325,14 @@ function initGithubConfig() {
 
 initGithubConfig();
 
-// Appel au chargement de l'onglet emplacements
 chargerListeEmplacementsAutorises();
 document.getElementById("btn-refresh-emp")?.addEventListener("click", chargerListeEmplacementsAutorises);
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PUSH Excel → imports/pending/ + suivi live du workflow GitHub Actions
+// PUSH Excel → imports/pending/ + suivi live workflow GitHub Actions
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function initImportGithubXls() {
-
     const GITHUB_OWNER     = "methodelogistiquesncf-boop";
     const GITHUB_REPO      = "completconforme";
     const TARGET_FOLDER    = "imports/pending";
@@ -1211,12 +1373,10 @@ function initImportGithubXls() {
         statusXls.textContent = msg;
         statusXls.className   = `admin-status ${type}`;
     }
-
     function setProgress(pct, label) {
         progBarXls.style.width   = pct + "%";
         progLabelXls.textContent = label;
     }
-
     function iconStep(status, conclusion) {
         if (status === "queued")      return { icon: "⏳", color: "var(--muted)" };
         if (status === "in_progress") return { icon: "🔄", color: "var(--blue)" };
@@ -1228,18 +1388,16 @@ function initImportGithubXls() {
         }
         return { icon: "⏸️", color: "var(--muted)" };
     }
-
     function iconRun(status, conclusion) {
-        if (status === "queued")      return { icon: "⏳", label: "En file d'attente…",           color: "var(--muted)" };
-        if (status === "in_progress") return { icon: "🔄", label: "Pipeline en cours…",           color: "var(--blue)"  };
+        if (status === "queued")      return { icon: "⏳", label: "En file d'attente…",            color: "var(--muted)" };
+        if (status === "in_progress") return { icon: "🔄", label: "Pipeline en cours…",            color: "var(--blue)"  };
         if (status === "completed") {
             if (conclusion === "success")   return { icon: "✅", label: "Pipeline terminé avec succès !", color: "var(--green)" };
-            if (conclusion === "failure")   return { icon: "❌", label: "Pipeline échoué.",               color: "var(--red)"   };
-            if (conclusion === "cancelled") return { icon: "🚫", label: "Pipeline annulé.",               color: "var(--muted)" };
+            if (conclusion === "failure")   return { icon: "❌", label: "Pipeline échoué.",                color: "var(--red)"   };
+            if (conclusion === "cancelled") return { icon: "🚫", label: "Pipeline annulé.",                color: "var(--muted)" };
         }
         return { icon: "⏳", label: "Démarrage…", color: "var(--muted)" };
     }
-
     function renderSteps(steps) {
         workflowSteps.innerHTML = "";
         steps.forEach(step => {
@@ -1252,9 +1410,9 @@ function initImportGithubXls() {
                 background:var(--input-bg);border:1.5px solid var(--border);
                 border-radius:var(--radius);transition:border-color .2s;
             `;
-            if (step.status === "in_progress")     row.style.borderColor = "var(--blue)";
-            if (step.conclusion === "success")      row.style.borderColor = "rgba(63,168,118,.4)";
-            if (step.conclusion === "failure")      row.style.borderColor = "rgba(192,53,74,.4)";
+            if (step.status === "in_progress")   row.style.borderColor = "var(--blue)";
+            if (step.conclusion === "success")   row.style.borderColor = "rgba(63,168,118,.4)";
+            if (step.conclusion === "failure")   row.style.borderColor = "rgba(192,53,74,.4)";
             row.innerHTML = `
                 <span style="font-size:.95rem;flex-shrink:0;">${icon}</span>
                 <span style="font-size:.83rem;font-weight:600;color:${color};flex:1;">${label}</span>
@@ -1266,7 +1424,6 @@ function initImportGithubXls() {
             workflowSteps.appendChild(row);
         });
     }
-
     function renderRunStatus(status, conclusion) {
         const { icon, label, color } = iconRun(status, conclusion);
         workflowSpinner.style.display = status !== "completed" ? "block" : "none";
@@ -1277,14 +1434,11 @@ function initImportGithubXls() {
             workflowRunSt.style.background  = conclusion === "success" ? "rgba(63,168,118,.05)" : "rgba(192,53,74,.05)";
         }
     }
-
     function formatDuration(start, end) {
         const secs = Math.round((new Date(end) - new Date(start)) / 1000);
         return secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}min ${secs % 60}s`;
     }
-
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
     function githubHeaders(token) {
         return {
             Authorization: `Bearer ${token}`,
@@ -1292,13 +1446,10 @@ function initImportGithubXls() {
             "X-GitHub-Api-Version": "2022-11-28",
         };
     }
-
     async function pollWorkflow(commitSha, token) {
         workflowPanel.classList.remove("hidden");
         renderRunStatus("queued", null);
-
         const deadline = Date.now() + POLL_TIMEOUT_MS;
-
         while (Date.now() < deadline) {
             await sleep(POLL_INTERVAL_MS);
             const res = await fetch(`${API_ACTIONS}/runs?head_sha=${commitSha}&per_page=5`, { headers: githubHeaders(token) });
@@ -1306,19 +1457,16 @@ function initImportGithubXls() {
             const data = await res.json();
             const run  = data.workflow_runs?.[0];
             if (!run) continue;
-
             workflowLink.href          = run.html_url;
             workflowLink.style.display = "inline";
             renderRunStatus(run.status, run.conclusion);
             await pollRunJobs(run.id, run, token, deadline);
             return;
         }
-
         workflowRunLbl.textContent    = "⚠️ Délai dépassé — vérifiez GitHub Actions.";
         workflowRunLbl.style.color    = "var(--amber)";
         workflowSpinner.style.display = "none";
     }
-
     async function pollRunJobs(runId, initialRun, token, deadline) {
         let run = initialRun;
         while (Date.now() < deadline) {
@@ -1331,7 +1479,7 @@ function initImportGithubXls() {
             if (run.status === "completed") {
                 workflowSpinner.style.display = "none";
                 if (run.created_at && run.updated_at) {
-                    workflowDur.textContent  = `⏱ Durée totale : ${formatDuration(run.created_at, run.updated_at)}`;
+                    workflowDur.textContent   = `⏱ Durée totale : ${formatDuration(run.created_at, run.updated_at)}`;
                     workflowDur.style.display = "block";
                 }
                 return;
@@ -1362,7 +1510,6 @@ function initImportGithubXls() {
             setStatusXls(`❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`, "error");
             return;
         }
-
         workflowPanel.classList.add("hidden");
         workflowSteps.innerHTML    = "";
         workflowLink.style.display = "none";
@@ -1370,19 +1517,15 @@ function initImportGithubXls() {
         progAreaXls.classList.remove("hidden");
         setProgress(5, "Lecture du fichier…");
         setStatusXls("⏳ Lecture du fichier…", "info");
-
         try {
             const buffer = await file.arrayBuffer();
             const uint8  = new Uint8Array(buffer);
             const base64 = btoa(uint8.reduce((d, b) => d + String.fromCharCode(b), ""));
-
             setProgress(20, "Récupération du token…");
             const token = await lireToken();
-
             const targetPath = `${TARGET_FOLDER}/${file.name}`;
             setProgress(40, "Vérification du fichier existant…");
             setStatusXls("⏳ Connexion à GitHub…", "info");
-
             let sha = null;
             const getResp = await fetch(`${API_BASE}/${targetPath}`, { headers: githubHeaders(token) });
             if (getResp.ok) {
@@ -1390,10 +1533,8 @@ function initImportGithubXls() {
             } else if (getResp.status !== 404) {
                 throw new Error(`GitHub GET : ${(await getResp.json()).message}`);
             }
-
             setProgress(65, "Envoi vers le dépôt…");
             setStatusXls("⏳ Push vers GitHub…", "info");
-
             const putResp = await fetch(`${API_BASE}/${targetPath}`, {
                 method: "PUT",
                 headers: { ...githubHeaders(token), "Content-Type": "application/json" },
@@ -1403,14 +1544,11 @@ function initImportGithubXls() {
                     ...(sha ? { sha } : {}),
                 }),
             });
-
             if (!putResp.ok) throw new Error(`GitHub PUT : ${(await putResp.json()).message}`);
-
             const result    = await putResp.json();
             const commitSha = result.commit?.sha;
             const commitUrl = result.commit?.html_url || "#";
             const shortSha  = commitSha?.slice(0, 7) || "ok";
-
             setProgress(100, "Fichier envoyé — pipeline en attente…");
             statusXls.className = "admin-status success";
             statusXls.innerHTML =
@@ -1419,9 +1557,7 @@ function initImportGithubXls() {
                     style="color:var(--green);font-family:var(--mono);font-size:.8rem;">
                     ${shortSha} ↗
                 </a>`;
-
             if (commitSha) await pollWorkflow(commitSha, token);
-
         } catch (err) {
             console.error("[PushXls]", err);
             setStatusXls("❌ " + err.message, "error");
@@ -1455,9 +1591,7 @@ async function chargerListeEmplacementsAutorises() {
     listWrap.classList.add("hidden");
 
     try {
-        // lireToken() est maintenant globale — accessible ici sans problème
         const token = await lireToken();
-
         const res = await fetch(API_URL, {
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -1465,16 +1599,13 @@ async function chargerListeEmplacementsAutorises() {
                 "X-GitHub-Api-Version": "2022-11-28",
             }
         });
-
         if (!res.ok) throw new Error(`GitHub GET : ${(await res.json()).message}`);
-
         const data   = await res.json();
         const text   = atob(data.content.replace(/\n/g, ""));
         const lignes = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith("#"));
 
         loadingEl.classList.add("hidden");
         listEl.innerHTML = "";
-
         lignes.forEach(id => {
             const badge = document.createElement("span");
             badge.textContent = id;
@@ -1487,10 +1618,8 @@ async function chargerListeEmplacementsAutorises() {
             `;
             listEl.appendChild(badge);
         });
-
         countEl.textContent = `${lignes.length} emplacement${lignes.length > 1 ? "s" : ""} autorisé${lignes.length > 1 ? "s" : ""}`;
         listWrap.classList.remove("hidden");
-
     } catch (err) {
         loadingEl.classList.add("hidden");
         errorEl.textContent = "⚠️ " + err.message;
