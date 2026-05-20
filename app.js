@@ -1132,7 +1132,7 @@ function initGithubConfig() {
                 </a>`;
 
             afficherApercu(lignes);
-
+            await chargerListeEmplacementsAutorises();
         } catch (err) {
             console.error("[PushEmp]", err);
             setStatusEmp("❌ " + err.message, "error");
@@ -1142,6 +1142,9 @@ function initGithubConfig() {
 }
 
 initGithubConfig();
+// Appel au chargement de l'onglet emplacements
+chargerListeEmplacementsAutorises();
+document.getElementById("btn-refresh-emp")?.addEventListener("click", chargerListeEmplacementsAutorises);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PUSH Excel → imports/pending/ + suivi live du workflow GitHub Actions
@@ -1418,3 +1421,66 @@ function initImportGithubXls() {
 }
 
 initImportGithubXls();
+
+// ─── CHARGEMENT DE LA LISTE DES EMPLACEMENTS ───────────────────────────────
+
+async function chargerListeEmplacementsAutorises() {
+    const GITHUB_OWNER      = "methodelogistiquesncf-boop";
+    const GITHUB_REPO       = "completconforme";
+    const FILENAME          = "emplacements_autorises.txt";
+    const API_URL           = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${FILENAME}`;
+
+    const listWrap  = document.getElementById("emp-current-wrap");
+    const listEl    = document.getElementById("emp-current-list");
+    const countEl   = document.getElementById("emp-current-count");
+    const loadingEl = document.getElementById("emp-current-loading");
+    const errorEl   = document.getElementById("emp-current-error");
+
+    if (!listWrap) return;
+
+    loadingEl.classList.remove("hidden");
+    errorEl.classList.add("hidden");
+    listWrap.classList.add("hidden");
+
+    try {
+        const token = await lireToken(); // réutilise la fonction déjà dans initGithubConfig
+
+        const res = await fetch(API_URL, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
+        });
+
+        if (!res.ok) throw new Error(`GitHub GET : ${(await res.json()).message}`);
+
+        const data    = await res.json();
+        const text    = atob(data.content.replace(/\n/g, ""));
+        const lignes  = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith("#"));
+
+        loadingEl.classList.add("hidden");
+        listEl.innerHTML = "";
+
+        lignes.forEach(id => {
+            const badge = document.createElement("span");
+            badge.textContent = id;
+            badge.style.cssText = `
+                font-family: var(--mono); font-size: .72rem; font-weight: 700;
+                background: var(--input-bg); color: var(--text);
+                border: 1px solid var(--border); border-radius: 6px;
+                padding: .2rem .55rem; white-space: nowrap; letter-spacing: .04em;
+                cursor: default;
+            `;
+            listEl.appendChild(badge);
+        });
+
+        countEl.textContent = `${lignes.length} emplacement${lignes.length > 1 ? "s" : ""} autorisé${lignes.length > 1 ? "s" : ""}`;
+        listWrap.classList.remove("hidden");
+
+    } catch (err) {
+        loadingEl.classList.add("hidden");
+        errorEl.textContent = "⚠️ " + err.message;
+        errorEl.classList.remove("hidden");
+    }
+}
