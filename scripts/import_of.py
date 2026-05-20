@@ -54,7 +54,6 @@ def resolve_col(df_cols: list, key: str) -> str | None:
     """Retourne le nom de colonne réel parmi les fallbacks."""
     candidates = COL_FALLBACKS.get(key)
     if not candidates:
-        # Clé absente de COL_FALLBACKS : on tente la valeur de COL si disponible
         default = COL.get(key)
         if default and default in df_cols:
             return default
@@ -63,6 +62,26 @@ def resolve_col(df_cols: list, key: str) -> str | None:
         if candidate in df_cols:
             return candidate
     return None
+
+
+def parse_date(val: str) -> datetime.datetime | str:
+    """
+    Convertit une string en datetime Python (→ Timestamp Firestore automatiquement).
+    Retourne la string brute si aucun format ne correspond.
+    """
+    for fmt in (
+        "%d/%m/%Y",
+        "%Y-%m-%d",
+        "%d-%m-%Y",
+        "%d/%m/%Y %H:%M",
+        "%d/%m/%Y %H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S",
+    ):
+        try:
+            return datetime.datetime.strptime(val.strip(), fmt)
+        except ValueError:
+            continue
+    return val  # fallback : string brute conservée telle quelle
 
 
 # ─── INIT FIREBASE ────────────────────────────────────────────────────────────
@@ -96,8 +115,7 @@ def lire_fichier(path: str) -> pd.DataFrame:
     df.columns = [str(c).strip() for c in df.columns]
 
     # ─── 1. FILTRE : LIGNES À GARDER (EMPLACEMENTS VALIDES) ─────────────────
-    # NOTE : ce filtre est appliqué AVANT la réduction des colonnes pour ne pas
-    # perdre la colonne d'emplacement dont on a besoin ici.
+    # NOTE : appliqué AVANT la réduction des colonnes pour garder la colonne d'emplacement
     config_path = "emplacements_autorises.txt"
 
     if os.path.exists(config_path):
@@ -157,6 +175,14 @@ def construire_index(df: pd.DataFrame) -> dict:
     c_piece_code = resolve_col(cols, "code_piece")
     c_contenant  = resolve_col(cols, "code_contenant")
     c_caisse     = resolve_col(cols, "caisse")
+    c_emp_wms    = resolve_col(cols, "emplacement_wms_remontage")
+    c_date_debut = resolve_col(cols, "date_debut")
+
+    # Log des colonnes optionnelles absentes
+    if not c_emp_wms:
+        print("   [INFO] Colonne 'emplacement_wms_remontage' absente — champ laissé vide.", flush=True)
+    if not c_date_debut:
+        print("   [INFO] Colonne 'date_debut' absente — champs calendrier laissés vides.", flush=True)
 
     manquantes = [k for k, v in {"code_kit": c_kit, "engin": c_engin, "emplacement": c_emp}.items() if not v]
     if manquantes:
@@ -179,19 +205,55 @@ def construire_index(df: pd.DataFrame) -> dict:
         nom_kit   = str(row[c_kit_nom]).strip()   if c_kit_nom   else "Kit sans nom"
         contenant = str(row[c_contenant]).strip() if c_contenant else ""
         caisse    = str(row[c_caisse]).strip()    if c_caisse    else ""
+        emp_wms   = str(row[c_emp_wms]).strip()   if c_emp_wms   else ""
+
+        # ─── Traitement de la date_debut ────────────────────────────────────
+        # On génère un vrai Timestamp Firestore + des champs calculés pour
+        # permettre des requêtes efficaces par jour / semaine / mois / année
+        # depuis le calendrier du site.
+        date_raw   = str(row[c_date_debut]).strip() if c_date_debut else ""
+        date_obj   = parse_date(date_raw) if date_raw else None
+
+        if isinstance(date_obj, datetime.datetime):
+            # Champs calculés pour les requêtes calendrier
+            date_debut     = date_obj                           # → Timestamp Firestore
+            date_debut_iso = date_obj.strftime("%Y-%m-%d")     # ex: "2025-06-10"  (tri alphabétique = tri chronologique)
+            annee          = date_obj.year                      # ex: 2025
+            mois           = date_obj.month                     # ex: 6
+            semaine        = date_obj.isocalendar()[1]          # ex: 24  (ISO week number)
+            jour_semaine   = date_obj.weekday()                 # 0=lundi … 6=dimanche
+        else:
+            # Date absente ou format inconnu : on stocke quand même la string brute
+            date_debut     = date_raw
+            date_debut_iso = ""
+            annee          = None
+            mois           = None
+            semaine        = None
+            jour_semaine   = None
 
         if emp_id not in index:
             index[emp_id] = {}
 
         if kit_id not in index[emp_id]:
             index[emp_id][kit_id] = {
-                "id_kit":         kit_id,
-                "engin":          engin,
-                "code_kit":       code_kit,
-                "nom_du_kit":     nom_kit,
-                "code_contenant": contenant,
-                "caisse":         caisse,
-                "composants":     [],
+                # ── Identifiants ──────────────────────────────────────────
+                "id_kit":                    kit_id,
+                "engin":                     engin,
+                "code_kit":                  code_kit,
+                "nom_du_kit":                nom_kit,
+                # ── Logistique ────────────────────────────────────────────
+                "code_contenant":            contenant,
+                "caisse":                    caisse,
+                "emplacement_wms_remontage": emp_wms,
+                # ── Calendrier (requêtables depuis le site) ───────────────
+                "date_debut":                date_debut,      # Timestamp Firestore (ou string brute)
+                "date_debut_iso":            date_debut_iso,  # "YYYY-MM-DD" pour tri/affichage
+                "annee":                     annee,           # filtre par année
+                "mois":                      mois,            # filtre par mois
+                "semaine":                   semaine,         # filtre par semaine ISO
+                "jour_semaine":              jour_semaine,    # 0=lundi … 6=dimanche
+                # ── Composants ────────────────────────────────────────────
+                "composants":                [],
             }
 
         nom_piece  = str(row[c_piece_nom]).strip()  if c_piece_nom  else ""
@@ -229,7 +291,6 @@ def injecter(db, index: dict) -> dict:
             batch = db.batch()
             ops   = 0
 
-    # Pré-calcul des emplacements uniques pour éviter les écritures redondantes
     emplacements_ecrits: set[str] = set()
 
     for emp_id, kits in index.items():
@@ -263,6 +324,7 @@ def injecter(db, index: dict) -> dict:
                 ops += 1
                 commit_si_plein()
 
+                # Nomenclature globale
                 nom_ref = db.collection("nomenclature_kits").document(kit_id)
                 batch.set(nom_ref, kit_data)
                 ops += 1
@@ -307,8 +369,8 @@ def main():
 
         # ÉTAPE 2 : Sauvegarde de la copie nettoyée
         os.makedirs("imports/cleaned", exist_ok=True)
-        suffix         = pathlib.Path(import_file).suffix.lower()
-        nom_origine    = pathlib.Path(import_file).name
+        suffix          = pathlib.Path(import_file).suffix.lower()
+        nom_origine     = pathlib.Path(import_file).name
         fichier_nettoye = f"imports/cleaned/cleaned_{nom_origine}"
 
         print(f"→ 2. Sauvegarde de la copie nettoyée : {fichier_nettoye}…", flush=True)
