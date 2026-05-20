@@ -291,6 +291,7 @@ async function chargerListeKits() {
                         nom_du_kit:        data.nom_du_kit        || kitDoc.id,
                         engin:             data.engin             || "",
                         code_kit:          data.code_kit          || "",
+                        code_contenant:    data.code_contenant    || "",
                     });
                 }
             });
@@ -355,6 +356,7 @@ function renderListeKits(liste) {
                 <div class="kit-liste-meta">
                     ${k.engin ? `<span class="kit-liste-engin-badge">${k.engin}</span>` : ''}
                     <span class="kit-liste-code">${k.code_kit || k.kitId}</span>
+                    ${k.code_contenant ? `<span class="kit-liste-contenant">📦 ${k.code_contenant}</span>` : ''}
                 </div>
                 <span class="kit-liste-nom">${k.nom_du_kit}</span>
             </div>
@@ -415,6 +417,7 @@ async function chargerKitsEmplacement(empId) {
                     <div class="kit-liste-meta">
                         ${k.engin ? `<span class="kit-liste-engin-badge">${k.engin}</span>` : ''}
                         <span class="kit-liste-code">${k.code_kit || k.kitId}</span>
+                        ${k.code_contenant ? `<span class="kit-liste-contenant">📦 ${k.code_contenant}</span>` : ''}
                     </div>
                     <span class="kit-liste-nom">${k.nom_du_kit || k.kitId}</span>
                     ${k.derniere_verification ? `<span class="kit-liste-date">🕒 ${
