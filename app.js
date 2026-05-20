@@ -44,6 +44,19 @@ try {
 
 const ADMIN_PIN = "1234";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TOKEN GITHUB — CONFIG GLOBALE
+// ─────────────────────────────────────────────────────────────────────────────
+const FIRESTORE_SECRET = { col: "config", doc: "secrets", field: "github_token" };
+
+async function lireToken() {
+    const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
+    if (!snap.exists()) throw new Error("Aucun token configuré. Enregistrez-en un d'abord.");
+    const token = snap.data()[FIRESTORE_SECRET.field];
+    if (!token) throw new Error("Champ token vide dans Firestore.");
+    return token;
+}
+
 // ─── ÉTAT GLOBAL ─────────────────────────────────────────────────────────────
 let currentEmpId = "";
 let currentKitId = "";
@@ -929,7 +942,7 @@ async function detectAppVersion() {
 detectAppVersion();
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// GITHUB TOKEN (Firestore) + PUSH emplacements_autorises.txt
+// GITHUB CONFIG — SAUVEGARDE TOKEN + PUSH emplacements_autorises.txt
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function initGithubConfig() {
@@ -937,7 +950,6 @@ function initGithubConfig() {
     const GITHUB_OWNER      = "methodelogistiquesncf-boop";
     const GITHUB_REPO       = "completconforme";
     const EXPECTED_FILENAME = "emplacements_autorises.txt";
-    const FIRESTORE_SECRET  = { col: "config", doc: "secrets", field: "github_token" };
     const API_BASE = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
 
     const tokenInput   = document.getElementById("github-token-input");
@@ -986,14 +998,6 @@ function initGithubConfig() {
         previewCount.textContent =
             `${lignes.length} emplacement${lignes.length > 1 ? "s" : ""} envoyé${lignes.length > 1 ? "s" : ""}`;
         previewWrap.classList.remove("hidden");
-    }
-
-    async function lireToken() {
-        const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
-        if (!snap.exists()) throw new Error("Aucun token configuré. Enregistrez-en un d'abord.");
-        const token = snap.data()[FIRESTORE_SECRET.field];
-        if (!token) throw new Error("Champ token vide dans Firestore.");
-        return token;
     }
 
     async function chargerEtatToken() {
@@ -1142,6 +1146,7 @@ function initGithubConfig() {
 }
 
 initGithubConfig();
+
 // Appel au chargement de l'onglet emplacements
 chargerListeEmplacementsAutorises();
 document.getElementById("btn-refresh-emp")?.addEventListener("click", chargerListeEmplacementsAutorises);
@@ -1156,7 +1161,6 @@ function initImportGithubXls() {
     const GITHUB_REPO      = "completconforme";
     const TARGET_FOLDER    = "imports/pending";
     const ACCEPTED_EXT     = ["xlsx", "xls", "csv"];
-    const FIRESTORE_SECRET = { col: "config", doc: "secrets", field: "github_token" };
     const API_BASE         = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
     const API_ACTIONS      = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions`;
     const POLL_INTERVAL_MS = 4000;
@@ -1197,14 +1201,6 @@ function initImportGithubXls() {
     function setProgress(pct, label) {
         progBarXls.style.width   = pct + "%";
         progLabelXls.textContent = label;
-    }
-
-    async function lireToken() {
-        const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
-        if (!snap.exists()) throw new Error("Aucun token GitHub configuré. Enregistrez-en un dans « Config GitHub ».");
-        const token = snap.data()[FIRESTORE_SECRET.field];
-        if (!token) throw new Error("Champ token vide dans Firestore.");
-        return token;
     }
 
     function iconStep(status, conclusion) {
@@ -1422,13 +1418,15 @@ function initImportGithubXls() {
 
 initImportGithubXls();
 
-// ─── CHARGEMENT DE LA LISTE DES EMPLACEMENTS ───────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHARGEMENT DE LA LISTE DES EMPLACEMENTS AUTORISÉS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 async function chargerListeEmplacementsAutorises() {
-    const GITHUB_OWNER      = "methodelogistiquesncf-boop";
-    const GITHUB_REPO       = "completconforme";
-    const FILENAME          = "emplacements_autorises.txt";
-    const API_URL           = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${FILENAME}`;
+    const GITHUB_OWNER = "methodelogistiquesncf-boop";
+    const GITHUB_REPO  = "completconforme";
+    const FILENAME     = "emplacements_autorises.txt";
+    const API_URL      = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${FILENAME}`;
 
     const listWrap  = document.getElementById("emp-current-wrap");
     const listEl    = document.getElementById("emp-current-list");
@@ -1443,7 +1441,8 @@ async function chargerListeEmplacementsAutorises() {
     listWrap.classList.add("hidden");
 
     try {
-        const token = await lireToken(); // réutilise la fonction déjà dans initGithubConfig
+        // lireToken() est maintenant globale — accessible ici sans problème
+        const token = await lireToken();
 
         const res = await fetch(API_URL, {
             headers: {
@@ -1455,9 +1454,9 @@ async function chargerListeEmplacementsAutorises() {
 
         if (!res.ok) throw new Error(`GitHub GET : ${(await res.json()).message}`);
 
-        const data    = await res.json();
-        const text    = atob(data.content.replace(/\n/g, ""));
-        const lignes  = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith("#"));
+        const data   = await res.json();
+        const text   = atob(data.content.replace(/\n/g, ""));
+        const lignes = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith("#"));
 
         loadingEl.classList.add("hidden");
         listEl.innerHTML = "";
