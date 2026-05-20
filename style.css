@@ -820,6 +820,7 @@ section.hidden { display: none; }
     align-items: center;
     gap: .75rem;
     min-width: 0;
+    flex-wrap: wrap; 
 }
 .comp-name {
     font-size: .88rem;
@@ -1541,4 +1542,16 @@ section.hidden { display: none; }
     padding: .1rem .45rem;
     letter-spacing: .04em;
     white-space: nowrap;
+}
+.comp-code-piece {
+    font-family: var(--mono);
+    font-size: .65rem;
+    font-weight: 700;
+    color: var(--muted);
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: .1rem .45rem;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
