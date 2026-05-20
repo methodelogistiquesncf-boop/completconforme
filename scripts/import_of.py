@@ -30,6 +30,8 @@ COL = {
     "engin":          "Engin",
     "caisse":         "Caisse",
     "emplacement":    "emplacement_reflex",
+    "emplacement_wms_remontage":    "emplacement wms entree remontage",
+    "Date de debut":    "Date de début",
 }
 
 # Colonnes alternatives acceptées (pour fichiers légèrement différents)
@@ -41,6 +43,7 @@ COL_FALLBACKS = {
     "design_piece":["Désignation pièce", "designation article", "designations article", "Désig. pièce"],
     "qte_piece":   ["Quantité pièce", "quantite", "Quantite", "quantité", "Qté"],
     "code_piece":  ["Code pièce", "code_piece", "CodePiece"],
+    "emplacement_wms_remontage":  ["emplacement wms entree remontage", "emplacement_wms_entree_remontage", "emplacement wms entree remontage "],
 }
 
 
