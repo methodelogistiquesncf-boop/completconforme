@@ -561,15 +561,7 @@ $('cal-wms-input')?.addEventListener('input', e => {
     if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
 });
 
-// Sélecteur de période
-document.querySelectorAll('.cal-period-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.cal-period-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        CAL.period = btn.dataset.period;
-        $('cal-custom-range')?.classList.toggle('hidden', CAL.period !== 'custom');
-    });
-});
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // NIVEAU 2 — TOUS LES KITS D'UN EMPLACEMENT
