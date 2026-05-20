@@ -6,6 +6,7 @@ import {
     getFirestore,
     initializeFirestore,
     persistentLocalCache,
+    persistentMultipleTabManager,
     doc, setDoc, getDoc, getDocs,
     collection
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -36,7 +37,13 @@ const auth = getAuth(app);
 
 let db;
 try {
-    db = initializeFirestore(app, { localCache: persistentLocalCache() });
+    // 2. MODIFIEZ CETTE LIGNE pour gérer le multi-onglet :
+    db = initializeFirestore(app, { 
+        localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager() // <--- À AJOUTER
+        }) 
+    });
+    console.log("[Offline] Cache activé avec succès (multi-onglets).");
 } catch (err) {
     console.warn("[Offline] Persistance indisponible :", err.message);
     db = getFirestore(app);
