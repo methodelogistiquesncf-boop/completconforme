@@ -241,7 +241,11 @@ function showTab(tab) {
     secProfil.classList.toggle('hidden',     tab !== 'profil');
 
     if (tab === 'historique') chargerHistorique();
-    if (tab === 'terrain')    { afficherVue('calendrier'); renderCalendrier(); }
+    if (tab === 'terrain') {
+    CAL.cache = {};   // ← force le rechargement depuis Firestore
+    afficherVue('calendrier');
+    renderCalendrier();
+}
     if (tab === 'profil')     afficherProfil();
 }
 
@@ -766,9 +770,19 @@ async function valider(statut) {
         );
 
         // Invalider le cache du jour concerné pour forcer le rechargement
-        if (CAL.selectedIso && CAL.cache[CAL.selectedIso]) {
-            delete CAL.cache[CAL.selectedIso];
-        }
+for (const iso in CAL.cache) {
+    const idx = CAL.cache[iso].findIndex(
+        k => k.kitId === currentKitId && k.empId === currentEmpId
+    );
+    if (idx !== -1) {
+        CAL.cache[iso][idx].statut_conformite = statut; // mise à jour immédiate
+        delete CAL.cache[iso]; // force rechargement depuis Firestore
+        break;
+    }
+}
+if (CAL.selectedIso && CAL.cache[CAL.selectedIso]) {
+    delete CAL.cache[CAL.selectedIso];
+}
 
         showToast(`✅ Statut « ${statut} » enregistré.`, 'success');
         setTimeout(() => {
