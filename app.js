@@ -504,8 +504,8 @@ function afficherDetailKit(kitId, data, empId) {
                         <path d="M1 1L9 9M9 1L1 9" stroke="white" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                 </div>
-                <span class="comp-name">${comp.nom}</span>
-                    ${comp.code_piece ? `<span class="comp-code-piece">${comp.code_piece}</span>` : ''}
+                ${comp.code_piece ? `<span class="comp-code-piece">${comp.code_piece}</span>` : ''}
+<span class="comp-name">${comp.nom}</span>
             </div>
             <span class="comp-qty-required">${comp.quantite_requise}</span>
             <input type="number" class="qty-input" min="0" placeholder="—"
