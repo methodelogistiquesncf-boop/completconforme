@@ -74,6 +74,7 @@ const CAL = {
     weekOffset:  0,
     selectedIso: null,        // "YYYY-MM-DD"
     empFilter:   "",
+    wmsFilter:   "MAG2-E-PRE",
     cache:       {},          // iso → [{...kit}]
     loading:     false,
 };
@@ -403,10 +404,12 @@ function _renderCalStrip(days, skeleton = false) {
     days.forEach((d, i) => {
         const iso   = toIso(d);
         const kits  = skeleton ? [] : (CAL.cache[iso] || []);
-        const emp   = CAL.empFilter.toUpperCase();
-        const kitsFiltered = emp
-            ? kits.filter(k => k.empId.toUpperCase().includes(emp) || k.engin.toUpperCase().includes(emp))
-            : kits;
+const emp = CAL.empFilter.toUpperCase();
+const wms = CAL.wmsFilter.toUpperCase();
+const kitsFiltered = kits.filter(k =>
+    (!emp || k.empId.toUpperCase().includes(emp) || k.engin.toUpperCase().includes(emp)) &&
+    (!wms || k.emplacement_wms.toUpperCase().includes(wms))
+);
 
         const nbKo      = kitsFiltered.filter(k => k.statut_conformite === 'Incomplet').length;
         const nbPending = kitsFiltered.filter(k => k.statut_conformite !== 'Conforme' && k.statut_conformite !== 'Incomplet').length;
@@ -462,10 +465,12 @@ function renderKitsJour(iso) {
     container.classList.remove('hidden');
 
     const kits = CAL.cache[iso] || [];
-    const emp  = CAL.empFilter.toUpperCase();
-    const filtered = emp
-        ? kits.filter(k => k.empId.toUpperCase().includes(emp) || k.engin.toUpperCase().includes(emp))
-        : kits;
+const emp = CAL.empFilter.toUpperCase();
+const wms = CAL.wmsFilter.toUpperCase();
+const filtered = kits.filter(k =>
+    (!emp || k.empId.toUpperCase().includes(emp) || k.engin.toUpperCase().includes(emp)) &&
+    (!wms || k.emplacement_wms.toUpperCase().includes(wms))
+);
 
     // Trier : Incomplet > Non vérifié > Conforme
     filtered.sort((a, b) => {
@@ -544,6 +549,13 @@ $('cal-today')?.addEventListener('click', async () => {
 // Filtre emplacement
 $('cal-emp-input')?.addEventListener('input', e => {
     CAL.empFilter = e.target.value.trim();
+    const days = getWeekDays(CAL.weekOffset);
+    _renderCalStrip(days, false);
+    if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
+});
+
+$('cal-wms-input')?.addEventListener('input', e => {
+    CAL.wmsFilter = e.target.value.trim();
     const days = getWeekDays(CAL.weekOffset);
     _renderCalStrip(days, false);
     if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
