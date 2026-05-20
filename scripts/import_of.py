@@ -76,6 +76,8 @@ def parse_date(val: str) -> datetime.datetime | str:
         "%d/%m/%Y %H:%M",
         "%d/%m/%Y %H:%M:%S",
         "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
     ):
         try:
             return datetime.datetime.strptime(val.strip(), fmt)
