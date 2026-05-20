@@ -297,6 +297,40 @@
                                     Le fichier doit exactement porter ce nom et contenir un identifiant par ligne.
                                 </p>
 
+
+                                <!-- ── Liste actuelle des emplacements ──────────── -->
+<div style="margin-bottom:1.5rem;">
+    <p class="card-title" style="margin-bottom:.75rem;">Liste actuelle des emplacements autorisés</p>
+
+    <div id="emp-current-loading" class="loading-wrap" style="padding:1.25rem 0;">
+        <div class="spinner"></div>
+        <span>Chargement depuis GitHub…</span>
+    </div>
+
+    <p id="emp-current-error" class="admin-status error hidden"></p>
+
+    <div id="emp-current-wrap" class="hidden">
+        <div id="emp-current-list"
+             style="display:flex;flex-wrap:wrap;gap:.4rem;max-height:200px;overflow-y:auto;
+                    padding:.75rem;background:var(--input-bg);border:1px solid var(--border);
+                    border-radius:var(--radius);margin-bottom:.5rem;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+            <p id="emp-current-count"
+               style="font-family:var(--mono);font-size:.7rem;color:var(--muted);"></p>
+            <button id="btn-refresh-emp"
+                    style="font-family:var(--sans);font-size:.75rem;font-weight:700;color:var(--accent);
+                           background:none;border:1px solid rgba(192,53,74,.25);border-radius:7px;
+                           padding:.3rem .75rem;cursor:pointer;transition:background .15s;"
+                    onmouseover="this.style.background='var(--accent-soft)'"
+                    onmouseout="this.style.background='none'">
+                ↻ Actualiser
+            </button>
+        </div>
+    </div>
+</div>
+
+<hr style="border:none;border-top:1px solid var(--border);margin-bottom:1.5rem;">
+
                                 <div class="drop-zone" id="drop-zone-emp">
                                     <input type="file" id="file-input-emp" accept=".txt">
                                     <span class="drop-icon">📄</span>
