@@ -1726,3 +1726,272 @@ section.hidden { display: none; }
     to   { opacity: 1; transform: translateY(0); }
 }
 .anim-in { animation: fadeUp .22s ease both; }
+/* ═══════════════════════════════════════════════════════
+   STATISTIQUES
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── KPI ROW ─────────────────────────────────────────── */
+.stats-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: .75rem;
+}
+@media (min-width: 700px) {
+    .stats-kpi-row { grid-template-columns: repeat(4, 1fr); }
+}
+
+.stats-kpi-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    box-shadow: var(--shadow-sm);
+    transition: border-color .15s, box-shadow .15s;
+}
+.stats-kpi-card:hover { box-shadow: var(--shadow-md); }
+
+.stats-kpi-icon { font-size: 1.3rem; }
+
+.stats-kpi-value {
+    font-family: var(--mono);
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+}
+.stats-kpi-label {
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+}
+
+.stats-kpi-green { border-color: rgba(26,138,90,.25);  background: rgba(26,138,90,.03); }
+.stats-kpi-green .stats-kpi-value { color: var(--green); }
+
+.stats-kpi-amber { border-color: rgba(192,122,0,.25);  background: rgba(192,122,0,.03); }
+.stats-kpi-amber .stats-kpi-value { color: var(--amber); }
+
+.stats-kpi-red   { border-color: rgba(226,0,26,.2);    background: rgba(226,0,26,.03);  }
+.stats-kpi-red .stats-kpi-value   { color: var(--accent); }
+
+.stats-kpi-blue  { border-color: rgba(0,49,137,.18);   background: rgba(0,49,137,.03);  }
+.stats-kpi-blue .stats-kpi-value  { color: var(--blue); }
+
+/* ─── GRID CHARTS ─────────────────────────────────────── */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+@media (min-width: 900px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ─── ÉVOLUTION ───────────────────────────────────────── */
+.evo-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: .3rem;
+    height: 140px;
+    padding-bottom: .25rem;
+    margin-bottom: .5rem;
+}
+
+.evo-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .25rem;
+    height: 100%;
+}
+
+.evo-bars {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    min-height: 0;
+}
+
+.evo-bar {
+    flex: 1;
+    border-radius: 4px 4px 0 0;
+    min-height: 3px;
+    transition: height .4s ease, opacity .2s;
+}
+.evo-bar:hover { opacity: .8; }
+.evo-bar-ok { background: var(--green); }
+.evo-bar-ko { background: var(--accent); }
+
+.evo-total {
+    font-family: var(--mono);
+    font-size: .6rem;
+    font-weight: 700;
+    color: var(--muted);
+    min-height: .9rem;
+}
+
+.evo-label {
+    font-family: var(--mono);
+    font-size: .6rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.evo-legend {
+    display: flex;
+    gap: 1.25rem;
+    margin-top: .75rem;
+    padding-top: .75rem;
+    border-top: 1.5px solid var(--border);
+}
+.evo-legend-item {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+.evo-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+/* ─── TOP COMPOSANTS ──────────────────────────────────── */
+.comp-stat-row {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .55rem 0;
+    border-bottom: 1px solid var(--border);
+}
+.comp-stat-row:last-child { border-bottom: none; }
+
+.comp-stat-rank {
+    font-family: var(--mono);
+    font-size: .7rem;
+    font-weight: 800;
+    color: var(--muted);
+    width: 1.2rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.comp-stat-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .3rem; }
+
+.comp-stat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+}
+.comp-stat-nom {
+    font-size: .83rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.comp-stat-count {
+    font-family: var(--mono);
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+.comp-stat-bar-wrap {
+    height: 5px;
+    background: var(--input-bg);
+    border-radius: 99px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+.comp-stat-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width .5s ease;
+    opacity: .7;
+}
+
+/* ─── PAR ENGIN ───────────────────────────────────────── */
+.engin-stats-list { display: flex; flex-direction: column; gap: .5rem; }
+
+.engin-stat-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: .65rem .85rem;
+    background: var(--input-bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    flex-wrap: wrap;
+}
+
+.engin-stat-left {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    min-width: 160px;
+    flex-shrink: 0;
+}
+.engin-stat-badge {
+    font-family: var(--mono);
+    font-size: .72rem;
+    font-weight: 700;
+    background: rgba(226,0,26,.07);
+    color: var(--accent);
+    border: 1px solid rgba(226,0,26,.18);
+    border-radius: 5px;
+    padding: .15rem .5rem;
+    white-space: nowrap;
+}
+.engin-stat-detail { font-size: .75rem; color: var(--muted); }
+
+.engin-stat-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-width: 120px;
+}
+.engin-stat-bar-wrap {
+    flex: 1;
+    height: 7px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+}
+.engin-stat-bar {
+    height: 100%;
+    border-radius: 99px;
+    transition: width .5s ease;
+}
+.engin-stat-taux {
+    font-family: var(--mono);
+    font-size: .8rem;
+    font-weight: 800;
+    min-width: 2.8rem;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* ─── UTILITAIRE ──────────────────────────────────────── */
+.stats-empty {
+    text-align: center;
+    color: var(--muted);
+    font-size: .85rem;
+    padding: 2rem;
+}
