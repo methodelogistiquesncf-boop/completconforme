@@ -72,6 +72,7 @@
                 <button class="tab-btn" id="tab-historique">🕒 Historique</button>
                 <button class="tab-btn" id="tab-profil">👤 Profil</button>
                 <button class="tab-btn" id="tab-admin">⚙️ Admin</button>
+               <button class="tab-btn" id="tab-stats">📊 Stats</button>
                 <div class="header-user-chip" id="header-user" title="Utilisateur connecté"></div>
                 <button class="btn-logout" id="btn-logout" title="Se déconnecter">Déconnexion</button>
             </nav>
@@ -96,6 +97,10 @@
             <button class="sidebar-btn" id="sidebar-profil">
                 <span class="sb-icon">👤</span> Profil
             </button>
+          <button class="sidebar-btn" id="sidebar-stats">
+              <span class="sb-icon">📊</span> Statistiques
+          </button>
+           
         </aside>
 
         <main>
@@ -491,6 +496,64 @@
 
             </section>
 
+          <!-- ════════════════════════════════════════════
+     SECTION STATISTIQUES
+     ════════════════════════════════════════════ -->
+<section id="sec-stats" class="hidden">
+
+    <div class="loading-wrap" id="stats-loading">
+        <div class="spinner"></div>
+        <span>Chargement des statistiques…</span>
+    </div>
+
+    <div id="stats-content" class="hidden">
+
+        <!-- KPI -->
+        <div class="stats-kpi-row">
+            <div class="stats-kpi-card">
+                <span class="stats-kpi-icon">📋</span>
+                <span class="stats-kpi-value" id="kpi-total">—</span>
+                <span class="stats-kpi-label">Total contrôles</span>
+            </div>
+            <div class="stats-kpi-card" id="kpi-taux-card">
+                <span class="stats-kpi-icon">✅</span>
+                <span class="stats-kpi-value" id="kpi-taux">—</span>
+                <span class="stats-kpi-label">Taux conformité</span>
+            </div>
+            <div class="stats-kpi-card stats-kpi-red">
+                <span class="stats-kpi-icon">❌</span>
+                <span class="stats-kpi-value" id="kpi-incomplets">—</span>
+                <span class="stats-kpi-label">Non conformes</span>
+            </div>
+            <div class="stats-kpi-card stats-kpi-blue">
+                <span class="stats-kpi-icon">📅</span>
+                <span class="stats-kpi-value" id="kpi-semaine">—</span>
+                <span class="stats-kpi-label">Cette semaine</span>
+            </div>
+        </div>
+
+        <!-- Évolution + Top composants -->
+        <div class="stats-grid">
+            <div class="card">
+                <p class="card-title">Évolution — 8 dernières semaines</p>
+                <div id="chart-evolution"></div>
+            </div>
+            <div class="card">
+                <p class="card-title">Composants les plus souvent manquants</p>
+                <div id="stats-top-composants"></div>
+            </div>
+        </div>
+
+        <!-- Par engin -->
+        <div class="card">
+            <p class="card-title">Taux de conformité par engin</p>
+            <div id="stats-par-engin"></div>
+        </div>
+
+    </div>
+</section>
+             
+
         </main>
     </div><!-- /.app-body -->
 </div><!-- /#app -->
@@ -505,6 +568,7 @@
             ['sidebar-historique', 'tab-historique'],
             ['sidebar-admin',      'tab-admin'],
             ['sidebar-profil',     'tab-profil'],
+            ['sidebar-stats',      'tab-stats'],
         ];
         pairs.forEach(([sbId, tabId]) => {
             const sbBtn  = document.getElementById(sbId);
