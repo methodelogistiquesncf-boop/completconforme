@@ -8,7 +8,7 @@ jobs:
     name: Traitement & injection Firestore
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # ← permet le git push pour l'archivage
+      contents: write
     steps:
       # ── 1. Récupération du repo ──────────────────────────────────────────
       - name: Checkout
@@ -63,6 +63,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git mv "$FILE" "$DEST"
           git commit -m "✅ Archivage import : ${FNAME}"
+          git pull --rebase origin main
           git push
       # ── 7. RÉCUPÉRATION DU FICHIER NETTOYÉ (L'étape magique) ──────────────
       - name: Télécharger le fichier nettoyé
