@@ -1673,11 +1673,14 @@ function initImportGithubXls() {
         const file = e.dataTransfer?.files?.[0];
         if (file) traiterFichierXls(file);
     });
-    fileInputXls.addEventListener("change", e => {
-        const file = e.target.files?.[0];
-        if (file) traiterFichierXls(file);
-        e.target.value = "";
-    });
+fileInputXls.addEventListener("change", e => {
+    console.log("[XLS] change event déclenché");
+    console.log("[XLS] files:", e.target.files);
+    const file = e.target.files?.[0];
+    console.log("[XLS] fichier sélectionné:", file?.name, file?.size);
+    if (file) traiterFichierXls(file);
+    e.target.value = "";
+});
  
     async function traiterFichierXls(file) {
         const ext = file.name.split(".").pop().toLowerCase();
