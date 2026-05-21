@@ -14,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       # ── 2. Python ───────────────────────────────────────────────────────
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
@@ -63,8 +63,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git mv "$FILE" "$DEST"
           git commit -m "✅ Archivage import : ${FNAME}"
-          git pull --rebase origin main
-          git push
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
       # ── 7. RÉCUPÉRATION DU FICHIER NETTOYÉ (L'étape magique) ──────────────
       - name: Télécharger le fichier nettoyé
         if: always() && steps.detect.outputs.file != ''
