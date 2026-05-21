@@ -1,33 +1,29 @@
 name: "📦 Import OF → Firestore"
-
 on:
   push:
     paths:
       - "imports/pending/**"
-
 jobs:
   import:
     name: Traitement & injection Firestore
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write   # ← permet le git push pour l'archivage
     steps:
       # ── 1. Récupération du repo ──────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
-
       # ── 2. Python ───────────────────────────────────────────────────────
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Installer les dépendances
         run: |
           pip install --quiet \
             openpyxl pandas firebase-admin
-
       # ── 3. Détection du fichier ajouté ──────────────────────────────────
       - name: Identifier le fichier importé
         id: detect
@@ -41,14 +37,12 @@ jobs:
             echo "file=$FILE" >> "$GITHUB_OUTPUT"
             echo "Fichier détecté : $FILE"
           fi
-
       # ── 4. Annulation si aucun fichier pertinent ─────────────────────────
       - name: Vérifier qu'un fichier a été détecté
         if: steps.detect.outputs.file == ''
         run: |
           echo "Aucun fichier .xlsx/.csv dans imports/pending/ — pipeline arrêté."
           exit 0
-
       # ── 5. Traitement Python ─────────────────────────────────────────────
       - name: Importer dans Firestore
         if: steps.detect.outputs.file != ''
@@ -56,7 +50,6 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           IMPORT_FILE: ${{ steps.detect.outputs.file }}
         run: python scripts/import_of.py
-
       # ── 6. Archivage du fichier traité ───────────────────────────────────
       - name: Archiver le fichier traité
         if: steps.detect.outputs.file != ''
@@ -66,14 +59,11 @@ jobs:
           FILE="${{ steps.detect.outputs.file }}"
           FNAME=$(basename "$FILE")
           DEST="imports/done/$(date +%Y-%m-%d)_${FNAME}"
-
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
           git mv "$FILE" "$DEST"
           git commit -m "✅ Archivage import : ${FNAME}"
           git push
-
       # ── 7. RÉCUPÉRATION DU FICHIER NETTOYÉ (L'étape magique) ──────────────
       - name: Télécharger le fichier nettoyé
         if: always() && steps.detect.outputs.file != ''
