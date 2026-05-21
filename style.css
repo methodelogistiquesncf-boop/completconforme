@@ -1171,11 +1171,16 @@ section.hidden { display: none; }
 .btn-conforme:hover { filter: brightness(.92); }
 
 .btn-incomplet {
-    background: var(--amber-soft);
-    color: var(--amber);
-    border: 1.5px solid rgba(192,122,0,.22);
+    background: #fff;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+    box-shadow: 0 4px 16px var(--accent-glow);
 }
-.btn-incomplet:hover { background: rgba(192,122,0,.14); }
+.btn-incomplet:hover {
+    background: var(--accent);
+    color: #fff;
+    filter: none;
+}
 
 /* ═══════════════════════════════════════════════════════
    HISTORIQUE
