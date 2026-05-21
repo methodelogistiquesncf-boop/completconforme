@@ -7,7 +7,7 @@ import {
     initializeFirestore,
     persistentLocalCache,
     persistentMultipleTabManager,
-    doc, setDoc, getDoc, getDocs,
+    doc, setDoc, getDoc, getDocs, addDoc,
     collection, collectionGroup,
     query, where
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -714,17 +714,36 @@ async function valider(statut) {
     }));
 
     try {
+        const now = new Date().toISOString();
         await setDoc(
             doc(db, "emplacements", currentEmpId, "kits", currentKitId),
             {
                 statut_conformite:     statut,
-                derniere_verification: new Date().toISOString(),
+                derniere_verification: now,
                 verificateur_email:    auth.currentUser?.email || 'inconnu',
                 detail_verification:   details,
             },
             { merge: true }
         );
 
+                // ── 2. NOUVEAU — Archivage immuable dans historique_controles ──
+        const kitSnap = await getDoc(doc(db, "emplacements", currentEmpId, "kits", currentKitId));
+        const kitData = kitSnap.exists() ? kitSnap.data() : {};
+
+        await addDoc(collection(db, "historique_controles"), {
+            empId:               currentEmpId,
+            kitId:               currentKitId,
+            nom_du_kit:          kitData.nom_du_kit          || currentKitId,
+            engin:               kitData.engin               || "",
+            code_kit:            kitData.code_kit            || "",
+            code_contenant:      kitData.code_contenant      || "",
+            statut,
+            verificateur_email:  auth.currentUser?.email     || "inconnu",
+            timestamp:           now,
+            detail_verification: details,
+        });
+
+        
         for (const iso in CAL.cache) {
             const idx = CAL.cache[iso].findIndex(
                 k => k.kitId === currentKitId && k.empId === currentEmpId
