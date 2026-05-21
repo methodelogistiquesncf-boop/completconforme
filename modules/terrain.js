@@ -1,0 +1,499 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// modules/terrain.js — Calendrier, vue kits, vue détail, validation
+// ─────────────────────────────────────────────────────────────────────────────
+import {
+    doc, getDoc, getDocs, setDoc, addDoc,
+    collection, collectionGroup,
+    query, where,
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+import { db, auth }                                  from "./firebase.js";
+import { $, JOURS_COURTS, MOIS_LONGS, aujourd_hui,
+         toIso, fromIso, isoToDisplay, getWeekDays,
+         showToast, showConfirmToast }               from "./utils.js";
+
+// ─── État interne ─────────────────────────────────────────────────────────────
+let currentEmpId = "";
+let currentKitId = "";
+
+const CAL = {
+    weekOffset:  0,
+    selectedIso: null,
+    empFilter:   "",
+    wmsFilter:   "MAG2-E-PRE",
+    cache:       {},
+    loading:     false,
+};
+
+// ─── Init & câblage ───────────────────────────────────────────────────────────
+export function initTerrain() {
+    $('cal-prev')?.addEventListener('click',  async () => { CAL.weekOffset--; await renderCalendrier(); });
+    $('cal-next')?.addEventListener('click',  async () => { CAL.weekOffset++; await renderCalendrier(); });
+    $('cal-today')?.addEventListener('click', async () => {
+        CAL.weekOffset  = 0;
+        CAL.selectedIso = aujourd_hui();
+        await renderCalendrier();
+    });
+
+    $('cal-emp-input')?.addEventListener('input', e => {
+        CAL.empFilter = e.target.value.trim();
+        _renderCalStrip(getWeekDays(CAL.weekOffset), false);
+        if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
+    });
+
+    $('cal-wms-input')?.addEventListener('input', e => {
+        CAL.wmsFilter = e.target.value.trim();
+        _renderCalStrip(getWeekDays(CAL.weekOffset), false);
+        if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
+    });
+
+    $('btn-retour-cal')?.addEventListener('click', () => afficherVue('calendrier'));
+
+    $('btn-retour-kits')?.addEventListener('click', () => {
+        afficherVue('kits');
+        if (currentEmpId) chargerKitsEmplacement(currentEmpId);
+    });
+
+    $('btn-conforme')?.addEventListener('click',  () => _valider("Conforme"));
+    $('btn-incomplet')?.addEventListener('click', () => _valider("Incomplet"));
+}
+
+/** Réinitialise le cache et affiche le calendrier (appelé par app.js lors du switch d'onglet). */
+export async function activerTerrain() {
+    CAL.cache = {};
+    afficherVue('calendrier');
+    await renderCalendrier();
+}
+
+// ─── Navigation entre vues ───────────────────────────────────────────────────
+export function afficherVue(vue) {
+    $('view-calendrier').classList.toggle('hidden', vue !== 'calendrier');
+    $('view-kits').classList.toggle('hidden',       vue !== 'kits');
+    $('view-detail').classList.toggle('hidden',     vue !== 'detail');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CALENDRIER — CHARGEMENT
+// ═══════════════════════════════════════════════════════════════════════════════
+async function _chargerKitsSemaine(days) {
+    const isos  = days.map(toIso);
+    const debut = isos[0];
+    const fin   = isos[6];
+
+    if (isos.every(iso => iso in CAL.cache)) return;
+
+    CAL.loading = true;
+    try {
+        const q = query(
+            collectionGroup(db, "kits"),
+            where("date_debut_iso", ">=", debut),
+            where("date_debut_iso", "<=", fin)
+        );
+        const snap = await getDocs(q);
+        isos.forEach(iso => { if (!(iso in CAL.cache)) CAL.cache[iso] = []; });
+
+        snap.forEach(kitDoc => {
+            const data = kitDoc.data();
+            const iso  = data.date_debut_iso;
+            if (!iso) return;
+            if (!CAL.cache[iso]) CAL.cache[iso] = [];
+
+            const pathParts = kitDoc.ref.path.split('/');
+            const empId = pathParts[1] || "";
+
+            CAL.cache[iso].push({
+                kitId:             kitDoc.id,
+                empId,
+                nom_du_kit:        data.nom_du_kit        || kitDoc.id,
+                engin:             data.engin             || "",
+                code_kit:          data.code_kit          || "",
+                code_contenant:    data.code_contenant    || "",
+                statut_conformite: data.statut_conformite || "Non vérifié",
+                emplacement_wms:   data.emplacement_wms_remontage || "",
+                date_debut_iso:    iso,
+            });
+        });
+    } catch (err) {
+        console.error("[CAL] Erreur chargement semaine :", err);
+        showToast("⚠️ Erreur calendrier : " + err.message, 'error');
+    } finally {
+        CAL.loading = false;
+    }
+}
+
+// ─── Rendu principal ─────────────────────────────────────────────────────────
+export async function renderCalendrier() {
+    const days = getWeekDays(CAL.weekOffset);
+    _renderWeekLabel(days);
+    _renderCalStrip(days, true);
+    await _chargerKitsSemaine(days);
+    _renderCalStrip(days, false);
+    if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
+    else _renderEmptyState();
+}
+
+function _renderWeekLabel(days) {
+    const lbl = $('cal-week-label');
+    if (!lbl) return;
+    lbl.textContent = `${days[0].getDate()} ${MOIS_LONGS[days[0].getMonth()]} — ${days[6].getDate()} ${MOIS_LONGS[days[6].getMonth()]} ${days[6].getFullYear()}`;
+}
+
+function _renderCalStrip(days, skeleton = false) {
+    const strip = $('cal-strip');
+    if (!strip) return;
+    strip.innerHTML = '';
+    const today = aujourd_hui();
+
+    days.forEach((d, i) => {
+        const iso  = toIso(d);
+        const kits = skeleton ? [] : (CAL.cache[iso] || []);
+
+        const emp = CAL.empFilter.toUpperCase();
+        const wms = CAL.wmsFilter.toUpperCase();
+        const kitsFiltered = kits.filter(k =>
+            (!emp || k.empId.toUpperCase().includes(emp) || k.engin.toUpperCase().includes(emp)) &&
+            (!wms || k.emplacement_wms.toUpperCase().includes(wms))
+        );
+
+        const nbKo      = kitsFiltered.filter(k => k.statut_conformite === 'Incomplet').length;
+        const nbPending = kitsFiltered.filter(k => k.statut_conformite !== 'Conforme' && k.statut_conformite !== 'Incomplet').length;
+        const nbOk      = kitsFiltered.filter(k => k.statut_conformite === 'Conforme').length;
+
+        const isToday    = iso === today;
+        const isSelected = iso === CAL.selectedIso;
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-day'
+            + (isToday    ? ' cal-today'    : '')
+            + (isSelected ? ' cal-selected' : '')
+            + (skeleton   ? ' cal-skeleton' : '');
+
+        if (!skeleton) {
+            cell.innerHTML = `
+                <div class="cal-day-header">
+                    <span class="cal-dow">${JOURS_COURTS[i]}</span>
+                    <span class="cal-num">${d.getDate()}</span>
+                </div>
+                <div class="cal-dots">
+                    ${nbKo      ? `<span class="cal-dot dot-amber" title="${nbKo} incomplet(s)"></span>` : ''}
+                    ${nbPending ? `<span class="cal-dot dot-red"   title="${nbPending} à contrôler"></span>` : ''}
+                    ${nbOk      ? `<span class="cal-dot dot-green" title="${nbOk} conforme(s)"></span>` : ''}
+                </div>
+                ${kitsFiltered.length ? `<span class="cal-count">${kitsFiltered.length}</span>` : ''}
+            `;
+            cell.addEventListener('click', () => _selectJour(iso));
+        } else {
+            cell.innerHTML = `
+                <div class="cal-day-header">
+                    <span class="cal-dow">${JOURS_COURTS[i]}</span>
+                    <span class="cal-num">${d.getDate()}</span>
+                </div>
+            `;
+        }
+        strip.appendChild(cell);
+    });
+}
+
+function _selectJour(iso) {
+    CAL.selectedIso = iso;
+    _renderCalStrip(getWeekDays(CAL.weekOffset), false);
+    renderKitsJour(iso);
+}
+
+export function renderKitsJour(iso) {
+    const container = $('cal-kits-container');
+    const header    = $('cal-kits-header');
+    const listEl    = $('cal-kits-list');
+    if (!container || !listEl) return;
+
+    container.classList.remove('hidden');
+
+    const kits = CAL.cache[iso] || [];
+    const emp  = CAL.empFilter.toUpperCase();
+    const wms  = CAL.wmsFilter.toUpperCase();
+    const filtered = kits.filter(k =>
+        (!emp || k.empId.toUpperCase().includes(emp) || k.engin.toUpperCase().includes(emp)) &&
+        (!wms || k.emplacement_wms.toUpperCase().includes(wms))
+    );
+
+    filtered.sort((a, b) => {
+        const ordre = { "Incomplet": 0, "Non vérifié": 1, "Conforme": 2 };
+        return (ordre[a.statut_conformite] ?? 1) - (ordre[b.statut_conformite] ?? 1);
+    });
+
+    if (header) {
+        header.innerHTML = `
+            <span class="cal-kits-date">${isoToDisplay(iso)}</span>
+            <span class="cal-kits-count">${filtered.length} kit${filtered.length > 1 ? 's' : ''}</span>
+        `;
+    }
+
+    listEl.innerHTML = '';
+
+    if (!filtered.length) {
+        listEl.innerHTML = `
+            <div class="cal-empty">
+                <span class="cal-empty-icon">✓</span>
+                <span>Aucun kit pour cette date${emp ? ' et cet emplacement' : ''}</span>
+            </div>
+        `;
+        return;
+    }
+
+    filtered.forEach(k => {
+        listEl.appendChild(_buildKitCard(k, () => ouvrirDetailKit(k.empId, k.kitId)));
+    });
+}
+
+function _renderEmptyState() {
+    $('cal-kits-container')?.classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VUE KITS D'UN EMPLACEMENT
+// ═══════════════════════════════════════════════════════════════════════════════
+export async function chargerKitsEmplacement(empId) {
+    currentEmpId = empId;
+    afficherVue('kits');
+
+    const title   = $('kits-emp-title');
+    const loading = $('kits-emp-loading');
+    const vide    = $('kits-emp-vide');
+    const listEl  = $('kits-emp-list');
+
+    title.textContent = `📍 ${empId}`;
+    loading.classList.remove('hidden');
+    vide.classList.add('hidden');
+    listEl.innerHTML = '';
+
+    try {
+        const kitsSnap = await getDocs(collection(db, "emplacements", empId, "kits"));
+        const kits = [];
+        kitsSnap.forEach(d => kits.push({ kitId: d.id, ...d.data() }));
+        loading.classList.add('hidden');
+
+        if (!kits.length) {
+            vide.classList.remove('hidden');
+            vide.textContent = 'Aucun kit trouvé pour cet emplacement.';
+            return;
+        }
+
+        kits.sort((a, b) => a.kitId.localeCompare(b.kitId));
+        kits.forEach(k => {
+            const card = _buildKitCard(k, () => ouvrirDetailKit(empId, k.kitId), true);
+            listEl.appendChild(card);
+        });
+    } catch (err) {
+        loading.classList.add('hidden');
+        showToast('⚠️ ' + err.message, 'error');
+    }
+}
+
+// ─── Constructeur de carte kit (partagé entre les deux vues) ─────────────────
+function _buildKitCard(k, onClick, showDate = false) {
+    const statut = k.statut_conformite || 'Non vérifié';
+    const isOk   = statut === 'Conforme';
+    const isKo   = statut === 'Incomplet';
+
+    const card = document.createElement('div');
+    card.className = 'kit-liste-item' + (isOk ? ' kit-liste-ok' : isKo ? ' kit-liste-ko' : '');
+    card.innerHTML = `
+        <div class="kit-liste-left">
+            <div class="kit-liste-meta">
+                ${k.engin           ? `<span class="kit-liste-engin-badge">${k.engin}</span>` : ''}
+                <span class="kit-liste-code">${k.code_kit || k.kitId}</span>
+                ${k.code_contenant  ? `<span class="kit-liste-contenant">📦 ${k.code_contenant}</span>` : ''}
+                ${k.empId && !showDate ? `<span class="kit-liste-emp-badge">📍 ${k.empId}</span>` : ''}
+            </div>
+            <span class="kit-liste-nom">${k.nom_du_kit || k.kitId}</span>
+            ${k.emplacement_wms ? `<span class="kit-liste-wms">🔧 WMS : ${k.emplacement_wms}</span>` : ''}
+            ${showDate && k.derniere_verification ? `<span class="kit-liste-date">🕒 ${
+                new Date(k.derniere_verification).toLocaleString('fr-FR', {
+                    day:'2-digit', month:'2-digit', year:'numeric',
+                    hour:'2-digit', minute:'2-digit',
+                })
+            }</span>` : ''}
+        </div>
+        <div class="kit-liste-right">
+            <span class="kit-liste-statut ${isOk ? 'ok' : isKo ? 'ko' : 'pending'}">
+                ${isOk ? '✅ Conforme' : isKo ? '⚠️ Incomplet' : '· À contrôler'}
+            </span>
+            <span class="kit-liste-arrow">›</span>
+        </div>
+    `;
+    card.addEventListener('click', onClick);
+    return card;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VUE DÉTAIL KIT
+// ═══════════════════════════════════════════════════════════════════════════════
+export async function ouvrirDetailKit(empId, kitId) {
+    currentEmpId = empId;
+    currentKitId = kitId;
+    afficherVue('detail');
+
+    const loadCard = $('detail-loading-card');
+    const kitCard  = $('detail-kit-card');
+    loadCard.classList.remove('hidden');
+    kitCard.classList.add('hidden');
+
+    try {
+        const kitDocSnap = await getDoc(doc(db, "emplacements", empId, "kits", kitId));
+        const nomSnap    = await getDoc(doc(db, "nomenclature_kits", kitId));
+        if (!nomSnap.exists()) throw new Error(`Nomenclature du kit « ${kitId} » introuvable.`);
+
+        const kitData = kitDocSnap.exists() ? kitDocSnap.data() : {};
+        _afficherDetailKit(kitId, { ...nomSnap.data(), ...kitData }, empId);
+
+    } catch (err) {
+        loadCard.classList.add('hidden');
+        showToast('⚠️ ' + err.message, 'error');
+        afficherVue('calendrier');
+    }
+}
+
+function _afficherDetailKit(kitId, data, empId) {
+    $('detail-loading-card').classList.add('hidden');
+
+    $('detail-emp-badge').textContent = empId;
+    $('detail-kit-badge').textContent = kitId;
+    $('detail-nom').textContent       = data.nom_du_kit || kitId;
+    $('detail-emp').textContent       = empId;
+
+    const enginEl = $('detail-engin');
+    if (enginEl) {
+        const parts = [];
+        if (data.engin)                     parts.push(`🚂 Engin : ${data.engin}`);
+        if (data.code_kit)                  parts.push(`Code : ${data.code_kit}`);
+        if (data.code_contenant)            parts.push(`📦 Contenant : ${data.code_contenant}`);
+        if (data.emplacement_wms_remontage) parts.push(`🔧 WMS : ${data.emplacement_wms_remontage}`);
+        if (data.date_debut_iso)            parts.push(`📅 Date : ${isoToDisplay(data.date_debut_iso)}`);
+        enginEl.textContent = parts.join('  ·  ');
+    }
+
+    const compList = $('comp-list');
+    compList.innerHTML = '';
+    (data.composants || []).forEach(comp => {
+        const item = document.createElement('div');
+        item.className        = 'comp-item';
+        item.dataset.required = comp.quantite_requise;
+        item.innerHTML = `
+            <div class="comp-left">
+                <div class="comp-status-icon">
+                    <svg class="icon-ok" width="12" height="9" viewBox="0 0 12 9" fill="none">
+                        <path d="M1 4L4.5 7.5L11 1" stroke="white" stroke-width="2"
+                              stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <svg class="icon-ko" width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M1 1L9 9M9 1L1 9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                ${comp.code_piece ? `<span class="comp-code-piece">${comp.code_piece}</span>` : ''}
+                <span class="comp-name">${comp.nom}</span>
+            </div>
+            <span class="comp-qty-required">${comp.quantite_requise}</span>
+            <input type="number" class="qty-input" min="0" placeholder="—"
+                   aria-label="Quantité comptée">
+        `;
+        const input = item.querySelector('.qty-input');
+        input.addEventListener('input', () => _evaluerItem(item, input, comp.quantite_requise));
+        compList.appendChild(item);
+    });
+
+    $('detail-kit-card').classList.remove('hidden');
+}
+
+function _evaluerItem(item, input, required) {
+    const val = input.value.trim();
+    if (val === '') { item.classList.remove('checked', 'non-conforme'); return; }
+    const counted = parseInt(val, 10);
+    if (counted === required) {
+        item.classList.add('checked'); item.classList.remove('non-conforme');
+    } else {
+        item.classList.add('non-conforme'); item.classList.remove('checked');
+    }
+}
+
+// ─── Validation ───────────────────────────────────────────────────────────────
+async function _valider(statut) {
+    if (!currentEmpId || !currentKitId) return;
+
+    const items = [...$('comp-list').querySelectorAll('.comp-item')];
+
+    if (statut === "Conforme") {
+        const nonConformes  = items.filter(i => i.classList.contains('non-conforme'));
+        const nonRenseignes = items.filter(i =>
+            !i.classList.contains('checked') && !i.classList.contains('non-conforme')
+        );
+        if (nonConformes.length > 0) {
+            showToast(`❌ ${nonConformes.length} article(s) en quantité incorrecte.`, 'error');
+            return;
+        }
+        if (nonRenseignes.length > 0) {
+            if (!await showConfirmToast(`${nonRenseignes.length} article(s) non renseignés. Valider quand même ?`))
+                return;
+        }
+    }
+
+    const details = items.map(item => ({
+        nom:              item.querySelector('.comp-name').textContent,
+        quantite_requise: parseInt(item.dataset.required, 10),
+        quantite_comptee: item.querySelector('.qty-input').value !== ''
+                              ? parseInt(item.querySelector('.qty-input').value, 10)
+                              : null,
+    }));
+
+    try {
+        const now = new Date().toISOString();
+
+        // 1. MAJ statut sur le kit
+        await setDoc(
+            doc(db, "emplacements", currentEmpId, "kits", currentKitId),
+            {
+                statut_conformite:     statut,
+                derniere_verification: now,
+                verificateur_email:    auth.currentUser?.email || 'inconnu',
+                detail_verification:   details,
+            },
+            { merge: true }
+        );
+
+        // 2. Archivage immuable
+        const kitSnap = await getDoc(doc(db, "emplacements", currentEmpId, "kits", currentKitId));
+        const kitData = kitSnap.exists() ? kitSnap.data() : {};
+
+        await addDoc(collection(db, "historique_controles"), {
+            empId:               currentEmpId,
+            kitId:               currentKitId,
+            nom_du_kit:          kitData.nom_du_kit     || currentKitId,
+            engin:               kitData.engin          || "",
+            code_kit:            kitData.code_kit       || "",
+            code_contenant:      kitData.code_contenant || "",
+            statut,
+            verificateur_email:  auth.currentUser?.email || "inconnu",
+            timestamp:           now,
+            detail_verification: details,
+        });
+
+        // 3. Invalide le cache calendrier
+        for (const iso in CAL.cache) {
+            const idx = CAL.cache[iso].findIndex(
+                k => k.kitId === currentKitId && k.empId === currentEmpId
+            );
+            if (idx !== -1) { delete CAL.cache[iso]; break; }
+        }
+        if (CAL.selectedIso && CAL.cache[CAL.selectedIso]) delete CAL.cache[CAL.selectedIso];
+
+        showToast(`✅ Statut « ${statut} » enregistré.`, 'success');
+        setTimeout(() => {
+            currentEmpId = '';
+            currentKitId = '';
+            afficherVue('calendrier');
+            renderCalendrier();
+        }, 1500);
+
+    } catch (err) {
+        showToast("Erreur d'enregistrement : " + err.message, 'error');
+    }
+}
