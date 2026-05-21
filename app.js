@@ -1375,8 +1375,7 @@ function initImportGithubXls() {
     const workflowDur     = document.getElementById("workflow-duration");
  
     if (!dropZoneXls) return;
-    // ✅ AJOUT — clic sur la drop zone = ouvre le sélecteur de fichiers
-dropZoneXls.addEventListener("click", () => fileInputXls.click());
+
  
     // ── Helpers ───────────────────────────────────────────────────────────────
     function setStatusXls(msg, type = "info") {
