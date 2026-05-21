@@ -250,6 +250,22 @@ export async function chargerListeEmplacementsAutorises() {
     }
 }
 
+document.getElementById("btn-dl-exemple-emp")?.addEventListener("click", async () => {
+    try {
+        const res = await fetch("https://raw.githubusercontent.com/methodelogistiquesncf-boop/completconforme/main/emplacements_autorises.txt");
+        if (!res.ok) throw new Error("Erreur réseau");
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "emplacements_autorises.txt";
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        alert("Impossible de télécharger le fichier exemple : " + err.message);
+    }
+});
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // IMPORT EXCEL + POLLING ACTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -564,18 +580,3 @@ function _setProgress(bar, label, pct, text) {
     if (bar)   bar.style.width     = pct + "%";
     if (label) label.textContent   = text;
 }
-document.getElementById("btn-dl-exemple-emp")?.addEventListener("click", async () => {
-    try {
-        const res = await fetch("https://raw.githubusercontent.com/methodelogistiquesncf-boop/completconforme/main/emplacements_autorises.txt");
-        if (!res.ok) throw new Error("Erreur réseau");
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "emplacements_autorises.txt";
-        a.click();
-        URL.revokeObjectURL(url);
-    } catch (err) {
-        alert("Impossible de télécharger le fichier exemple : " + err.message);
-    }
-});
