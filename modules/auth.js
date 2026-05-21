@@ -1,0 +1,114 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// modules/auth.js — Connexion, déconnexion, état utilisateur
+// ─────────────────────────────────────────────────────────────────────────────
+import {
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    signOut,
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+import { auth }                    from "./firebase.js";
+import { $, showConfirmToast }     from "./utils.js";
+
+// ─── Callbacks injectés par app.js ────────────────────────────────────────────
+let _onLogin  = () => {};
+let _onLogout = () => {};
+
+/**
+ * Enregistre les callbacks appelés lors des transitions d'état.
+ * @param {{ onLogin: (user) => void, onLogout: () => void }} cbs
+ */
+export function setAuthCallbacks({ onLogin, onLogout }) {
+    _onLogin  = onLogin  || _onLogin;
+    _onLogout = onLogout || _onLogout;
+}
+
+// ─── Surveillance état auth ───────────────────────────────────────────────────
+export function initAuth() {
+    onAuthStateChanged(auth, user => {
+        if (user) {
+            _showApp(user);
+            _onLogin(user);
+        } else {
+            _showLogin();
+            _onLogout();
+        }
+    });
+
+    // ── Formulaire de connexion ────────────────────────────────────────────────
+    $('btn-login').addEventListener('click', _handleLogin);
+
+    [$('login-email'), $('login-pwd')].forEach(el =>
+        el?.addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-login').click(); })
+    );
+
+    // ── Déconnexion ────────────────────────────────────────────────────────────
+    $('btn-logout').addEventListener('click', async () => {
+        if (await showConfirmToast("Se déconnecter ?")) signOut(auth);
+    });
+
+    // ── Toggle affichage mot de passe (page login) ────────────────────────────
+    $('toggle-pwd')?.addEventListener('click', () => {
+        const pwd = $('login-pwd');
+        const isPassword = pwd.type === 'password';
+        pwd.type = isPassword ? 'text' : 'password';
+        $('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
+    });
+}
+
+// ─── Handlers privés ──────────────────────────────────────────────────────────
+async function _handleLogin() {
+    const email = $('login-email').value.trim();
+    const pwd   = $('login-pwd').value;
+    if (!email || !pwd) { _showLoginError("Veuillez remplir tous les champs."); return; }
+
+    const btn = $('btn-login');
+    btn.disabled    = true;
+    btn.textContent = "Connexion…";
+    $('login-error').classList.remove('visible');
+
+    try {
+        await signInWithEmailAndPassword(auth, email, pwd);
+    } catch (err) {
+        _showLoginError(_firebaseAuthMessage(err.code));
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = "Se connecter →";
+    }
+}
+
+function _showLogin() {
+    $('login-page').style.display = 'flex';
+    $('app').classList.remove('visible');
+    $('login-email').value = '';
+    $('login-pwd').value   = '';
+    $('login-error').classList.remove('visible');
+}
+
+function _showApp(user) {
+    $('login-page').style.display = 'none';
+    $('app').classList.add('visible');
+    const chip = $('header-user');
+    if (chip) {
+        chip.textContent = user.email.charAt(0).toUpperCase();
+        chip.title       = user.email;
+    }
+}
+
+function _showLoginError(msg) {
+    const el = $('login-error');
+    el.textContent = msg;
+    el.classList.add('visible');
+}
+
+function _firebaseAuthMessage(code) {
+    const map = {
+        'auth/invalid-email':          "Adresse e-mail invalide.",
+        'auth/user-not-found':         "Aucun compte trouvé pour cet e-mail.",
+        'auth/wrong-password':         "Mot de passe incorrect.",
+        'auth/too-many-requests':      "Trop de tentatives. Réessayez plus tard.",
+        'auth/network-request-failed': "Erreur réseau. Vérifiez votre connexion.",
+        'auth/invalid-credential':     "Identifiants invalides.",
+    };
+    return map[code] || `Erreur de connexion (${code}).`;
+}

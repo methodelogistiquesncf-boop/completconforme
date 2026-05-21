@@ -2,14 +2,36 @@
 // COMPLET CONFORME — Service Worker
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'completconforme-v1.8'; // ← bump pour invalider l'ancien cache
+const CACHE_NAME = 'completconforme-v2.0'; // ← bump pour invalider l'ancien cache
 
 const PRECACHE_ASSETS = [
     './',
     './index.html',
-    './style.css',
     './app.js',
     './manifest.json',
+
+    // ── Styles modulaires ──────────────────────────────
+    './styles/base.css',
+    './styles/layout.css',
+    './styles/components.css',
+    './styles/terrain.css',
+    './styles/historique.css',
+    './styles/admin.css',
+    './styles/profil.css',
+    './styles/stats.css',
+
+    // ── Modules JS ────────────────────────────────────
+    './modules/admin.js',
+    './modules/auth.js',
+    './modules/firebase.js',
+    './modules/github.js',
+    './modules/historique.js',
+    './modules/profil.js',
+    './modules/stats.js',
+    './modules/terrain.js',
+    './modules/utils.js',
+
+    // ── Icônes ────────────────────────────────────────
     './icons/favicon-16x16.png',
     './icons/favicon-32x32.png',
     './icons/apple-touch-icon.png',
@@ -41,7 +63,7 @@ self.addEventListener('install', event => {
                 )
             )
         )
-        // plus de skipWaiting ici
+        // pas de skipWaiting ici — géré via message SKIP_WAITING
     );
 });
 

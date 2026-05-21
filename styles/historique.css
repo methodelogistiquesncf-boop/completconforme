@@ -1,0 +1,153 @@
+/* ═══════════════════════════════════════════════════════
+   HISTORIQUE.CSS — Liste histo · Badges · Écarts
+   ═══════════════════════════════════════════════════════ */
+
+.histo-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    margin-bottom: 1rem;
+}
+@media (min-width: 500px) { .histo-toolbar { flex-direction: row; } }
+
+.histo-search-input {
+    flex: 1;
+    background: var(--input-bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: .65rem .9rem;
+    font-family: var(--sans);
+    font-size: .88rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+}
+.histo-search-input::placeholder { color: var(--muted); }
+.histo-search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    background: #fff;
+}
+
+.histo-filter-select {
+    background: var(--input-bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: .65rem .9rem;
+    font-family: var(--sans);
+    font-size: .82rem;
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color .15s;
+}
+.histo-filter-select:focus { border-color: var(--accent); }
+
+.histo-list { display: flex; flex-direction: column; gap: .5rem; }
+.histo-empty {
+    text-align: center;
+    color: var(--muted);
+    font-size: .85rem;
+    padding: 2rem;
+}
+
+/* ─── ITEM ───────────────────────────────────────────── */
+.histo-item {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: .85rem 1rem;
+    transition: border-color .15s, box-shadow .15s;
+    box-shadow: var(--shadow-sm);
+}
+.histo-item:hover { border-color: var(--border-hi); box-shadow: var(--shadow-md); }
+.histo-item.histo-ok {
+    border-color: rgba(26,138,90,.22);
+    background: rgba(26,138,90,.025);
+}
+.histo-item.histo-ko {
+    border-color: rgba(192,122,0,.22);
+    background: rgba(192,122,0,.025);
+}
+
+.histo-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+}
+.histo-left {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    min-width: 0;
+}
+
+/* ─── BADGES ─────────────────────────────────────────── */
+.histo-badge {
+    font-size: .7rem;
+    font-weight: 700;
+    border-radius: 6px;
+    padding: .22rem .6rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.badge-ok      { background: var(--green-soft); color: var(--green); }
+.badge-ko      { background: var(--amber-soft); color: var(--amber); }
+.badge-neutral { background: var(--surface-2);  color: var(--muted); border: 1.5px solid var(--border); }
+
+.histo-ids    { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+.histo-emp    { font-family: var(--mono); font-size: .88rem; font-weight: 800; color: var(--text); letter-spacing: .05em; }
+.histo-kit-row { display: flex; align-items: center; gap: .4rem; }
+.histo-engin {
+    font-family: var(--mono);
+    font-size: .63rem;
+    font-weight: 700;
+    background: rgba(226,0,26,.07);
+    color: var(--accent);
+    border: 1px solid rgba(226,0,26,.18);
+    border-radius: 4px;
+    padding: .1rem .38rem;
+    letter-spacing: .04em;
+    white-space: nowrap;
+}
+.histo-kit     { font-family: var(--mono); font-size: .7rem; color: var(--muted); }
+.histo-kit-nom { font-size: .78rem; color: var(--muted); }
+
+.histo-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .2rem;
+    flex-shrink: 0;
+}
+.histo-date  { font-family: var(--mono); font-size: .7rem; color: var(--muted); white-space: nowrap; }
+.histo-agent {
+    font-family: var(--mono);
+    font-size: .68rem;
+    color: var(--muted);
+    white-space: nowrap;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ─── ÉCARTS ─────────────────────────────────────────── */
+.histo-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .6rem;
+    padding-top: .6rem;
+    border-top: 1.5px solid var(--border);
+}
+.histo-ecart {
+    font-size: .75rem;
+    color: var(--amber);
+    background: var(--amber-soft);
+    border-radius: 6px;
+    padding: .18rem .55rem;
+    border: 1px solid rgba(192,122,0,.18);
+}
+.histo-ecart strong { font-weight: 800; }
