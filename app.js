@@ -1686,79 +1686,79 @@ fileInputXls.addEventListener("change", e => {
     console.log("[XLS] traiterFichierXls appelé avec:", file?.name);
     const ext = file.name.split(".").pop().toLowerCase();
     console.log("[XLS] extension détectée:", ext);
-        const ext = file.name.split(".").pop().toLowerCase();
-        if (!ACCEPTED_EXT.includes(ext)) {
-            setStatusXls(`❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`, "error");
-            return;
-        }
- 
-        workflowPanel.classList.add("hidden");
-        workflowSteps.innerHTML    = "";
-        workflowLink.style.display = "none";
-        workflowDur.style.display  = "none";
-        progAreaXls.classList.remove("hidden");
-        setProgress(5, "Lecture du fichier…");
-        setStatusXls("⏳ Lecture du fichier…", "info");
- 
-        try {
-            const buffer = await file.arrayBuffer();
-            const uint8  = new Uint8Array(buffer);
-            const base64 = btoa(uint8.reduce((d, b) => d + String.fromCharCode(b), ""));
- 
-            setProgress(20, "Récupération du token…");
-            const token = await lireToken();
- 
-            const targetPath = `${TARGET_FOLDER}/${file.name}`;
-            setProgress(40, "Vérification du fichier existant…");
-            setStatusXls("⏳ Connexion à GitHub…", "info");
- 
-            let sha = null;
-            const getResp = await fetch(`${API_BASE}/${targetPath}`, { headers: githubHeaders(token) });
-            if (getResp.ok) {
-                sha = (await getResp.json()).sha;
-            } else if (getResp.status !== 404) {
-                throw new Error(`GitHub GET : ${(await getResp.json()).message}`);
-            }
- 
-            setProgress(65, "Envoi vers le dépôt…");
-            setStatusXls("⏳ Push vers GitHub…", "info");
- 
-            const putResp = await fetch(`${API_BASE}/${targetPath}`, {
-                method: "PUT",
-                headers: { ...githubHeaders(token), "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    message: `[Admin] Import ${file.name} → ${TARGET_FOLDER}`,
-                    content: base64,
-                    ...(sha ? { sha } : {}),
-                }),
-            });
-            if (!putResp.ok) throw new Error(`GitHub PUT : ${(await putResp.json()).message}`);
- 
-            const result    = await putResp.json();
-            const commitSha = result.commit?.sha;
-            const commitUrl = result.commit?.html_url || "#";
-            const shortSha  = commitSha?.slice(0, 7) || "ok";
- 
-            setProgress(100, "Fichier envoyé — pipeline en attente…");
-            statusXls.className = "admin-status success";
-            statusXls.innerHTML =
-                `✅ « ${file.name} » envoyé dans ` +
-                `<code style="font-family:var(--mono);font-size:.8rem;">${TARGET_FOLDER}/</code>` +
-                ` · Commit : ` +
-                `<a href="${commitUrl}" target="_blank" rel="noopener"
-                    style="color:var(--green);font-family:var(--mono);font-size:.8rem;">
-                    ${shortSha} ↗
-                </a>`;
- 
-            if (commitSha) await pollWorkflow(commitSha, token);
- 
-} catch (err) {
-    console.error("[PushXls]", err);
-    setStatusXls("❌ " + err.message, "error");
-    progAreaXls.classList.add("hidden");
-    showToast("❌ " + err.message, "error"); // ✅ AJOUT — toast visible
-}
+
+    if (!ACCEPTED_EXT.includes(ext)) {
+        setStatusXls(`❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`, "error");
+        return;
     }
+
+    workflowPanel.classList.add("hidden");
+    workflowSteps.innerHTML    = "";
+    workflowLink.style.display = "none";
+    workflowDur.style.display  = "none";
+    progAreaXls.classList.remove("hidden");
+    setProgress(5, "Lecture du fichier…");
+    setStatusXls("⏳ Lecture du fichier…", "info");
+
+    try {
+        const buffer = await file.arrayBuffer();
+        const uint8  = new Uint8Array(buffer);
+        const base64 = btoa(uint8.reduce((d, b) => d + String.fromCharCode(b), ""));
+
+        setProgress(20, "Récupération du token…");
+        const token = await lireToken();
+
+        const targetPath = `${TARGET_FOLDER}/${file.name}`;
+        setProgress(40, "Vérification du fichier existant…");
+        setStatusXls("⏳ Connexion à GitHub…", "info");
+
+        let sha = null;
+        const getResp = await fetch(`${API_BASE}/${targetPath}`, { headers: githubHeaders(token) });
+        if (getResp.ok) {
+            sha = (await getResp.json()).sha;
+        } else if (getResp.status !== 404) {
+            throw new Error(`GitHub GET : ${(await getResp.json()).message}`);
+        }
+
+        setProgress(65, "Envoi vers le dépôt…");
+        setStatusXls("⏳ Push vers GitHub…", "info");
+
+        const putResp = await fetch(`${API_BASE}/${targetPath}`, {
+            method: "PUT",
+            headers: { ...githubHeaders(token), "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: `[Admin] Import ${file.name} → ${TARGET_FOLDER}`,
+                content: base64,
+                ...(sha ? { sha } : {}),
+            }),
+        });
+        if (!putResp.ok) throw new Error(`GitHub PUT : ${(await putResp.json()).message}`);
+
+        const result    = await putResp.json();
+        const commitSha = result.commit?.sha;
+        const commitUrl = result.commit?.html_url || "#";
+        const shortSha  = commitSha?.slice(0, 7) || "ok";
+
+        setProgress(100, "Fichier envoyé — pipeline en attente…");
+        statusXls.className = "admin-status success";
+        statusXls.innerHTML =
+            `✅ « ${file.name} » envoyé dans ` +
+            `<code style="font-family:var(--mono);font-size:.8rem;">${TARGET_FOLDER}/</code>` +
+            ` · Commit : ` +
+            `<a href="${commitUrl}" target="_blank" rel="noopener"
+                style="color:var(--green);font-family:var(--mono);font-size:.8rem;">
+                ${shortSha} ↗
+            </a>`;
+
+        if (commitSha) await pollWorkflow(commitSha, token);
+
+    } catch (err) {
+        console.error("[XLS] Erreur:", err);
+        setStatusXls("❌ " + err.message, "error");
+        progAreaXls.classList.add("hidden");
+        showToast("❌ " + err.message, "error");
+    }
+}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
