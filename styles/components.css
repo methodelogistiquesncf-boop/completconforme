@@ -1,27 +1,52 @@
 /* ═══════════════════════════════════════════════════════
-   components.css — Cards, inputs, boutons, spinner,
-                    toasts, bannières, PWA
+   COMPONENTS.CSS — Cards · Buttons · Inputs · Spinners · Toasts
    ═══════════════════════════════════════════════════════ */
 
-/* ─── CARDS ─────────────────────────────────────────────── */
-.card {
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 1.4rem;
-    box-shadow: var(--shadow-sm);
-}
-.card-title {
-    font-family: var(--mono);
-    font-size: .62rem;
-    font-weight: 700;
-    color: var(--muted);
-    letter-spacing: .13em;
-    text-transform: uppercase;
-    margin-bottom: 1rem;
+/* ─── PAGE DE CONNEXION ──────────────────────────────── */
+#login-page {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background:
+        radial-gradient(ellipse 60% 50% at 10% 90%, rgba(226,0,26,.06) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 40% at 90% 10%, rgba(0,49,137,.05) 0%, transparent 65%),
+        #f0f2f7;
 }
 
-/* ─── INPUTS & CHAMPS ───────────────────────────────────── */
+.login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+    box-shadow: var(--shadow-lg);
+    animation: fadeUp .3s ease both;
+}
+
+.login-logo {
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: var(--accent);
+    letter-spacing: .1em;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.login-logo span { color: var(--muted); font-weight: 400; }
+
+.login-title { text-align: center; }
+.login-title h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: .3rem; color: var(--text); }
+.login-title p  { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+
+/* ─── CHAMPS ──────────────────────────────────────────── */
 .field-group { display: flex; flex-direction: column; gap: .4rem; }
 .field-group label {
     font-size: .7rem;
@@ -49,7 +74,6 @@
     background: #fff;
 }
 
-/* ─── MOT DE PASSE TOGGLE ───────────────────────────────── */
 .pwd-wrapper { position: relative; display: flex; align-items: center; }
 .pwd-wrapper .field-input { padding-right: 3rem; }
 .btn-toggle-pwd {
@@ -66,7 +90,6 @@
 }
 .btn-toggle-pwd:hover { color: var(--text); }
 
-/* ─── ERREUR LOGIN ──────────────────────────────────────── */
 .login-error {
     background: var(--red-soft);
     border: 1px solid rgba(226,0,26,.2);
@@ -79,7 +102,6 @@
 }
 .login-error.visible { display: block; }
 
-/* ─── BOUTON LOGIN ──────────────────────────────────────── */
 .btn-login {
     background: var(--accent);
     color: #fff;
@@ -98,11 +120,32 @@
     transition: background .15s, transform .1s, box-shadow .15s;
     box-shadow: 0 4px 18px var(--accent-glow);
 }
-.btn-login:hover    { filter: brightness(.93); }
+.btn-login:hover    { background: #c4001600; filter: brightness(.93); }
 .btn-login:active   { transform: scale(.98); }
 .btn-login:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
-/* ─── BARRE DE RECHERCHE ────────────────────────────────── */
+.login-divider { height: 1px; background: var(--border); border: none; }
+.login-footer  { text-align: center; font-size: .75rem; color: var(--muted); }
+
+/* ─── CARDS ───────────────────────────────────────────── */
+.card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.4rem;
+    box-shadow: var(--shadow-sm);
+}
+.card-title {
+    font-family: var(--mono);
+    font-size: .62rem;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+}
+
+/* ─── BARRE DE RECHERCHE ─────────────────────────────── */
 .search-row { display: flex; flex-direction: column; gap: .65rem; }
 .search-input {
     width: 100%;
@@ -120,8 +163,10 @@
     transition: border-color .15s, box-shadow .15s;
 }
 .search-input::placeholder { color: var(--muted); font-weight: 400; letter-spacing: 0; }
-.search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-
+.search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
 .btn-search {
     background: var(--accent);
     color: #fff;
@@ -140,9 +185,15 @@
 .btn-search:hover  { filter: brightness(.92); }
 .btn-search:active { transform: scale(.97); }
 
-.status-line { font-size: .82rem; font-weight: 600; color: var(--red); margin-top: .5rem; min-height: 1.2em; }
+.status-line {
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--red);
+    margin-top: .5rem;
+    min-height: 1.2em;
+}
 
-/* ─── LOADING / SPINNER ─────────────────────────────────── */
+/* ─── LOADING / SPINNER ──────────────────────────────── */
 .loading-wrap {
     display: flex;
     align-items: center;
@@ -161,7 +212,7 @@
     flex-shrink: 0;
 }
 
-/* ─── BANNIÈRE OFFLINE ──────────────────────────────────── */
+/* ─── BANNIÈRE OFFLINE ───────────────────────────────── */
 .offline-banner {
     background: rgba(192,122,0,.08);
     border: 1.5px solid rgba(192,122,0,.22);
@@ -176,7 +227,7 @@
 }
 .offline-banner.visible { display: flex; }
 
-/* ─── TOASTS ────────────────────────────────────────────── */
+/* ─── TOASTS ─────────────────────────────────────────── */
 #custom-toast {
     position: fixed;
     bottom: 2rem;
@@ -234,7 +285,7 @@
 .toast-error   { background: var(--red);   color: #fff; }
 .toast-info    { background: var(--blue);  color: #fff; }
 
-/* ─── BANNIÈRE MAJ PWA ──────────────────────────────────── */
+/* ─── BANNIÈRE MAJ PWA ───────────────────────────────── */
 #pwa-update-banner {
     position: fixed;
     bottom: 1.5rem;
