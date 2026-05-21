@@ -299,93 +299,96 @@
                     </div>
 
                     <!-- ── Panneau 2 : Emplacements autorisés ── -->
-                    <div class="admin-tab-panel hidden" id="admin-tab-emplacements">
-                        <div class="card">
-                            <p class="card-title">Emplacements autorisés</p>
-                            <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
-                                Importez
-                                <code style="font-family:var(--mono);font-size:.75rem;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">emplacements_autorises.txt</code>
-                                pour <strong style="color:var(--text-soft)">écraser</strong> le fichier présent.
-                                Un identifiant par ligne.
-                            </p>
+<div class="admin-tab-panel hidden" id="admin-tab-emplacements">
+    <div class="card">
+        <p class="card-title">Emplacements autorisés</p>
+        <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
+            Importez
+            <code style="font-family:var(--mono);font-size:.75rem;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">emplacements_autorises.txt</code>
+            pour <strong style="color:var(--text-soft)">écraser</strong> le fichier présent.
+            Un identifiant par ligne.
+        </p>
 
-                            <!-- Liste actuelle -->
-                            <div style="margin-bottom:1.5rem;">
-                                <p class="card-title" style="margin-bottom:.75rem;">Liste actuelle</p>
-                                <div id="emp-current-loading" class="loading-wrap" style="padding:1.25rem 0;">
-                                    <div class="spinner"></div>
-                                    <span>Chargement depuis GitHub…</span>
-                                </div>
-                                <p id="emp-current-error" class="admin-status error hidden"></p>
-                                <div id="emp-current-wrap" class="hidden">
-                                    <div id="emp-current-list"
-                                         style="display:flex;flex-wrap:wrap;gap:.4rem;max-height:200px;
-                                                overflow-y:auto;padding:.75rem;background:var(--input-bg);
-                                                border:1px solid var(--border);border-radius:var(--radius);
-                                                margin-bottom:.5rem;"></div>
-                                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-                                        <p id="emp-current-count"
-                                           style="font-family:var(--mono);font-size:.7rem;color:var(--muted);"></p>
-                                        <button id="btn-refresh-emp"
-                                                style="font-family:var(--sans);font-size:.75rem;font-weight:700;
-                                                       color:var(--accent);background:none;
-                                                       border:1px solid rgba(224,58,82,.25);border-radius:7px;
-                                                       padding:.3rem .75rem;cursor:pointer;transition:background .15s;"
-                                                onmouseover="this.style.background='var(--accent-soft)'"
-                                                onmouseout="this.style.background='none'">
-                                            ↻ Actualiser
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+        <!-- Liste actuelle -->
+        <div style="margin-bottom:1.5rem;">
+            <p class="card-title" style="margin-bottom:.75rem;">Liste actuelle</p>
+            <div id="emp-current-loading" class="loading-wrap" style="padding:1.25rem 0;">
+                <div class="spinner"></div>
+                <span>Chargement depuis GitHub…</span>
+            </div>
+            <p id="emp-current-error" class="admin-status error hidden"></p>
+            <div id="emp-current-wrap" class="hidden">
+                <div id="emp-current-list"
+                     style="display:flex;flex-wrap:wrap;gap:.4rem;max-height:200px;
+                            overflow-y:auto;padding:.75rem;background:var(--input-bg);
+                            border:1px solid var(--border);border-radius:var(--radius);
+                            margin-bottom:.5rem;"></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+                    <p id="emp-current-count"
+                       style="font-family:var(--mono);font-size:.7rem;color:var(--muted);"></p>
+                    <button id="btn-refresh-emp"
+                            style="font-family:var(--sans);font-size:.75rem;font-weight:700;
+                                   color:var(--accent);background:none;
+                                   border:1px solid rgba(224,58,82,.25);border-radius:7px;
+                                   padding:.3rem .75rem;cursor:pointer;transition:background .15s;"
+                            onmouseover="this.style.background='var(--accent-soft)'"
+                            onmouseout="this.style.background='none'">
+                        ↻ Actualiser
+                    </button>
+                </div>
+            </div>
+        </div>
 
-                            <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1.5rem;">
+        <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1.5rem;">
 
-                            <!-- Drop zone emplacements .txt -->
-                            <div class="drop-zone" id="drop-zone-emp">
-                                <input type="file" id="file-input-emp" accept=".txt">
-                                <span class="drop-icon">📄</span>
-                                <p class="drop-title">Glisser-déposer emplacements_autorises.txt</p>
-                                <p class="drop-sub">Fichier .txt uniquement · 1 identifiant par ligne</p>
-                            </div>
+        <!-- Fichier exemple -->
+        <div class="emp-example-box">
+            <div class="emp-example-header">
+                <span class="emp-example-icon">📄</span>
+                <span class="emp-example-title">Fichier exemple</span>
+            </div>
+            <p class="emp-example-desc">
+                Téléchargez un exemple de fichier <code>emplacements_autorises.txt</code> pour voir le format attendu.
+            </p>
+            
+                href="https://raw.githubusercontent.com/methodelogistiquesncf-boop/completconforme/main/emplacements_autorises.txt"
+                download="emplacements_autorises.txt"
+                class="emp-example-btn"
+            >
+                ⬇️ Télécharger le fichier exemple
+            </a>
+        </div>
 
-                            <div id="progress-area-emp" class="hidden" style="margin-top:1rem;">
-                                <div class="progress-wrap">
-                                    <div class="progress-bar" id="progress-bar-emp"></div>
-                                </div>
-                                <p class="progress-label" id="progress-label-emp">Traitement…</p>
-                            </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1.5rem;">
 
-                            <div class="admin-status" id="admin-status-emp"></div>
+        <!-- Drop zone emplacements .txt -->
+        <div class="drop-zone" id="drop-zone-emp">
+            <input type="file" id="file-input-emp" accept=".txt">
+            <span class="drop-icon">📄</span>
+            <p class="drop-title">Glisser-déposer emplacements_autorises.txt</p>
+            <p class="drop-sub">Fichier .txt uniquement · 1 identifiant par ligne</p>
+        </div>
 
-                            <div id="emp-preview-wrap" class="hidden" style="margin-top:1.25rem;">
-                                <p class="card-title" style="margin-bottom:.6rem;">Contenu envoyé</p>
-                                <div id="emp-preview-list"
-                                     style="display:flex;flex-wrap:wrap;gap:.4rem;max-height:220px;
-                                            overflow-y:auto;padding:.75rem;background:var(--input-bg);
-                                            border:1px solid var(--border);border-radius:var(--radius);"></div>
-                                <p id="emp-preview-count"
-                                   style="font-family:var(--mono);font-size:.7rem;color:var(--muted);
-                                          margin-top:.5rem;text-align:right;"></p>
-                            </div>
-                        </div>
-                    </div>
+        <div id="progress-area-emp" class="hidden" style="margin-top:1rem;">
+            <div class="progress-wrap">
+                <div class="progress-bar" id="progress-bar-emp"></div>
+            </div>
+            <p class="progress-label" id="progress-label-emp">Traitement…</p>
+        </div>
 
-                     <div class="emp-example-box">
-    <div class="emp-example-header">
-        <span class="emp-example-icon">📄</span>
-        <span class="emp-example-title">Fichier exemple</span>
+        <div class="admin-status" id="admin-status-emp"></div>
+
+        <div id="emp-preview-wrap" class="hidden" style="margin-top:1.25rem;">
+            <p class="card-title" style="margin-bottom:.6rem;">Contenu envoyé</p>
+            <div id="emp-preview-list"
+                 style="display:flex;flex-wrap:wrap;gap:.4rem;max-height:220px;
+                        overflow-y:auto;padding:.75rem;background:var(--input-bg);
+                        border:1px solid var(--border);border-radius:var(--radius);"></div>
+            <p id="emp-preview-count"
+               style="font-family:var(--mono);font-size:.7rem;color:var(--muted);
+                      margin-top:.5rem;text-align:right;"></p>
+        </div>
     </div>
-    <p class="emp-example-desc">
-        Téléchargez un exemple de fichier <code>emplacements_autorises.txt</code> pour voir le format attendu.
-    </p>
-    
-        href="https://raw.githubusercontent.com/methodelogistiquesncf-boop/completconforme/main/emplacements_autorises.txt"
-        download="emplacements_autorises.txt"
-        class="emp-example-btn"
-    >
-        ⬇️ Télécharger le fichier exemple
-    </a>
 </div>
 
                     <!-- ── Panneau 3 : Import kits Excel ──── -->
