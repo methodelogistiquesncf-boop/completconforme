@@ -1674,18 +1674,27 @@ function initImportGithubXls() {
         if (file) traiterFichierXls(file);
     });
 fileInputXls.addEventListener("change", e => {
-    console.log("[XLS] change event déclenché");
-    console.log("[XLS] files:", e.target.files);
+    console.log("[XLS] 1 - change déclenché");
     const file = e.target.files?.[0];
-    console.log("[XLS] fichier sélectionné:", file?.name, file?.size);
-    if (file) traiterFichierXls(file);
+    console.log("[XLS] 2 - fichier:", file?.name, file?.size, file?.type);
+    if (file) {
+        console.log("[XLS] 3 - appel traiterFichierXls");
+        traiterFichierXls(file);
+    } else {
+        console.log("[XLS] 3 - pas de fichier détecté");
+    }
     e.target.value = "";
 });
  
-    async function traiterFichierXls(file) {
-    console.log("[XLS] traiterFichierXls appelé avec:", file?.name);
-    const ext = file.name.split(".").pop().toLowerCase();
-    console.log("[XLS] extension détectée:", ext);
+async function traiterFichierXls(file) {
+    console.log("[XLS] 4 - traiterFichierXls START", file?.name);
+    try {
+        console.log("[XLS] 5 - lecture token...");
+        const token = await lireToken();
+        console.log("[XLS] 6 - token OK:", token?.slice(0,10) + "...");
+    } catch(err) {
+        console.error("[XLS] ERREUR TOKEN:", err.message);
+    }
 
     if (!ACCEPTED_EXT.includes(ext)) {
         setStatusXls(`❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`, "error");
