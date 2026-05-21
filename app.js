@@ -9,7 +9,7 @@ import {
     persistentMultipleTabManager,
     doc, setDoc, getDoc, getDocs,
     collection, collectionGroup,
-    query, where, orderBy
+    query, where
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import {
     getAuth,
@@ -52,7 +52,7 @@ try {
 const ADMIN_PIN = "1234";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TOKEN GITHUB — CONFIG GLOBALE
+// TOKEN GITHUB
 // ─────────────────────────────────────────────────────────────────────────────
 const FIRESTORE_SECRET = { col: "config", doc: "secrets", field: "github_token" };
 
@@ -68,21 +68,18 @@ async function lireToken() {
 let currentEmpId = "";
 let currentKitId = "";
 
-// ─── ÉTAT CALENDRIER ──────────────────────────────────────────────────────────
 const CAL = {
-    period:      "semaine",   // "jour" | "semaine" | "mois" | "custom"
     weekOffset:  0,
-    selectedIso: null,        // "YYYY-MM-DD"
+    selectedIso: null,
     empFilter:   "",
     wmsFilter:   "MAG2-E-PRE",
-    cache:       {},          // iso → [{...kit}]
+    cache:       {},
     loading:     false,
 };
 
 // ─── REFS DOM ─────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-// Auth
 const loginPage  = $('login-page');
 const appEl      = $('app');
 const loginEmail = $('login-email');
@@ -91,7 +88,6 @@ const btnLogin   = $('btn-login');
 const loginError = $('login-error');
 const btnLogout  = $('btn-logout');
 
-// Onglets principaux
 const tabTerrain    = $('tab-terrain');
 const tabAdmin      = $('tab-admin');
 const tabHistorique = $('tab-historique');
@@ -103,19 +99,16 @@ const secProfil     = $('sec-profil');
 
 const offlineBanner = $('offline-banner');
 
-// Vues terrain
 const viewCalendrier = $('view-calendrier');
 const viewKits       = $('view-kits');
 const viewDetail     = $('view-detail');
 
-// Vue kits niveau 2
 const btnRetourCal   = $('btn-retour-cal');
 const kitsEmpTitle   = $('kits-emp-title');
 const kitsEmpLoading = $('kits-emp-loading');
 const kitsEmpVide    = $('kits-emp-vide');
 const kitsEmpList    = $('kits-emp-list');
 
-// Vue détail niveau 3
 const btnRetourKits     = $('btn-retour-kits');
 const detailEmpBadge    = $('detail-emp-badge');
 const detailKitBadge    = $('detail-kit-badge');
@@ -126,13 +119,11 @@ const detailLoadingCard = $('detail-loading-card');
 const detailKitCard     = $('detail-kit-card');
 const compList          = $('comp-list');
 
-// Admin
 const pinInputs    = document.querySelectorAll('.pin-input');
 const pinError     = $('pin-error');
 const adminAuth    = $('admin-auth');
 const adminContent = $('admin-content');
 
-// Historique
 const histoList    = $('histo-list');
 const histoLoading = $('histo-loading');
 const histoEmpty   = $('histo-empty');
@@ -221,7 +212,7 @@ window.addEventListener('offline', updateOnlineBanner);
 updateOnlineBanner();
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// NAVIGATION ONGLETS PRINCIPAUX
+// NAVIGATION ONGLETS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 tabTerrain.addEventListener('click',    () => showTab('terrain'));
@@ -242,15 +233,15 @@ function showTab(tab) {
 
     if (tab === 'historique') chargerHistorique();
     if (tab === 'terrain') {
-    CAL.cache = {};   // ← force le rechargement depuis Firestore
-    afficherVue('calendrier');
-    renderCalendrier();
-}
-    if (tab === 'profil')     afficherProfil();
+        CAL.cache = {};
+        afficherVue('calendrier');
+        renderCalendrier();
+    }
+    if (tab === 'profil') afficherProfil();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// NAVIGATION VUES TERRAIN (3 niveaux)
+// NAVIGATION VUES TERRAIN
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function afficherVue(vue) {
@@ -259,9 +250,7 @@ function afficherVue(vue) {
     viewDetail.classList.toggle('hidden',     vue !== 'detail');
 }
 
-btnRetourCal?.addEventListener('click', () => {
-    afficherVue('calendrier');
-});
+btnRetourCal?.addEventListener('click', () => afficherVue('calendrier'));
 
 btnRetourKits?.addEventListener('click', () => {
     afficherVue('kits');
@@ -272,13 +261,12 @@ btnRetourKits?.addEventListener('click', () => {
 // UTILITAIRES DATE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const JOURS_COURTS  = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-const MOIS_LONGS    = ['Janvier','Février','Mars','Avril','Mai','Juin',
-                       'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const JOURS_COURTS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+const MOIS_LONGS   = ['Janvier','Février','Mars','Avril','Mai','Juin',
+                      'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
 function aujourd_hui() {
-    const d = new Date();
-    return toIso(d);
+    return toIso(new Date());
 }
 
 function toIso(d) {
@@ -295,11 +283,10 @@ function isoToDisplay(iso) {
     return `${d.getDate()} ${MOIS_LONGS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-// Retourne les 7 jours de la semaine à partir d'un offset
 function getWeekDays(offset = 0) {
-    const now  = new Date();
-    const dow  = now.getDay() || 7;           // lundi = 1
-    const lun  = new Date(now);
+    const now = new Date();
+    const dow = now.getDay() || 7;
+    const lun = new Date(now);
     lun.setDate(now.getDate() - dow + 1 + offset * 7);
     return Array.from({ length: 7 }, (_, i) => {
         const d = new Date(lun);
@@ -308,27 +295,15 @@ function getWeekDays(offset = 0) {
     });
 }
 
-// Numéro de semaine ISO
-function isoWeek(d) {
-    const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    const dayNum = tmp.getUTCDay() || 7;
-    tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
-    return Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // CALENDRIER — CHARGEMENT FIRESTORE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Charge tous les kits d'une semaine via collectionGroup
 async function chargerKitsSemaine(days) {
-    const isos = days.map(toIso);
-    // On récupère par plage de dates iso (tri alphabétique = chronologique)
+    const isos  = days.map(toIso);
     const debut = isos[0];
     const fin   = isos[6];
 
-    // On vérifie si déjà en cache
     const tousEnCache = isos.every(iso => iso in CAL.cache);
     if (tousEnCache) return;
 
@@ -341,7 +316,6 @@ async function chargerKitsSemaine(days) {
         );
         const snap = await getDocs(q);
 
-        // Initialiser les jours vides
         isos.forEach(iso => { if (!(iso in CAL.cache)) CAL.cache[iso] = []; });
 
         snap.forEach(kitDoc => {
@@ -350,7 +324,6 @@ async function chargerKitsSemaine(days) {
             if (!iso) return;
             if (!CAL.cache[iso]) CAL.cache[iso] = [];
 
-            // Récupérer l'empId depuis le chemin : emplacements/{empId}/kits/{kitId}
             const pathParts = kitDoc.ref.path.split('/');
             const empId = pathParts[1] || "";
 
@@ -381,16 +354,11 @@ async function chargerKitsSemaine(days) {
 async function renderCalendrier() {
     const days = getWeekDays(CAL.weekOffset);
     _renderWeekLabel(days);
-    _renderCalStrip(days, true); // skeleton d'abord
-
+    _renderCalStrip(days, true);
     await chargerKitsSemaine(days);
     _renderCalStrip(days, false);
-
-    if (CAL.selectedIso) {
-        renderKitsJour(CAL.selectedIso);
-    } else {
-        _renderEmptyState();
-    }
+    if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
+    else _renderEmptyState();
 }
 
 function _renderWeekLabel(days) {
@@ -406,14 +374,15 @@ function _renderCalStrip(days, skeleton = false) {
     const today = aujourd_hui();
 
     days.forEach((d, i) => {
-        const iso   = toIso(d);
-        const kits  = skeleton ? [] : (CAL.cache[iso] || []);
-const emp = CAL.empFilter.toUpperCase();
-const wms = CAL.wmsFilter.toUpperCase();
-const kitsFiltered = kits.filter(k =>
-    (!emp || k.empId.toUpperCase().includes(emp) || k.engin.toUpperCase().includes(emp)) &&
-    (!wms || k.emplacement_wms.toUpperCase().includes(wms))
-);
+        const iso  = toIso(d);
+        const kits = skeleton ? [] : (CAL.cache[iso] || []);
+
+        const emp = CAL.empFilter.toUpperCase();
+        const wms = CAL.wmsFilter.toUpperCase();
+        const kitsFiltered = kits.filter(k =>
+            (!emp || k.empId.toUpperCase().includes(emp) || k.engin.toUpperCase().includes(emp)) &&
+            (!wms || k.emplacement_wms.toUpperCase().includes(wms))
+        );
 
         const nbKo      = kitsFiltered.filter(k => k.statut_conformite === 'Incomplet').length;
         const nbPending = kitsFiltered.filter(k => k.statut_conformite !== 'Conforme' && k.statut_conformite !== 'Incomplet').length;
@@ -469,14 +438,13 @@ function renderKitsJour(iso) {
     container.classList.remove('hidden');
 
     const kits = CAL.cache[iso] || [];
-const emp = CAL.empFilter.toUpperCase();
-const wms = CAL.wmsFilter.toUpperCase();
-const filtered = kits.filter(k =>
-    (!emp || k.empId.toUpperCase().includes(emp) || k.engin.toUpperCase().includes(emp)) &&
-    (!wms || k.emplacement_wms.toUpperCase().includes(wms))
-);
+    const emp  = CAL.empFilter.toUpperCase();
+    const wms  = CAL.wmsFilter.toUpperCase();
+    const filtered = kits.filter(k =>
+        (!emp || k.empId.toUpperCase().includes(emp) || k.engin.toUpperCase().includes(emp)) &&
+        (!wms || k.emplacement_wms.toUpperCase().includes(wms))
+    );
 
-    // Trier : Incomplet > Non vérifié > Conforme
     filtered.sort((a, b) => {
         const ordre = { "Incomplet": 0, "Non vérifié": 1, "Conforme": 2 };
         return (ordre[a.statut_conformite] ?? 1) - (ordre[b.statut_conformite] ?? 1);
@@ -535,40 +503,28 @@ function _renderEmptyState() {
     if (container) container.classList.add('hidden');
 }
 
-// Contrôles calendrier
-$('cal-prev')?.addEventListener('click', async () => {
-    CAL.weekOffset--;
-    await renderCalendrier();
-});
-$('cal-next')?.addEventListener('click', async () => {
-    CAL.weekOffset++;
-    await renderCalendrier();
-});
+$('cal-prev')?.addEventListener('click',  async () => { CAL.weekOffset--; await renderCalendrier(); });
+$('cal-next')?.addEventListener('click',  async () => { CAL.weekOffset++; await renderCalendrier(); });
 $('cal-today')?.addEventListener('click', async () => {
     CAL.weekOffset  = 0;
     CAL.selectedIso = aujourd_hui();
     await renderCalendrier();
 });
 
-// Filtre emplacement
 $('cal-emp-input')?.addEventListener('input', e => {
     CAL.empFilter = e.target.value.trim();
-    const days = getWeekDays(CAL.weekOffset);
-    _renderCalStrip(days, false);
+    _renderCalStrip(getWeekDays(CAL.weekOffset), false);
     if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
 });
 
 $('cal-wms-input')?.addEventListener('input', e => {
     CAL.wmsFilter = e.target.value.trim();
-    const days = getWeekDays(CAL.weekOffset);
-    _renderCalStrip(days, false);
+    _renderCalStrip(getWeekDays(CAL.weekOffset), false);
     if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
 });
 
-
-
 // ═══════════════════════════════════════════════════════════════════════════════
-// NIVEAU 2 — TOUS LES KITS D'UN EMPLACEMENT
+// NIVEAU 2 — KITS D'UN EMPLACEMENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function chargerKitsEmplacement(empId) {
@@ -601,8 +557,7 @@ async function chargerKitsEmplacement(empId) {
             const isKo   = statut === 'Incomplet';
 
             const card = document.createElement('div');
-            card.className = 'kit-liste-item'
-                + (isOk ? ' kit-liste-ok' : isKo ? ' kit-liste-ko' : '');
+            card.className = 'kit-liste-item' + (isOk ? ' kit-liste-ok' : isKo ? ' kit-liste-ko' : '');
             card.innerHTML = `
                 <div class="kit-liste-left">
                     <div class="kit-liste-meta">
@@ -636,7 +591,7 @@ async function chargerKitsEmplacement(empId) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// NIVEAU 3 — DÉTAIL PIÈCES D'UN KIT
+// NIVEAU 3 — DÉTAIL KIT
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function ouvrirDetailKit(empId, kitId) {
@@ -671,13 +626,14 @@ function afficherDetailKit(kitId, data, empId) {
     detailKitBadge.textContent = kitId;
     detailNom.textContent      = data.nom_du_kit || kitId;
     detailEmp.textContent      = empId;
+
     if (detailEngin) {
         const parts = [];
-        if (data.engin)                      parts.push(`🚂 Engin : ${data.engin}`);
-        if (data.code_kit)                   parts.push(`Code : ${data.code_kit}`);
-        if (data.code_contenant)             parts.push(`📦 Contenant : ${data.code_contenant}`);
-        if (data.emplacement_wms_remontage)  parts.push(`🔧 WMS : ${data.emplacement_wms_remontage}`);
-        if (data.date_debut_iso)             parts.push(`📅 Date : ${isoToDisplay(data.date_debut_iso)}`);
+        if (data.engin)                     parts.push(`🚂 Engin : ${data.engin}`);
+        if (data.code_kit)                  parts.push(`Code : ${data.code_kit}`);
+        if (data.code_contenant)            parts.push(`📦 Contenant : ${data.code_contenant}`);
+        if (data.emplacement_wms_remontage) parts.push(`🔧 WMS : ${data.emplacement_wms_remontage}`);
+        if (data.date_debut_iso)            parts.push(`📅 Date : ${isoToDisplay(data.date_debut_iso)}`);
         detailEngin.textContent = parts.join('  ·  ');
     }
 
@@ -769,20 +725,18 @@ async function valider(statut) {
             { merge: true }
         );
 
-        // Invalider le cache du jour concerné pour forcer le rechargement
-for (const iso in CAL.cache) {
-    const idx = CAL.cache[iso].findIndex(
-        k => k.kitId === currentKitId && k.empId === currentEmpId
-    );
-    if (idx !== -1) {
-        CAL.cache[iso][idx].statut_conformite = statut; // mise à jour immédiate
-        delete CAL.cache[iso]; // force rechargement depuis Firestore
-        break;
-    }
-}
-if (CAL.selectedIso && CAL.cache[CAL.selectedIso]) {
-    delete CAL.cache[CAL.selectedIso];
-}
+        for (const iso in CAL.cache) {
+            const idx = CAL.cache[iso].findIndex(
+                k => k.kitId === currentKitId && k.empId === currentEmpId
+            );
+            if (idx !== -1) {
+                delete CAL.cache[iso];
+                break;
+            }
+        }
+        if (CAL.selectedIso && CAL.cache[CAL.selectedIso]) {
+            delete CAL.cache[CAL.selectedIso];
+        }
 
         showToast(`✅ Statut « ${statut} » enregistré.`, 'success');
         setTimeout(() => {
@@ -951,11 +905,21 @@ document.querySelectorAll('.admin-tab-btn').forEach(btn => {
     });
 });
 
-// ─── TOGGLE MOT DE PASSE (page de connexion) ──────────────────────────────────
+// ─── TOGGLE MOT DE PASSE ──────────────────────────────────────────────────────
 $('toggle-pwd').addEventListener('click', () => {
-    const isPassword        = loginPwd.type === 'password';
-    loginPwd.type           = isPassword ? 'text' : 'password';
+    const isPassword    = loginPwd.type === 'password';
+    loginPwd.type       = isPassword ? 'text' : 'password';
     $('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
+});
+
+document.querySelectorAll('.btn-toggle-pwd[data-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const input = $(btn.dataset.target);
+        if (!input) return;
+        const isPassword = input.type === 'password';
+        input.type       = isPassword ? 'text' : 'password';
+        btn.textContent  = isPassword ? '🙈' : '👁';
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -972,17 +936,12 @@ function afficherProfil() {
 
     const created = user.metadata.creationTime;
     $('profil-created').textContent = created
-        ? new Date(created).toLocaleDateString('fr-FR', {
-              day: '2-digit', month: 'long', year: 'numeric'
-          })
+        ? new Date(created).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })
         : '—';
 
     const lastLogin = user.metadata.lastSignInTime;
     $('profil-last-login').textContent = lastLogin
-        ? new Date(lastLogin).toLocaleString('fr-FR', {
-              day: '2-digit', month: '2-digit', year: 'numeric',
-              hour: '2-digit', minute: '2-digit'
-          })
+        ? new Date(lastLogin).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })
         : '—';
 
     ['pwd-current', 'pwd-new', 'pwd-confirm'].forEach(id => {
@@ -1019,19 +978,9 @@ $('pwd-new')?.addEventListener('input', () => {
         { label: 'Fort',        cls: 'strength-4' },
         { label: 'Très fort',   cls: 'strength-5' },
     ];
-    const level     = levels[Math.min(score, 4)];
-    fill.className  = `pwd-strength-fill ${level.cls}`;
+    const level    = levels[Math.min(score, 4)];
+    fill.className = `pwd-strength-fill ${level.cls}`;
     lbl.textContent = level.label;
-});
-
-document.querySelectorAll('.btn-toggle-pwd[data-target]').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const input = $(btn.dataset.target);
-        if (!input) return;
-        const isPassword    = input.type === 'password';
-        input.type          = isPassword ? 'text' : 'password';
-        btn.textContent     = isPassword ? '🙈' : '👁';
-    });
 });
 
 $('btn-change-pwd')?.addEventListener('click', async () => {
@@ -1064,26 +1013,23 @@ $('btn-change-pwd')?.addEventListener('click', async () => {
         await updatePassword(user, newPwd);
 
         ['pwd-current', 'pwd-new', 'pwd-confirm'].forEach(id => {
-            const el = $(id);
-            if (el) el.value = '';
+            const el = $(id); if (el) el.value = '';
         });
         $('pwd-strength-wrap').classList.remove('visible');
-
         okEl.textContent = '✅ Mot de passe modifié avec succès.';
         okEl.classList.add('visible');
         setTimeout(() => okEl.classList.remove('visible'), 5000);
 
     } catch (err) {
         const messages = {
-            'auth/wrong-password':         'Mot de passe actuel incorrect.',
-            'auth/invalid-credential':     'Mot de passe actuel incorrect.',
-            'auth/weak-password':          'Nouveau mot de passe trop faible (minimum 6 caractères).',
-            'auth/too-many-requests':      'Trop de tentatives. Veuillez réessayer plus tard.',
-            'auth/requires-recent-login':  'Session expirée. Veuillez vous reconnecter.',
-            'auth/network-request-failed': 'Erreur réseau. Vérifiez votre connexion.',
+            'auth/wrong-password':        'Mot de passe actuel incorrect.',
+            'auth/invalid-credential':    'Mot de passe actuel incorrect.',
+            'auth/weak-password':         'Nouveau mot de passe trop faible (minimum 6 caractères).',
+            'auth/too-many-requests':     'Trop de tentatives. Veuillez réessayer plus tard.',
+            'auth/requires-recent-login': 'Session expirée. Veuillez vous reconnecter.',
+            'auth/network-request-failed':'Erreur réseau. Vérifiez votre connexion.',
         };
         afficherErreurPwd(errEl, messages[err.code] || `Erreur : ${err.message}`);
-
     } finally {
         btn.disabled    = false;
         btn.textContent = 'Modifier le mot de passe →';
@@ -1158,7 +1104,7 @@ async function detectAppVersion() {
 detectAppVersion();
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// GITHUB CONFIG — SAUVEGARDE TOKEN + PUSH emplacements_autorises.txt
+// GITHUB CONFIG — TOKEN + EMPLACEMENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function initGithubConfig() {
@@ -1190,7 +1136,7 @@ function initGithubConfig() {
         statusEmp.textContent = msg;
         statusEmp.className   = `admin-status ${type}`;
     }
-    function setProgress(pct, label) {
+    function setProgressEmp(pct, label) {
         progBarEmp.style.width   = pct + "%";
         progLabelEmp.textContent = label;
     }
@@ -1275,19 +1221,19 @@ function initGithubConfig() {
         }
         previewWrap.classList.add("hidden");
         progAreaEmp.classList.remove("hidden");
-        setProgress(5, "Lecture du fichier…");
+        setProgressEmp(5, "Lecture du fichier…");
         setStatusEmp("⏳ Lecture du fichier…", "info");
         try {
-            const text = await file.text();
+            const text   = await file.text();
             const lignes = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0 && !l.startsWith("#"));
             if (!lignes.length) {
                 setStatusEmp("❌ Le fichier est vide ou ne contient aucun identifiant valide.", "error");
                 progAreaEmp.classList.add("hidden");
                 return;
             }
-            setProgress(20, "Récupération du token…");
+            setProgressEmp(20, "Récupération du token…");
             const token = await lireToken();
-            setProgress(40, "Récupération du SHA actuel…");
+            setProgressEmp(40, "Récupération du SHA actuel…");
             setStatusEmp("⏳ Connexion à GitHub…", "info");
             let sha = null;
             const getResp = await fetch(`${API_BASE}/${EXPECTED_FILENAME}`, {
@@ -1302,7 +1248,7 @@ function initGithubConfig() {
             } else if (getResp.status !== 404) {
                 throw new Error(`GitHub GET : ${(await getResp.json()).message}`);
             }
-            setProgress(65, "Envoi vers le dépôt…");
+            setProgressEmp(65, "Envoi vers le dépôt…");
             setStatusEmp("⏳ Push vers GitHub…", "info");
             const base64Content = btoa(unescape(encodeURIComponent(text)));
             const putResp = await fetch(`${API_BASE}/${EXPECTED_FILENAME}`, {
@@ -1323,7 +1269,7 @@ function initGithubConfig() {
             const result    = await putResp.json();
             const commitSha = result.commit?.sha?.slice(0, 7) || "ok";
             const commitUrl = result.commit?.html_url || "#";
-            setProgress(100, "Terminé.");
+            setProgressEmp(100, "Terminé.");
             statusEmp.className = "admin-status success";
             statusEmp.innerHTML =
                 `✅ ${lignes.length} emplacement(s) envoyé(s) · Commit : ` +
@@ -1347,9 +1293,9 @@ chargerListeEmplacementsAutorises();
 document.getElementById("btn-refresh-emp")?.addEventListener("click", chargerListeEmplacementsAutorises);
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PUSH Excel → imports/pending/ + suivi live workflow GitHub Actions
+// IMPORT EXCEL → GitHub + suivi pipeline Actions
 // ═══════════════════════════════════════════════════════════════════════════════
- 
+
 function initImportGithubXls() {
     const GITHUB_OWNER     = "methodelogistiquesncf-boop";
     const GITHUB_REPO      = "completconforme";
@@ -1359,7 +1305,7 @@ function initImportGithubXls() {
     const API_ACTIONS      = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions`;
     const POLL_INTERVAL_MS = 4000;
     const POLL_TIMEOUT_MS  = 300000;
- 
+
     const dropZoneXls     = document.getElementById("drop-zone-xls");
     const fileInputXls    = document.getElementById("file-input-xls");
     const progAreaXls     = document.getElementById("progress-area-xls");
@@ -1373,10 +1319,15 @@ function initImportGithubXls() {
     const workflowRunSt   = document.getElementById("workflow-run-status");
     const workflowSteps   = document.getElementById("workflow-steps");
     const workflowDur     = document.getElementById("workflow-duration");
- 
-    if (!dropZoneXls) return;
+
+    if (!dropZoneXls || !fileInputXls) {
+        console.warn("[XLS] drop-zone-xls ou file-input-xls introuvable");
+        return;
+    }
+
+    // Clic sur la drop zone → ouvre le sélecteur de fichier
     dropZoneXls.addEventListener("click", () => fileInputXls.click());
- 
+
     // ── Helpers ───────────────────────────────────────────────────────────────
     function setStatusXls(msg, type = "info") {
         statusXls.textContent = msg;
@@ -1420,87 +1371,48 @@ function initImportGithubXls() {
                 ? "rgba(63,168,118,.05)" : "rgba(192,53,74,.05)";
         }
     }
- 
-    // ── Étapes métier (4 étapes lisibles) ─────────────────────────────────────
-    //
-    // Correspondance avec les noms réels de vos steps GitHub Actions :
-    //   ÉTAPE 2 — "process"  : Checkout, Setup Python, Installer, Identifier, Vérifier
-    //   ÉTAPE 3 — "firestore": Importer dans Firestore
-    //   ÉTAPE 4 — "result"   : Archiver, Télécharger, ou déduit si run = success
- 
+
     function resolveBusinessSteps(githubSteps, runConclusion, kitCount) {
- 
-        // Calcule le statut agrégé d'un groupe de steps GitHub à partir de mots-clés
         function groupState(matches) {
             const relevant = githubSteps.filter(s =>
                 matches.some(m => s.name.toLowerCase().includes(m.toLowerCase()))
             );
-            if (!relevant.length)
-                return { status: "queued", conclusion: null };
-            if (relevant.some(s => s.conclusion === "failure"))
-                return { status: "completed", conclusion: "failure" };
-            if (relevant.every(s => s.conclusion === "success" || s.conclusion === "skipped"))
-                return { status: "completed", conclusion: "success" };
-            if (relevant.some(s => s.status === "in_progress"))
-                return { status: "in_progress", conclusion: null };
+            if (!relevant.length)                                                    return { status: "queued",     conclusion: null };
+            if (relevant.some(s => s.conclusion === "failure"))                      return { status: "completed",  conclusion: "failure" };
+            if (relevant.every(s => s.conclusion === "success" || s.conclusion === "skipped")) return { status: "completed", conclusion: "success" };
+            if (relevant.some(s => s.status === "in_progress"))                      return { status: "in_progress", conclusion: null };
             return { status: "queued", conclusion: null };
         }
- 
-        // Étape 1 : toujours ✅ (le fichier a déjà été poussé avant le pipeline)
-        const s1 = {
-            icon: "📥",
-            label: "Fichier importé avec succès",
-            status: "completed",
-            conclusion: "success",
-        };
- 
-        // Étape 2 : traitement (checkout + setup + vérifications)
-        const s2 = {
-            icon: "⚙️",
-            label: "Traitement du fichier",
-            ...groupState(["checkout", "python", "instal", "identifier", "vérif", "detect"]),
-        };
- 
-        // Étape 3 : injection Firestore
-        const s3 = {
-            icon: "🔥",
-            label: "Exportation dans la base de données",
-            ...groupState(["importer", "firestore", "injection"]),
-        };
- 
-        // Étape 4 : résultat — label dynamique avec le nombre de kits
+
+        const s1 = { icon: "📥", label: "Fichier importé avec succès",          status: "completed",  conclusion: "success" };
+        const s2 = { icon: "⚙️", label: "Traitement du fichier",                 ...groupState(["checkout", "python", "instal", "identifier", "vérif", "detect"]) };
+        const s3 = { icon: "🔥", label: "Exportation dans la base de données",   ...groupState(["importer", "firestore", "injection"]) };
+
         const resultLabel = kitCount !== null
             ? `${kitCount} kit${kitCount > 1 ? "s" : ""} importé${kitCount > 1 ? "s" : ""} avec succès`
             : "Finalisation de l'import";
- 
+
         let s4State;
         if (runConclusion === "success") {
-            // Le run est terminé avec succès → toutes les étapes sont ✅
             s4State = { status: "completed", conclusion: "success" };
         } else if (s2.conclusion === "failure" || s3.conclusion === "failure") {
-            // Une étape amont a échoué → résultat non atteint
             s4State = { status: "queued", conclusion: null };
         } else {
-            // Chercher les steps d'archivage/finalisation
             s4State = groupState(["archiver", "télécharger", "nettoy", "archiv"]);
-            // Si aucune step ne correspond encore mais que l'étape 3 est finie → en cours
             if (s4State.status === "queued" && s3.conclusion === "success") {
                 s4State = { status: "in_progress", conclusion: null };
             }
         }
- 
-        const s4 = { icon: "📦", label: resultLabel, ...s4State };
- 
-        return [s1, s2, s3, s4];
+
+        return [s1, s2, s3, { icon: "📦", label: resultLabel, ...s4State }];
     }
- 
+
     function renderBusinessSteps(githubSteps, runConclusion = null, kitCount = null) {
         workflowSteps.innerHTML = "";
         const steps = resolveBusinessSteps(githubSteps, runConclusion, kitCount);
- 
+
         steps.forEach(step => {
             let displayIcon, color, rightEl;
- 
             switch (true) {
                 case step.conclusion === "success":
                     displayIcon = "✅"; color = "var(--green)";
@@ -1514,16 +1426,16 @@ function initImportGithubXls() {
                     displayIcon = step.icon; color = "var(--blue)";
                     rightEl = `<div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0;"></div>`;
                     break;
-                default: // queued
+                default:
                     displayIcon = step.icon; color = "var(--muted)";
                     rightEl = `<span style="font-family:var(--mono);font-size:.68rem;color:var(--muted);">en attente</span>`;
             }
- 
-            const borderColor = step.conclusion === "success"  ? "rgba(63,168,118,.4)"
-                               : step.conclusion === "failure"  ? "rgba(192,53,74,.4)"
+
+            const borderColor = step.conclusion === "success"    ? "rgba(63,168,118,.4)"
+                               : step.conclusion === "failure"    ? "rgba(192,53,74,.4)"
                                : step.status    === "in_progress" ? "var(--blue)"
                                : "var(--border)";
- 
+
             const row = document.createElement("div");
             row.style.cssText = `
                 display:flex;align-items:center;gap:.7rem;padding:.7rem .9rem;
@@ -1531,19 +1443,14 @@ function initImportGithubXls() {
                 border-radius:var(--radius);transition:border-color .2s;
             `;
             row.innerHTML = `
-                <span style="font-size:1.05rem;flex-shrink:0;min-width:1.3rem;text-align:center;">
-                    ${displayIcon}
-                </span>
-                <span style="font-size:.84rem;font-weight:600;color:${color};flex:1;line-height:1.35;">
-                    ${step.label}
-                </span>
+                <span style="font-size:1.05rem;flex-shrink:0;min-width:1.3rem;text-align:center;">${displayIcon}</span>
+                <span style="font-size:.84rem;font-weight:600;color:${color};flex:1;line-height:1.35;">${step.label}</span>
                 ${rightEl}
             `;
             workflowSteps.appendChild(row);
         });
     }
- 
-    // ── Récupération du nombre de kits depuis les logs du job ─────────────────
+
     async function fetchKitCount(jobId, token) {
         try {
             const res = await fetch(
@@ -1552,7 +1459,6 @@ function initImportGithubXls() {
             );
             if (!res.ok) return null;
             const log = await res.text();
-            // Cherche des patterns comme "825 kit(s) traité(s)" ou "825 kits importés"
             const m = log.match(/(\d+)\s+kit[s(]*\s*[\w\s]*trait/)
                    || log.match(/(\d+)\s+kit[s]?\s+import/i)
                    || log.match(/kit[s]?\s+traité[s]?\s*:\s*(\d+)/i)
@@ -1560,77 +1466,55 @@ function initImportGithubXls() {
             if (!m) return null;
             const n = parseInt(m[1].replace(/\s/g, ""), 10);
             return isNaN(n) ? null : n;
-        } catch {
-            return null;
-        }
+        } catch { return null; }
     }
- 
-    // ── Polling du run GitHub Actions ─────────────────────────────────────────
+
     async function pollRunJobs(runId, initialRun, token, deadline) {
         let run   = initialRun;
         let jobId = null;
- 
+
         while (Date.now() < deadline) {
-            // 1. Récupérer les jobs et mettre à jour l'affichage des étapes
             try {
-                const jobsRes = await fetch(
-                    `${API_ACTIONS}/runs/${runId}/jobs`,
-                    { headers: githubHeaders(token) }
-                );
+                const jobsRes = await fetch(`${API_ACTIONS}/runs/${runId}/jobs`, { headers: githubHeaders(token) });
                 if (jobsRes.ok) {
                     const job = (await jobsRes.json()).jobs?.[0];
-                    if (job) {
-                        jobId = job.id;
-                        renderBusinessSteps(job.steps || [], run.conclusion);
-                    }
+                    if (job) { jobId = job.id; renderBusinessSteps(job.steps || [], run.conclusion); }
                 }
-            } catch { /* réseau instable, on réessaiera */ }
- 
+            } catch {}
+
             renderRunStatus(run.status, run.conclusion);
- 
-            // 2. Run terminé ?
+
             if (run.status === "completed") {
                 workflowSpinner.style.display = "none";
                 if (run.created_at && run.updated_at) {
                     workflowDur.textContent   = `⏱ Durée totale : ${formatDuration(run.created_at, run.updated_at)}`;
                     workflowDur.style.display = "block";
                 }
-                // Tenter de lire le nombre de kits dans les logs
                 if (jobId) {
                     const kitCount = await fetchKitCount(jobId, token);
-                    // Re-rendre avec le compte final
                     try {
-                        const jobsRes2 = await fetch(
-                            `${API_ACTIONS}/runs/${runId}/jobs`,
-                            { headers: githubHeaders(token) }
-                        );
+                        const jobsRes2 = await fetch(`${API_ACTIONS}/runs/${runId}/jobs`, { headers: githubHeaders(token) });
                         const job2 = jobsRes2.ok ? (await jobsRes2.json()).jobs?.[0] : null;
                         renderBusinessSteps(job2?.steps || [], run.conclusion, kitCount);
-                    } catch {
-                        renderBusinessSteps([], run.conclusion, kitCount);
-                    }
+                    } catch { renderBusinessSteps([], run.conclusion, kitCount); }
                 }
                 return;
             }
- 
+
             await sleep(POLL_INTERVAL_MS);
- 
-            // 3. Rafraîchir l'état du run
+
             try {
-                const runRes = await fetch(
-                    `${API_ACTIONS}/runs/${runId}`,
-                    { headers: githubHeaders(token) }
-                );
+                const runRes = await fetch(`${API_ACTIONS}/runs/${runId}`, { headers: githubHeaders(token) });
                 if (runRes.ok) run = await runRes.json();
-            } catch { /* on garde l'état précédent */ }
+            } catch {}
         }
     }
- 
+
     async function pollWorkflow(commitSha, token) {
         workflowPanel.classList.remove("hidden");
         renderRunStatus("queued", null);
-        renderBusinessSteps([]); // Afficher l'état initial (étape 1 ✅, rest en attente)
- 
+        renderBusinessSteps([]);
+
         const deadline = Date.now() + POLL_TIMEOUT_MS;
         while (Date.now() < deadline) {
             await sleep(POLL_INTERVAL_MS);
@@ -1641,30 +1525,26 @@ function initImportGithubXls() {
                 );
                 if (!res.ok) continue;
                 const data = await res.json();
- 
-                // Exclure le workflow pages-build-deployment (Jekyll/GitHub Pages)
-                // et prendre le premier workflow d'import
-                const run = data.workflow_runs?.find(r =>
+                const run  = data.workflow_runs?.find(r =>
                     !r.name?.toLowerCase().includes("pages") &&
                     !r.path?.toLowerCase().includes("pages")
                 ) ?? data.workflow_runs?.[0];
- 
+
                 if (!run) continue;
- 
                 workflowLink.href          = run.html_url;
                 workflowLink.style.display = "inline";
                 renderRunStatus(run.status, run.conclusion);
                 await pollRunJobs(run.id, run, token, deadline);
                 return;
-            } catch { /* réseau, on réessaiera */ }
+            } catch {}
         }
- 
+
         workflowRunLbl.textContent    = "⚠️ Délai dépassé — vérifiez GitHub Actions.";
         workflowRunLbl.style.color    = "var(--amber)";
         workflowSpinner.style.display = "none";
     }
- 
-    // ── Drop zone ─────────────────────────────────────────────────────────────
+
+    // ── Drag & drop ───────────────────────────────────────────────────────────
     dropZoneXls.addEventListener("dragover",  e => { e.preventDefault(); dropZoneXls.classList.add("dragover"); });
     dropZoneXls.addEventListener("dragleave", ()  => dropZoneXls.classList.remove("dragover"));
     dropZoneXls.addEventListener("drop", e => {
@@ -1673,105 +1553,95 @@ function initImportGithubXls() {
         const file = e.dataTransfer?.files?.[0];
         if (file) traiterFichierXls(file);
     });
-fileInputXls.addEventListener("change", e => {
-    console.log("[XLS] 1 - change déclenché");
-    const file = e.target.files?.[0];
-    console.log("[XLS] 2 - fichier:", file?.name, file?.size, file?.type);
-    if (file) {
-        console.log("[XLS] 3 - appel traiterFichierXls");
-        traiterFichierXls(file);
-    } else {
-        console.log("[XLS] 3 - pas de fichier détecté");
-    }
-    e.target.value = "";
-});
- 
-async function traiterFichierXls(file) {
-    console.log("[XLS] 4 - traiterFichierXls START", file?.name);
-    try {
-        console.log("[XLS] 5 - lecture token...");
-        const token = await lireToken();
-        console.log("[XLS] 6 - token OK:", token?.slice(0,10) + "...");
-    } catch(err) {
-        console.error("[XLS] ERREUR TOKEN:", err.message);
-    }
 
-    if (!ACCEPTED_EXT.includes(ext)) {
-        setStatusXls(`❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`, "error");
-        return;
-    }
+    // ── Sélection via input file ──────────────────────────────────────────────
+    fileInputXls.addEventListener("change", e => {
+        const file = e.target.files?.[0];
+        if (file) traiterFichierXls(file);
+        e.target.value = "";
+    });
 
-    workflowPanel.classList.add("hidden");
-    workflowSteps.innerHTML    = "";
-    workflowLink.style.display = "none";
-    workflowDur.style.display  = "none";
-    progAreaXls.classList.remove("hidden");
-    setProgress(5, "Lecture du fichier…");
-    setStatusXls("⏳ Lecture du fichier…", "info");
-
-    try {
-        const buffer = await file.arrayBuffer();
-        const uint8  = new Uint8Array(buffer);
-        const base64 = btoa(uint8.reduce((d, b) => d + String.fromCharCode(b), ""));
-
-        setProgress(20, "Récupération du token…");
-        const token = await lireToken();
-
-        const targetPath = `${TARGET_FOLDER}/${file.name}`;
-        setProgress(40, "Vérification du fichier existant…");
-        setStatusXls("⏳ Connexion à GitHub…", "info");
-
-        let sha = null;
-        const getResp = await fetch(`${API_BASE}/${targetPath}`, { headers: githubHeaders(token) });
-        if (getResp.ok) {
-            sha = (await getResp.json()).sha;
-        } else if (getResp.status !== 404) {
-            throw new Error(`GitHub GET : ${(await getResp.json()).message}`);
+    // ── Traitement du fichier ─────────────────────────────────────────────────
+    async function traiterFichierXls(file) {
+        const ext = file.name.split(".").pop().toLowerCase();
+        if (!ACCEPTED_EXT.includes(ext)) {
+            setStatusXls(`❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`, "error");
+            return;
         }
 
-        setProgress(65, "Envoi vers le dépôt…");
-        setStatusXls("⏳ Push vers GitHub…", "info");
+        workflowPanel.classList.add("hidden");
+        workflowSteps.innerHTML    = "";
+        workflowLink.style.display = "none";
+        workflowDur.style.display  = "none";
+        progAreaXls.classList.remove("hidden");
+        setProgress(5, "Lecture du fichier…");
+        setStatusXls("⏳ Lecture du fichier…", "info");
 
-        const putResp = await fetch(`${API_BASE}/${targetPath}`, {
-            method: "PUT",
-            headers: { ...githubHeaders(token), "Content-Type": "application/json" },
-            body: JSON.stringify({
-                message: `[Admin] Import ${file.name} → ${TARGET_FOLDER}`,
-                content: base64,
-                ...(sha ? { sha } : {}),
-            }),
-        });
-        if (!putResp.ok) throw new Error(`GitHub PUT : ${(await putResp.json()).message}`);
+        try {
+            const buffer = await file.arrayBuffer();
+            const uint8  = new Uint8Array(buffer);
+            const base64 = btoa(uint8.reduce((d, b) => d + String.fromCharCode(b), ""));
 
-        const result    = await putResp.json();
-        const commitSha = result.commit?.sha;
-        const commitUrl = result.commit?.html_url || "#";
-        const shortSha  = commitSha?.slice(0, 7) || "ok";
+            setProgress(20, "Récupération du token…");
+            const token = await lireToken();
 
-        setProgress(100, "Fichier envoyé — pipeline en attente…");
-        statusXls.className = "admin-status success";
-        statusXls.innerHTML =
-            `✅ « ${file.name} » envoyé dans ` +
-            `<code style="font-family:var(--mono);font-size:.8rem;">${TARGET_FOLDER}/</code>` +
-            ` · Commit : ` +
-            `<a href="${commitUrl}" target="_blank" rel="noopener"
-                style="color:var(--green);font-family:var(--mono);font-size:.8rem;">
-                ${shortSha} ↗
-            </a>`;
+            const targetPath = `${TARGET_FOLDER}/${file.name}`;
+            setProgress(40, "Vérification du fichier existant…");
+            setStatusXls("⏳ Connexion à GitHub…", "info");
 
-        if (commitSha) await pollWorkflow(commitSha, token);
+            let sha = null;
+            const getResp = await fetch(`${API_BASE}/${targetPath}`, { headers: githubHeaders(token) });
+            if (getResp.ok) {
+                sha = (await getResp.json()).sha;
+            } else if (getResp.status !== 404) {
+                throw new Error(`GitHub GET : ${(await getResp.json()).message}`);
+            }
 
-    } catch (err) {
-        console.error("[XLS] Erreur:", err);
-        setStatusXls("❌ " + err.message, "error");
-        progAreaXls.classList.add("hidden");
-        showToast("❌ " + err.message, "error");
+            setProgress(65, "Envoi vers le dépôt…");
+            setStatusXls("⏳ Push vers GitHub…", "info");
+
+            const putResp = await fetch(`${API_BASE}/${targetPath}`, {
+                method: "PUT",
+                headers: { ...githubHeaders(token), "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message: `[Admin] Import ${file.name} → ${TARGET_FOLDER}`,
+                    content: base64,
+                    ...(sha ? { sha } : {}),
+                }),
+            });
+            if (!putResp.ok) throw new Error(`GitHub PUT : ${(await putResp.json()).message}`);
+
+            const result    = await putResp.json();
+            const commitSha = result.commit?.sha;
+            const commitUrl = result.commit?.html_url || "#";
+            const shortSha  = commitSha?.slice(0, 7) || "ok";
+
+            setProgress(100, "Fichier envoyé — pipeline en attente…");
+            statusXls.className = "admin-status success";
+            statusXls.innerHTML =
+                `✅ « ${file.name} » envoyé dans ` +
+                `<code style="font-family:var(--mono);font-size:.8rem;">${TARGET_FOLDER}/</code>` +
+                ` · Commit : ` +
+                `<a href="${commitUrl}" target="_blank" rel="noopener"
+                    style="color:var(--green);font-family:var(--mono);font-size:.8rem;">
+                    ${shortSha} ↗
+                </a>`;
+
+            if (commitSha) await pollWorkflow(commitSha, token);
+
+        } catch (err) {
+            console.error("[XLS] Erreur:", err);
+            setStatusXls("❌ " + err.message, "error");
+            progAreaXls.classList.add("hidden");
+            showToast("❌ " + err.message, "error");
+        }
     }
 }
-}
+
+initImportGithubXls();
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CHARGEMENT DE LA LISTE DES EMPLACEMENTS AUTORISÉS
+// CHARGEMENT EMPLACEMENTS AUTORISÉS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function chargerListeEmplacementsAutorises() {
