@@ -1683,6 +1683,9 @@ fileInputXls.addEventListener("change", e => {
 });
  
     async function traiterFichierXls(file) {
+    console.log("[XLS] traiterFichierXls appelé avec:", file?.name);
+    const ext = file.name.split(".").pop().toLowerCase();
+    console.log("[XLS] extension détectée:", ext);
         const ext = file.name.split(".").pop().toLowerCase();
         if (!ACCEPTED_EXT.includes(ext)) {
             setStatusXls(`❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`, "error");
