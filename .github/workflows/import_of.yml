@@ -63,9 +63,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git mv "$FILE" "$DEST"
           git commit -m "✅ Archivage import : ${FNAME}"
-          git fetch origin main
+          git fetch origin
           git rebase origin/main
-          git push origin HEAD:main
+          git push --force-with-lease origin HEAD:main
       # ── 7. RÉCUPÉRATION DU FICHIER NETTOYÉ (L'étape magique) ──────────────
       - name: Télécharger le fichier nettoyé
         if: always() && steps.detect.outputs.file != ''
