@@ -3,14 +3,12 @@ on:
   push:
     paths:
       - "imports/pending/**"
-
 jobs:
   import:
     name: Traitement & injection Firestore
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
       # ── 1. Récupération du repo ──────────────────────────────────────────
       - name: Checkout
@@ -33,14 +31,26 @@ jobs:
       - name: Identifier le fichier importé
         id: detect
         run: |
-          FILE=$(git diff-tree --no-commit-id -r --name-only ${{ github.sha }} \
-                 | grep '^imports/pending/' | grep -v '\.gitkeep' | head -1)
+          # ✅ FIX : désactive l'échappement des caractères non-ASCII par git
+          git config core.quotepath false
+
+          FILE=$(git diff-tree --no-commit-id -r --name-only "${{ github.sha }}" \
+                 | grep '^imports/pending/' \
+                 | grep -v '\.gitkeep' \
+                 | grep -E '\.(xlsx|csv)$' \
+                 | head -1)
+
           if [ -z "$FILE" ]; then
-            echo "Aucun fichier à traiter (gitkeep ou autre)."
+            echo "Aucun fichier .xlsx/.csv à traiter."
             echo "file=" >> "$GITHUB_OUTPUT"
           else
-            echo "file=$FILE" >> "$GITHUB_OUTPUT"
             echo "Fichier détecté : $FILE"
+            # ✅ FIX : syntaxe heredoc pour les valeurs avec caractères spéciaux
+            {
+              echo "file<<GH_EOF"
+              echo "$FILE"
+              echo "GH_EOF"
+            } >> "$GITHUB_OUTPUT"
           fi
 
       # ── 4. Annulation si aucun fichier pertinent ─────────────────────────
@@ -55,6 +65,7 @@ jobs:
         if: steps.detect.outputs.file != ''
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          # ✅ GitHub Actions gère correctement l'injection de la valeur ici
           IMPORT_FILE: ${{ steps.detect.outputs.file }}
         run: python scripts/import_of.py
 
@@ -62,6 +73,7 @@ jobs:
       - name: Déplacer le fichier vers done/
         if: steps.detect.outputs.file != ''
         run: |
+          # ✅ FIX : toujours utiliser des guillemets autour des variables
           FILE="${{ steps.detect.outputs.file }}"
           FNAME=$(basename "$FILE")
           DEST="imports/done/$(date +%Y-%m-%d)_${FNAME}"
@@ -74,10 +86,13 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # ✅ FIX : stocker dans une variable shell pour éviter les problèmes
+          #          de caractères spéciaux dans l'expression GitHub Actions
+          FILE="${{ steps.detect.outputs.file }}"
           git add imports/done/ imports/pending/
           git pull --rebase origin ${{ github.ref_name }}
           git diff --staged --quiet || \
-            git commit -m "✅ Archivage import : ${{ steps.detect.outputs.file }}"
+            git commit -m "✅ Archivage import : ${FILE}"
           git push origin ${{ github.ref_name }}
 
       # ── 8. Télécharger le fichier nettoyé ────────────────────────────────
