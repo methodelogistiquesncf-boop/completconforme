@@ -31,6 +31,24 @@ function formatDuration(start, end) {
     return secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}min ${secs % 60}s`;
 }
 
+// ─── Sanitisation du nom de fichier ──────────────────────────────────────────
+// Renomme le fichier en mémoire pour supprimer les caractères problématiques
+// (accents, espaces, +, etc.) avant l'envoi vers GitHub.
+// Le fichier original sur le disque de l'utilisateur n'est jamais modifié.
+function sanitizeFileName(file) {
+    const ext         = file.name.split(".").pop().toLowerCase();
+    const nameWithout = file.name.slice(0, -(ext.length + 1));
+    const cleanName   = nameWithout
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")   // accents → sans accent (é→e, è→e…)
+        .replace(/[\s+]+/g, "-")            // espaces et + → tirets
+        .replace(/[^a-zA-Z0-9\-_]/g, "")   // tout autre caractère spécial supprimé
+        .replace(/-{2,}/g, "-")             // tirets multiples → un seul
+        .replace(/^-+|-+$/g, "")           // tirets en début/fin supprimés
+        .toLowerCase();
+    return new File([file], `${cleanName}.${ext}`, { type: file.type });
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIG TOKEN GITHUB
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -293,12 +311,16 @@ export function initImportGithubXls() {
     });
 }
 
-async function _traiterFichierXls(file) {
-    const ext = file.name.split(".").pop().toLowerCase();
+async function _traiterFichierXls(rawFile) {
+    const ext = rawFile.name.split(".").pop().toLowerCase();
     if (!ACCEPTED_EXT.includes(ext)) {
         _setStatus($("admin-status-xls"), `❌ Format invalide : « .${ext} ». Utilisez .xlsx, .xls ou .csv.`, "error");
         return;
     }
+
+    // ✅ Renommage en mémoire — supprime accents, espaces, caractères spéciaux
+    const file           = sanitizeFileName(rawFile);
+    const originalName   = rawFile.name;   // conservé uniquement pour l'affichage si besoin
 
     const statusEl      = $("admin-status-xls");
     const progArea      = $("progress-area-xls");
