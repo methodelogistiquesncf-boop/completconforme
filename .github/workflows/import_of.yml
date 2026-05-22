@@ -3,50 +3,54 @@ on:
   push:
     paths:
       - "imports/pending/**"
+
 jobs:
   import:
     name: Traitement & injection Firestore
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    steps:
 
+    steps:
+      # ── 1. Récupération du repo ──────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # ── 2. Python ───────────────────────────────────────────────────────
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Installer les dépendances
-        run: pip install --quiet openpyxl pandas firebase-admin
+        run: |
+          pip install --quiet \
+            openpyxl pandas firebase-admin
 
+      # ── 3. Détection du fichier ajouté ──────────────────────────────────
       - name: Identifier le fichier importé
         id: detect
         run: |
-          git config core.quotepath false
-          FILE=$(git diff-tree --no-commit-id -r --name-only "${{ github.sha }}" \
-            | grep '^imports/pending/' \
-            | grep -v '\.gitkeep' \
-            | grep -E '\.(xlsx|csv)$' \
-            | head -1)
+          FILE=$(git diff-tree --no-commit-id -r --name-only ${{ github.sha }} \
+                 | grep '^imports/pending/' | grep -v '\.gitkeep' | head -1)
           if [ -z "$FILE" ]; then
-            echo "Aucun fichier .xlsx/.csv à traiter."
+            echo "Aucun fichier à traiter (gitkeep ou autre)."
             echo "file=" >> "$GITHUB_OUTPUT"
           else
-            echo "Fichier détecté : $FILE"
             echo "file=$FILE" >> "$GITHUB_OUTPUT"
+            echo "Fichier détecté : $FILE"
           fi
 
+      # ── 4. Annulation si aucun fichier pertinent ─────────────────────────
       - name: Vérifier qu'un fichier a été détecté
         if: steps.detect.outputs.file == ''
         run: |
           echo "Aucun fichier .xlsx/.csv dans imports/pending/ — pipeline arrêté."
           exit 0
 
+      # ── 5. Traitement Python ─────────────────────────────────────────────
       - name: Importer dans Firestore
         if: steps.detect.outputs.file != ''
         env:
@@ -54,6 +58,7 @@ jobs:
           IMPORT_FILE: ${{ steps.detect.outputs.file }}
         run: python scripts/import_of.py
 
+      # ── 6. Déplacement du fichier vers done/ ─────────────────────────────
       - name: Déplacer le fichier vers done/
         if: steps.detect.outputs.file != ''
         run: |
@@ -63,17 +68,19 @@ jobs:
           mkdir -p imports/done
           mv "$FILE" "$DEST"
 
+      # ── 7. Archivage git (sans action externe) ───────────────────────────
       - name: Archiver le fichier traité
         if: steps.detect.outputs.file != ''
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          FILE="${{ steps.detect.outputs.file }}"
           git add imports/done/ imports/pending/
           git pull --rebase origin ${{ github.ref_name }}
-          git diff --staged --quiet || git commit -m "✅ Archivage import : ${FILE}"
+          git diff --staged --quiet || \
+            git commit -m "✅ Archivage import : ${{ steps.detect.outputs.file }}"
           git push origin ${{ github.ref_name }}
 
+      # ── 8. Télécharger le fichier nettoyé ────────────────────────────────
       - name: Télécharger le fichier nettoyé
         if: always() && steps.detect.outputs.file != ''
         uses: actions/upload-artifact@v4
