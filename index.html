@@ -225,17 +225,21 @@
     <div class="card">
         <p class="card-title">Historique des contrôles</p>
  
-        <!-- Barre de recherche -->
+        <!-- Barre de recherche intelligente -->
         <div class="histo-toolbar">
             <div class="histo-search-wrap">
-                <input
-                    type="text"
-                    id="histo-search"
-                    class="histo-search-input"
-                    placeholder="Emplacement, ex : ETKI.001.01"
-                    autocomplete="off"
-                    spellcheck="false"
-                >
+                <div class="histo-input-wrap">
+                    <input
+                        type="text"
+                        id="histo-search"
+                        class="histo-search-input"
+                        placeholder="Emplacement, engin, nom de kit…"
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                    <!-- Hint de mode détecté automatiquement -->
+                    <span class="histo-mode-hint" id="histo-mode-hint"></span>
+                </div>
                 <button class="histo-search-btn" id="histo-search-btn">
                     🔍 Rechercher
                 </button>
@@ -247,14 +251,35 @@
             </select>
         </div>
  
-        <!-- Invite initiale (visible avant toute recherche) -->
+        <!-- Invite initiale -->
         <div class="histo-invite" id="histo-invite">
             <span class="histo-invite-icon">🔍</span>
-            <p class="histo-invite-title">Recherchez un emplacement</p>
+            <p class="histo-invite-title">Que voulez-vous chercher ?</p>
+            <div class="histo-invite-examples">
+                <div class="histo-example-item">
+                    <span class="histo-example-badge">📍</span>
+                    <div>
+                        <strong>Emplacement</strong>
+                        <code>ETKI.0070301</code>
+                    </div>
+                </div>
+                <div class="histo-example-item">
+                    <span class="histo-example-badge">🚂</span>
+                    <div>
+                        <strong>Engin</strong>
+                        <code>B82551 4C TRANSILIEN1</code>
+                    </div>
+                </div>
+                <div class="histo-example-item">
+                    <span class="histo-example-badge">🧰</span>
+                    <div>
+                        <strong>Nom de kit</strong>
+                        <code>KIT TRAIT MEC PORTE</code>
+                    </div>
+                </div>
+            </div>
             <p class="histo-invite-sub">
-                Tapez un identifiant d'emplacement (ex : <code>ETKI.001.01</code>)
-                puis appuyez sur <kbd>Entrée</kbd> ou cliquez sur Rechercher.<br>
-                Seul cet emplacement sera chargé — aucune lecture inutile.
+                Le mode est détecté automatiquement · <kbd>Entrée</kbd> pour lancer
             </p>
         </div>
  
@@ -267,10 +292,10 @@
         <!-- Message vide / erreur -->
         <p class="histo-empty hidden" id="histo-empty"></p>
  
-        <!-- Compteur de résultats -->
+        <!-- Compteur -->
         <p class="histo-counter" id="histo-counter"></p>
  
-        <!-- Liste des résultats -->
+        <!-- Résultats -->
         <div id="histo-list" class="histo-list"></div>
     </div>
 </section>
