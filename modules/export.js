@@ -17,71 +17,72 @@ async function loadXLSX() {
 }
 
 // ─── Export historique_controles ──────────────────────────────────────────────
-export async function exportHistorique(filtres = {}) {
+export async function exportHistorique(entries = []) {
+    if (!entries.length) {
+        showToast("Aucune donnée à exporter. Ouvrez l'onglet Statistiques d'abord.", "error");
+        return;
+    }
     showToast("⏳ Génération du fichier…", "info");
     try {
         const XLSX = await loadXLSX();
-        const snap = await getDocs(collection(db, "historique_controles"));
-        
         const rows = [];
-        snap.forEach(d => {
-            const e = d.data();
-            
-            // Une ligne par composant si vous voulez le détail
+
+        entries.forEach(e => {
             const details = e.detail_verification || [];
             if (details.length) {
                 details.forEach(c => {
                     rows.push({
-                        "Date":               e.timestamp ? new Date(e.timestamp).toLocaleString('fr-FR') : "",
-                        "Emplacement":        e.empId || "",
-                        "Engin":              e.engin || "",
-                        "Kit ID":             e.kitId || "",
-                        "Nom du kit":         e.nom_du_kit || "",
-                        "Code kit":           e.code_kit || "",
-                        "Contenant":          e.code_contenant || "",
-                        "Statut":             e.statut || "",
-                        "Vérificateur":       e.verificateur_email || "",
-                        "Composant":          c.nom || "",
-                        "Qté requise":        c.quantite_requise ?? "",
-                        "Qté comptée":        c.quantite_comptee ?? "",
-                        "Écart":              (c.quantite_comptee != null && c.quantite_requise != null)
-                                                ? c.quantite_comptee - c.quantite_requise
-                                                : "",
+                        "Date":          e.timestamp ? new Date(e.timestamp).toLocaleString('fr-FR') : "",
+                        "Emplacement":   e.empId       || "",
+                        "Engin":         e.engin        || "",
+                        "Kit ID":        e.kitId        || "",
+                        "Nom du kit":    e.nom_du_kit   || "",
+                        "Code kit":      e.code_kit     || "",
+                        "Contenant":     e.code_contenant || "",
+                        "Statut":        e.statut       || "",
+                        "Vérificateur":  e.verificateur_email || "",
+                        "Composant":     c.nom          || "",
+                        "Qté requise":   c.quantite_requise ?? "",
+                        "Qté comptée":   c.quantite_comptee ?? "",
+                        "Écart":         (c.quantite_comptee != null && c.quantite_requise != null)
+                                            ? c.quantite_comptee - c.quantite_requise
+                                            : "",
                     });
                 });
             } else {
                 rows.push({
-                    "Date":           e.timestamp ? new Date(e.timestamp).toLocaleString('fr-FR') : "",
-                    "Emplacement":    e.empId || "",
-                    "Engin":          e.engin || "",
-                    "Kit ID":         e.kitId || "",
-                    "Nom du kit":     e.nom_du_kit || "",
-                    "Code kit":       e.code_kit || "",
-                    "Contenant":      e.code_contenant || "",
-                    "Statut":         e.statut || "",
-                    "Vérificateur":   e.verificateur_email || "",
+                    "Date":          e.timestamp ? new Date(e.timestamp).toLocaleString('fr-FR') : "",
+                    "Emplacement":   e.empId       || "",
+                    "Engin":         e.engin        || "",
+                    "Kit ID":        e.kitId        || "",
+                    "Nom du kit":    e.nom_du_kit   || "",
+                    "Code kit":      e.code_kit     || "",
+                    "Contenant":     e.code_contenant || "",
+                    "Statut":        e.statut       || "",
+                    "Vérificateur":  e.verificateur_email || "",
                 });
             }
         });
 
         _telecharger(XLSX, rows, "historique_controles");
         showToast(`✅ ${rows.length} lignes exportées.`, "success");
-
     } catch (err) {
         showToast("❌ " + err.message, "error");
     }
 }
 
 // ─── Export stats par engin ───────────────────────────────────────────────────
-export async function exportStatsEngin() {
+export async function exportStatsEngin(entries = []) {
+    if (!entries.length) {
+        showToast("Aucune donnée à exporter. Ouvrez l'onglet Statistiques d'abord.", "error");
+        return;
+    }
     showToast("⏳ Génération du fichier…", "info");
     try {
         const XLSX = await loadXLSX();
-        const snap = await getDocs(collection(db, "historique_controles"));
+        const map  = {};
 
-        const map = {};
-        snap.forEach(d => {
-            const e     = d.data();
+        entries.forEach(e => {
             const engin = e.engin || "—";
             if (!map[engin]) map[engin] = { total: 0, conformes: 0, incomplets: 0 };
             map[engin].total++;
@@ -90,16 +91,15 @@ export async function exportStatsEngin() {
         });
 
         const rows = Object.entries(map).map(([engin, s]) => ({
-            "Engin":        engin,
-            "Total":        s.total,
-            "Conformes":    s.conformes,
-            "Incomplets":   s.incomplets,
-            "Taux (%)":     s.total ? Math.round(s.conformes / s.total * 100) : 0,
+            "Engin":      engin,
+            "Total":      s.total,
+            "Conformes":  s.conformes,
+            "Incomplets": s.incomplets,
+            "Taux (%)":   s.total ? Math.round(s.conformes / s.total * 100) : 0,
         }));
 
         _telecharger(XLSX, rows, "stats_par_engin");
-        showToast(`✅ Export terminé.`, "success");
-
+        showToast("✅ Export terminé.", "success");
     } catch (err) {
         showToast("❌ " + err.message, "error");
     }
