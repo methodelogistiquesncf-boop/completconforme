@@ -2,12 +2,12 @@
 // app.js — Orchestrateur : init, auth, routing entre onglets, offline, version
 // ─────────────────────────────────────────────────────────────────────────────
 import { initAuth, setAuthCallbacks }                      from "./modules/auth.js";
-import { initTerrain, activerTerrain, ouvrirDetailKit }    from "./modules/terrain.js";
 import { initHistorique, chargerHistorique, setOnOpenKit } from "./modules/historique.js";
 import { initAdmin }                                       from "./modules/admin.js";
 import { initProfil, afficherProfil }                      from "./modules/profil.js";
 import { $ }                                               from "./modules/utils.js";
 import { initStats, chargerStatistiques, arreterStats } from "./modules/stats.js";
+import { initTerrain, activerTerrain, desactiverTerrain, ouvrirDetailKit } from "./modules/terrain.js";
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -40,9 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 const TABS = ['terrain', 'historique', 'admin', 'profil', 'stats'];
 
+import { initTerrain, activerTerrain, desactiverTerrain, ouvrirDetailKit } from "./modules/terrain.js";
+
 export function showTab(tab) {
-    // Si on quitte l'onglet stats → on coupe le listener
-    if (tab !== 'stats') arreterStats();
+    if (tab !== 'terrain') desactiverTerrain();
+    if (tab !== 'stats')   arreterStats();
 
     TABS.forEach(t => {
         $(`tab-${t}`)?.classList.toggle('active',   t === tab);
