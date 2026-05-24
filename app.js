@@ -8,6 +8,7 @@ import { initAdmin }                                       from "./modules/admin
 import { initProfil, afficherProfil }                      from "./modules/profil.js";
 import { chargerStatistiques }                             from "./modules/stats.js";
 import { $ }                                               from "./modules/utils.js";
+import { initStats, chargerStatistiques } from "./modules/stats.js";
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -18,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     _initTabNav();
     _initOfflineBanner();
     _detectAppVersion();
+    initStats();
 
     // Clic sur une carte historique → ouvre le détail dans Terrain
     setOnOpenKit((empId, kitId) => {
