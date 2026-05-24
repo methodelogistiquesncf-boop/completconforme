@@ -95,19 +95,20 @@ async function lancerRecherche() {
         const col = collection(db, COLLECTION);
         let q;
 
-        if (mode === 'nom_du_kit') {
-            // Préfixe : >= val, <= val + '\uf8ff'  (simule un startsWith)
-            // Les noms sont stockés en majuscules dans Firestore
+        if (mode === 'nom_du_kit' || mode === 'engin') {
+            // Recherche préfixe : >= val, <= val + '\uf8ff' (simule startsWith)
+            // Permet de taper "B82551" et trouver "B82551 4C TRANSILIEN1..."
             const v   = val.toUpperCase();
             const end = v + '\uf8ff';
             q = query(col,
-                where('nom_du_kit', '>=', v),
-                where('nom_du_kit', '<=', end),
-                orderBy('nom_du_kit'),
+                where(mode, '>=', v),
+                where(mode, '<=', end),
+                orderBy(mode),
                 orderBy('timestamp', 'desc'),
                 limit(LIMIT)
             );
         } else {
+            // empId et code_kit : correspondance exacte (toujours en majuscules)
             q = query(col,
                 where(mode, '==', val),
                 orderBy('timestamp', 'desc'),
