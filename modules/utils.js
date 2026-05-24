@@ -45,8 +45,10 @@ export function getWeekDays(offset = 0) {
 
 /** Numéro de semaine ISO. */
 export function numSemaine(d) {
-    const jan1 = new Date(d.getFullYear(), 0, 1);
-    return Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+    const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
+    const jan1 = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+    return Math.ceil(((tmp - jan1) / 86400000 + 1) / 7);
 }
 
 /** Début et fin (exclus) de la semaine weeksAgo semaines en arrière. */
