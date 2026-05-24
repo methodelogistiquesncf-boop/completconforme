@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 const TABS = ['terrain', 'historique', 'admin', 'profil', 'stats'];
 
-import { initTerrain, activerTerrain, desactiverTerrain, ouvrirDetailKit } from "./modules/terrain.js";
+
 
 export function showTab(tab) {
     if (tab !== 'terrain') desactiverTerrain();
