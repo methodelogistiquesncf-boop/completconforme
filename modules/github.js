@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // modules/github.js — Push vers GitHub + suivi pipeline Actions
 // ─────────────────────────────────────────────────────────────────────────────
-import { doc, setDoc }           from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { db, auth, lireToken, FIRESTORE_SECRET } from "./firebase.js";
-import { $, showToast }          from "./utils.js";
+import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { db, auth, FIRESTORE_SECRET } from "./firebase.js";
+import { $, showToast }               from "./utils.js";
 
 // ─── Constantes dépôt ────────────────────────────────────────────────────────
 export const GITHUB_OWNER = "methodelogistiquesncf-boop";
@@ -15,11 +15,40 @@ const API_ACTIONS = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}
 const POLL_INTERVAL_MS = 4000;
 const POLL_TIMEOUT_MS  = 300_000;
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// CACHE TOKEN GITHUB
+// Évite de retaper Firestore à chaque opération.
+// TTL de 5 minutes — invalidé immédiatement après une mise à jour du token.
+// ═══════════════════════════════════════════════════════════════════════════════
+let _tokenCache     = null;
+let _tokenCachedAt  = 0;
+const TOKEN_TTL_MS  = 5 * 60 * 1000; // 5 min
+
+async function _lireToken() {
+    const now = Date.now();
+    if (_tokenCache && (now - _tokenCachedAt) < TOKEN_TTL_MS) return _tokenCache;
+
+    const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
+    if (!snap.exists()) throw new Error("Aucun token configuré. Enregistrez-en un d'abord.");
+    const token = snap.data()[FIRESTORE_SECRET.field];
+    if (!token) throw new Error("Champ token vide dans Firestore.");
+
+    _tokenCache    = token;
+    _tokenCachedAt = now;
+    return token;
+}
+
+/** Invalide le cache token (à appeler après une mise à jour réussie). */
+function _invaliderTokenCache() {
+    _tokenCache    = null;
+    _tokenCachedAt = 0;
+}
+
 // ─── Helpers communs ─────────────────────────────────────────────────────────
 export function githubHeaders(token) {
     return {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
+        Authorization:       `Bearer ${token}`,
+        Accept:              "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
     };
 }
@@ -44,7 +73,7 @@ function sanitizeFileName(file) {
         .replace(/[\s+]+/g, "-")            // espaces et + → tirets
         .replace(/[^a-zA-Z0-9\-_]/g, "")   // tout autre caractère spécial supprimé
         .replace(/-{2,}/g, "-")             // tirets multiples → un seul
-        .replace(/^-+|-+$/g, "")           // tirets en début/fin supprimés
+        .replace(/^-+|-+$/g, "")            // tirets en début/fin supprimés
         .toLowerCase();
     return new File([file], `${cleanName}.${ext}`, { type: file.type });
 }
@@ -58,19 +87,24 @@ export function initGithubConfig() {
     const tokenStatus  = $("token-status");
     if (!tokenInput || !btnSaveToken) return;
 
-    // Indique si un token est déjà configuré
-    _chargerEtatToken(tokenInput, tokenStatus);
+    // Indique si un token est déjà configuré (lecture directe, hors cache)
+    _afficherEtatTokenExistant(tokenInput, tokenStatus);
 
     btnSaveToken.addEventListener("click", async () => {
         const val = tokenInput.value.trim();
-        if (!val) { _setStatus(tokenStatus, "❌ Veuillez saisir un token.", "error"); return; }
+        if (!val) {
+            _setStatus(tokenStatus, "❌ Veuillez saisir un token.", "error");
+            return;
+        }
         if (!val.startsWith("ghp_") && !val.startsWith("github_pat_")) {
             _setStatus(tokenStatus, "⚠️ Format inattendu. Un PAT commence par ghp_ ou github_pat_.", "error");
             return;
         }
+
         btnSaveToken.disabled    = true;
         btnSaveToken.textContent = "Enregistrement…";
         _setStatus(tokenStatus, "⏳ Enregistrement dans Firestore…", "info");
+
         try {
             await setDoc(
                 doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc),
@@ -81,9 +115,15 @@ export function initGithubConfig() {
                 },
                 { merge: true }
             );
+
+            // ✅ Invalide le cache immédiatement — le prochain appel à _lireToken()
+            // rechargera le nouveau token depuis Firestore.
+            _invaliderTokenCache();
+
             tokenInput.value       = "";
             tokenInput.placeholder = "ghp_•••••••••• (déjà enregistré)";
             _setStatus(tokenStatus, "✅ Token enregistré dans Firestore avec succès.", "success");
+
         } catch (err) {
             _setStatus(tokenStatus, "❌ Erreur : " + err.message, "error");
         } finally {
@@ -93,15 +133,18 @@ export function initGithubConfig() {
     });
 }
 
-async function _chargerEtatToken(tokenInput, tokenStatus) {
+// Vérifie si un token existe déjà — lecture directe Firestore (pas de cache,
+// car on veut l'état réel au chargement de la page admin).
+async function _afficherEtatTokenExistant(tokenInput, tokenStatus) {
     try {
-        const { getDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
         const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
         if (snap.exists() && snap.data()[FIRESTORE_SECRET.field]) {
             _setStatus(tokenStatus, "✅ Token GitHub configuré.", "success");
             tokenInput.placeholder = "ghp_•••••••••• (déjà enregistré)";
         }
-    } catch {}
+    } catch {
+        // Silencieux : pas critique si l'affichage de l'état échoue
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -127,13 +170,16 @@ export function initDropZoneEmplacements() {
         if (file) _traiterFichierEmp(file);
         e.target.value = "";
     });
+
+    // Bouton téléchargement de l'exemple — câblé ici plutôt qu'au niveau module
+    $("btn-dl-exemple-emp")?.addEventListener("click", _telechargerExempleEmp);
 }
 
 async function _traiterFichierEmp(file) {
-    const statusEl   = $("admin-status-emp");
-    const progArea   = $("progress-area-emp");
-    const progBar    = $("progress-bar-emp");
-    const progLabel  = $("progress-label-emp");
+    const statusEl    = $("admin-status-emp");
+    const progArea    = $("progress-area-emp");
+    const progBar     = $("progress-bar-emp");
+    const progLabel   = $("progress-label-emp");
     const previewWrap = $("emp-preview-wrap");
     const previewList = $("emp-preview-list");
     const previewCount = $("emp-preview-count");
@@ -142,6 +188,7 @@ async function _traiterFichierEmp(file) {
         _setStatus(statusEl, `❌ Nom invalide : « ${file.name} ». Attendu : « ${EXPECTED_FILENAME} ».`, "error");
         return;
     }
+
     previewWrap.classList.add("hidden");
     progArea.classList.remove("hidden");
     _setProgress(progBar, progLabel, 5, "Lecture du fichier…");
@@ -155,8 +202,9 @@ async function _traiterFichierEmp(file) {
             progArea.classList.add("hidden");
             return;
         }
+
         _setProgress(progBar, progLabel, 20, "Récupération du token…");
-        const token = await lireToken();
+        const token = await _lireToken();  // ← cache
 
         _setProgress(progBar, progLabel, 40, "Récupération du SHA actuel…");
         _setStatus(statusEl, "⏳ Connexion à GitHub…", "info");
@@ -199,6 +247,7 @@ async function _traiterFichierEmp(file) {
 
         _afficherApercu(previewList, previewCount, previewWrap, lignes);
         await chargerListeEmplacementsAutorises();
+
     } catch (err) {
         console.error("[PushEmp]", err);
         _setStatus(statusEl, "❌ " + err.message, "error");
@@ -225,12 +274,12 @@ function _afficherApercu(listEl, countEl, wrapEl, lignes) {
 }
 
 export async function chargerListeEmplacementsAutorises() {
-    const URL     = `${API_BASE}/${EXPECTED_FILENAME}`;
-    const listWrap  = $("emp-current-wrap");
-    const listEl    = $("emp-current-list");
-    const countEl   = $("emp-current-count");
-    const loadingEl = $("emp-current-loading");
-    const errorEl   = $("emp-current-error");
+    const empFileUrl = `${API_BASE}/${EXPECTED_FILENAME}`;  // ← renommé : évite de masquer le global URL
+    const listWrap   = $("emp-current-wrap");
+    const listEl     = $("emp-current-list");
+    const countEl    = $("emp-current-count");
+    const loadingEl  = $("emp-current-loading");
+    const errorEl    = $("emp-current-error");
     if (!listWrap) return;
 
     loadingEl.classList.remove("hidden");
@@ -238,9 +287,10 @@ export async function chargerListeEmplacementsAutorises() {
     listWrap.classList.add("hidden");
 
     try {
-        const token  = await lireToken();
-        const res    = await fetch(URL, { headers: githubHeaders(token) });
+        const token = await _lireToken();  // ← cache
+        const res   = await fetch(empFileUrl, { headers: githubHeaders(token) });
         if (!res.ok) throw new Error(`GitHub GET : ${(await res.json()).message}`);
+
         const data   = await res.json();
         const text   = atob(data.content.replace(/\n/g, ""));
         const lignes = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith("#"));
@@ -261,6 +311,7 @@ export async function chargerListeEmplacementsAutorises() {
         countEl.textContent =
             `${lignes.length} emplacement${lignes.length > 1 ? "s" : ""} autorisé${lignes.length > 1 ? "s" : ""}`;
         listWrap.classList.remove("hidden");
+
     } catch (err) {
         loadingEl.classList.add("hidden");
         errorEl.textContent = "⚠️ " + err.message;
@@ -268,21 +319,23 @@ export async function chargerListeEmplacementsAutorises() {
     }
 }
 
-document.getElementById("btn-dl-exemple-emp")?.addEventListener("click", async () => {
+async function _telechargerExempleEmp() {
     try {
-        const res = await fetch("https://raw.githubusercontent.com/methodelogistiquesncf-boop/completconforme/main/emplacements_autorises.txt");
+        const res = await fetch(
+            "https://raw.githubusercontent.com/methodelogistiquesncf-boop/completconforme/main/emplacements_autorises.txt"
+        );
         if (!res.ok) throw new Error("Erreur réseau");
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
+        const blob    = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a       = document.createElement("a");
+        a.href     = blobUrl;
         a.download = "emplacements_autorises.txt";
         a.click();
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(blobUrl);
     } catch (err) {
         alert("Impossible de télécharger le fichier exemple : " + err.message);
     }
-});
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // IMPORT EXCEL + POLLING ACTIONS
@@ -319,8 +372,7 @@ async function _traiterFichierXls(rawFile) {
     }
 
     // ✅ Renommage en mémoire — supprime accents, espaces, caractères spéciaux
-    const file           = sanitizeFileName(rawFile);
-    const originalName   = rawFile.name;   // conservé uniquement pour l'affichage si besoin
+    const file = sanitizeFileName(rawFile);
 
     const statusEl      = $("admin-status-xls");
     const progArea      = $("progress-area-xls");
@@ -345,7 +397,7 @@ async function _traiterFichierXls(rawFile) {
         const base64 = btoa(uint8.reduce((d, b) => d + String.fromCharCode(b), ""));
 
         _setProgress(progBar, progLabel, 20, "Récupération du token…");
-        const token      = await lireToken();
+        const token      = await _lireToken();  // ← cache
         const targetPath = `${TARGET_FOLDER}/${file.name}`;
 
         _setProgress(progBar, progLabel, 40, "Vérification du fichier existant…");
@@ -386,6 +438,7 @@ async function _traiterFichierXls(rawFile) {
                 style="color:var(--green);font-family:var(--mono);font-size:.8rem;">${shortSha} ↗</a>`;
 
         if (commitSha) await _pollWorkflow(commitSha, token);
+
     } catch (err) {
         console.error("[XLS]", err);
         _setStatus($("admin-status-xls"), "❌ " + err.message, "error");
@@ -431,6 +484,7 @@ async function _pollWorkflow(commitSha, token) {
             return;
         } catch {}
     }
+
     runLbl.textContent    = "⚠️ Délai dépassé — vérifiez GitHub Actions.";
     runLbl.style.color    = "var(--amber)";
     spinner.style.display = "none";
@@ -463,7 +517,9 @@ async function _pollRunJobs(initialRun, token, deadline, spinner, runLbl, runSt,
                     const r2   = await fetch(`${API_ACTIONS}/runs/${run.id}/jobs`, { headers: githubHeaders(token) });
                     const job2 = r2.ok ? (await r2.json()).jobs?.[0] : null;
                     _renderBusinessSteps(stepsEl, job2?.steps || [], run.conclusion, kitCount);
-                } catch { _renderBusinessSteps(stepsEl, [], run.conclusion, kitCount); }
+                } catch {
+                    _renderBusinessSteps(stepsEl, [], run.conclusion, kitCount);
+                }
             }
             return;
         }
@@ -491,19 +547,21 @@ async function _fetchKitCount(runId, jobId, token) {
         if (!m) return null;
         const n = parseInt(m[1].replace(/\s/g, ""), 10);
         return isNaN(n) ? null : n;
-    } catch { return null; }
+    } catch {
+        return null;
+    }
 }
 
 // ─── Rendu statut run ────────────────────────────────────────────────────────
 function _renderRunStatus(spinner, runLbl, runSt, status, conclusion) {
     const MAP = {
-        queued:      { icon: "⏳", label: "En file d'attente…",               color: "var(--muted)" },
-        in_progress: { icon: "🔄", label: "Pipeline en cours…",              color: "var(--blue)"  },
+        queued:      { icon: "⏳", label: "En file d'attente…",          color: "var(--muted)" },
+        in_progress: { icon: "🔄", label: "Pipeline en cours…",          color: "var(--blue)"  },
     };
     const CONC = {
-        success:   { icon: "✅", label: "Pipeline terminé avec succès !",    color: "var(--green)" },
-        failure:   { icon: "❌", label: "Pipeline échoué.",                   color: "var(--red)"   },
-        cancelled: { icon: "🚫", label: "Pipeline annulé.",                   color: "var(--muted)" },
+        success:   { icon: "✅", label: "Pipeline terminé avec succès !", color: "var(--green)" },
+        failure:   { icon: "❌", label: "Pipeline échoué.",                color: "var(--red)"   },
+        cancelled: { icon: "🚫", label: "Pipeline annulé.",                color: "var(--muted)" },
     };
     const info = status === "completed"
         ? (CONC[conclusion] || { icon: "⏳", label: "Démarrage…", color: "var(--muted)" })
@@ -526,11 +584,11 @@ function _renderBusinessSteps(stepsEl, githubSteps, runConclusion, kitCount) {
         const relevant = githubSteps.filter(s =>
             matches.some(m => s.name.toLowerCase().includes(m.toLowerCase()))
         );
-        if (!relevant.length) return { status: "queued", conclusion: null };
-        if (relevant.some(s => s.conclusion === "failure")) return { status: "completed", conclusion: "failure" };
+        if (!relevant.length)                                                         return { status: "queued",      conclusion: null      };
+        if (relevant.some(s => s.conclusion === "failure"))                           return { status: "completed",   conclusion: "failure" };
         if (relevant.every(s => s.conclusion === "success" || s.conclusion === "skipped"))
-            return { status: "completed", conclusion: "success" };
-        if (relevant.some(s => s.status === "in_progress")) return { status: "in_progress", conclusion: null };
+                                                                                      return { status: "completed",   conclusion: "success" };
+        if (relevant.some(s => s.status === "in_progress"))                           return { status: "in_progress", conclusion: null      };
         return { status: "queued", conclusion: null };
     }
 
@@ -599,6 +657,6 @@ function _setStatus(el, msg, type = "info") {
 }
 
 function _setProgress(bar, label, pct, text) {
-    if (bar)   bar.style.width     = pct + "%";
-    if (label) label.textContent   = text;
+    if (bar)   bar.style.width   = pct + "%";
+    if (label) label.textContent = text;
 }
