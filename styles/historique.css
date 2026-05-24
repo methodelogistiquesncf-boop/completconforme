@@ -151,3 +151,57 @@
     border: 1px solid rgba(192,122,0,.18);
 }
 .histo-ecart strong { font-weight: 800; }
+/* Barre de recherche avec bouton */
+.histo-search-wrap {
+    display: flex;
+    gap: .5rem;
+    flex: 1;
+    min-width: 240px;
+}
+ 
+.histo-search-btn {
+    flex-shrink: 0;
+    padding: .55rem 1rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--sans);
+    font-size: .82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s;
+    white-space: nowrap;
+}
+.histo-search-btn:hover { opacity: .88; }
+ 
+/* Invite initiale */
+.histo-invite {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .6rem;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
+}
+.histo-invite-icon   { font-size: 2.5rem; }
+.histo-invite-title  { font-size: 1rem; font-weight: 700; color: var(--text-soft); margin: 0; }
+.histo-invite-sub    { font-size: .82rem; line-height: 1.7; margin: 0; }
+.histo-invite code   { font-family: var(--mono); font-size: .78rem;
+                        background: var(--input-bg); border: 1px solid var(--border);
+                        border-radius: 4px; padding: .05rem .35rem; }
+.histo-invite kbd    { font-family: var(--mono); font-size: .75rem;
+                        background: var(--input-bg); border: 1px solid var(--border);
+                        border-radius: 4px; padding: .05rem .35rem; }
+ 
+/* Compteur de résultats */
+.histo-counter {
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--muted);
+    margin: .5rem 0 .75rem;
+    text-align: right;
+    min-height: 1rem;
+}
+ 
