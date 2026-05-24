@@ -276,27 +276,25 @@ def construire_index(df: pd.DataFrame) -> dict:
 
 
 # ─── INJECTION FIRESTORE OPTIMISÉE (BATCHES) ──────────────────────────────────
-
 def injecter(db, index: dict) -> dict:
     stats = {"ecrits": 0, "ignores": 0, "erreurs": 0}
     maintenant = datetime.datetime.utcnow().isoformat() + "Z"
-
+ 
     batch = db.batch()
     ops   = 0
-
+ 
     def commit_si_plein(seuil: int = 450):
-        """Valide le batch courant et en ouvre un nouveau si le seuil est atteint."""
         nonlocal batch, ops
         if ops >= seuil:
             print("→ Envoi d'un groupe de données vers Firestore...", flush=True)
             batch.commit()
             batch = db.batch()
             ops   = 0
-
+ 
     emplacements_ecrits: set[str] = set()
-
+ 
     for emp_id, kits in index.items():
-
+ 
         # 1. Écriture de l'emplacement (une seule fois par emp_id)
         if emp_id not in emplacements_ecrits:
             try:
@@ -307,7 +305,7 @@ def injecter(db, index: dict) -> dict:
                 commit_si_plein()
             except Exception as e:
                 print(f"  [WARN] Préparation emplacement {emp_id} : {e}", flush=True)
-
+ 
         # 2. Écriture des kits et nomenclatures
         for kit_id, kit_data in kits.items():
             try:
@@ -317,33 +315,46 @@ def injecter(db, index: dict) -> dict:
                       .collection("kits")
                       .document(kit_id)
                 )
+ 
+                # ── FIX 1 : on ne touche PAS au statut ni à l'historique de contrôle ──
+                # On met à jour uniquement les champs structurels (composition, dates,
+                # logistique). Les champs de contrôle (statut_conformite,
+                # derniere_verification, verificateur_email, detail_verification)
+                # sont préservés si le kit existe déjà grâce à merge=True.
                 payload = {
-                    **kit_data,
-                    "statut_conformite":    "Non vérifié",
-                    "derniere_mise_a_jour": maintenant,
+                    **kit_data,                          # composition, dates, engin…
+                    "derniere_mise_a_jour": maintenant,  # horodatage du dernier import
+                    # ⚠️  "statut_conformite" intentionnellement ABSENT :
+                    #     merge=True le conserve s'il existe déjà.
+                    #     S'il n'existe pas (nouveau kit), Firestore l'ignorera ;
+                    #     il sera initialisé à "Non vérifié" uniquement à la
+                    #     première ouverture dans l'app via terrain.js.
                 }
-                batch.set(kit_ref, payload)
+ 
+                # ── FIX 2 : merge=True → préserve les champs de contrôle existants ──
+                batch.set(kit_ref, payload, merge=True)
                 ops += 1
                 commit_si_plein()
-
-                # Nomenclature globale
+ 
+                # Nomenclature globale (définition du kit, pas de statut)
                 nom_ref = db.collection("nomenclature_kits").document(kit_id)
-                batch.set(nom_ref, kit_data)
+                batch.set(nom_ref, kit_data, merge=True)  # merge=True par cohérence
                 ops += 1
                 commit_si_plein()
-
+ 
                 stats["ecrits"] += 1
-
+ 
             except Exception as e:
                 stats["erreurs"] += 1
                 print(f"  [ERR]  Préparation {emp_id}/{kit_id} : {e}", flush=True)
-
+ 
     # Envoi des opérations restantes
     if ops > 0:
         print("→ Envoi du dernier groupe de données vers Firestore...", flush=True)
         batch.commit()
-
+ 
     return stats
+
 
 
 # ─── POINT D'ENTRÉE ───────────────────────────────────────────────────────────
