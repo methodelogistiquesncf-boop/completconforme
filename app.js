@@ -6,8 +6,8 @@ import { initTerrain, activerTerrain, ouvrirDetailKit }    from "./modules/terra
 import { initHistorique, chargerHistorique, setOnOpenKit } from "./modules/historique.js";
 import { initAdmin }                                       from "./modules/admin.js";
 import { initProfil, afficherProfil }                      from "./modules/profil.js";
-import { initStats, chargerStatistiques }                  from "./modules/stats.js";
 import { $ }                                               from "./modules/utils.js";
+import { initStats, chargerStatistiques, arreterStats } from "./modules/stats.js";
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -41,17 +41,20 @@ document.addEventListener('DOMContentLoaded', () => {
 const TABS = ['terrain', 'historique', 'admin', 'profil', 'stats'];
 
 export function showTab(tab) {
+    // Si on quitte l'onglet stats → on coupe le listener
+    if (tab !== 'stats') arreterStats();
+
     TABS.forEach(t => {
-        $(`tab-${t}`)?.classList.toggle('active',  t === tab);
-        $(`sec-${t}`)?.classList.toggle('hidden', t !== tab);
+        $(`tab-${t}`)?.classList.toggle('active',   t === tab);
+        $(`sec-${t}`)?.classList.toggle('hidden',   t !== tab);
         $(`sidebar-${t}`)?.classList.toggle('active', t === tab);
     });
 
     switch (tab) {
-        case 'terrain':     activerTerrain();       break;
-        case 'historique':  chargerHistorique();    break;
-        case 'profil':      afficherProfil();       break;
-        case 'stats':       chargerStatistiques();  break;
+        case 'terrain':    activerTerrain();      break;
+        case 'historique': chargerHistorique();   break;
+        case 'profil':     afficherProfil();      break;
+        case 'stats':      chargerStatistiques(); break;
     }
 }
 
