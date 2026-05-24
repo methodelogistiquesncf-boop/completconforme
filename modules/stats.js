@@ -1,45 +1,68 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// modules/stats.js — KPI, évolution 8 semaines, top composants, par engin
+// modules/stats.js
 // ─────────────────────────────────────────────────────────────────────────────
 import {
-    collection, getDocs,
+    collection, onSnapshot,   // ← onSnapshot remplace getDocs
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-import { db }                               from "./firebase.js";
+import { db }                                    from "./firebase.js";
 import { $, showToast, numSemaine, getWeekBounds } from "./utils.js";
-import { exportHistorique, exportStatsEngin } from "./export.js";
+import { exportHistorique, exportStatsEngin }      from "./export.js";
 
-let _entries = [];
+// ─── Données en mémoire ───────────────────────────────────────────────────────
+let _entries    = [];
+let _unsubscribe = null;   // ← garde la fonction de désabonnement
 
+// ─── Init — câblé UNE SEULE FOIS par app.js ───────────────────────────────────
 export function initStats() {
     $('btn-export-histo')?.addEventListener('click', () => exportHistorique(_entries));
     $('btn-export-engin')?.addEventListener('click', () => exportStatsEngin(_entries));
 }
 
-// ─── Point d'entrée ───────────────────────────────────────────────────────────
-export async function chargerStatistiques() {
+// ─── Démarre le listener temps réel ──────────────────────────────────────────
+export function chargerStatistiques() {
     const loading = $('stats-loading');
     const content = $('stats-content');
+
+    // Si un listener tourne déjà, on ne recrée pas
+    if (_unsubscribe) return;
+
     loading.classList.remove('hidden');
     content.classList.add('hidden');
-    try {
-        const snap = await getDocs(collection(db, "historique_controles"));
-        _entries = [];  // ← tableau du module, plus "const entries"
-        snap.forEach(d => _entries.push({ id: d.id, ...d.data() }));
-        _entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-        renderStatsKPI(_entries);
-        renderEvolution(_entries);
-        renderTopComposants(_entries);
-        renderParEngin(_entries);
+    _unsubscribe = onSnapshot(
+        collection(db, "historique_controles"),
 
-        loading.classList.add('hidden');
-        content.classList.remove('hidden');
-    } catch (err) {
-        loading.classList.add('hidden');
-        showToast('⚠️ ' + err.message, 'error');
+        // ── Callback succès : appelé à chaque changement ──────────────────────
+        (snap) => {
+            _entries = [];
+            snap.forEach(d => _entries.push({ id: d.id, ...d.data() }));
+            _entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            renderStatsKPI(_entries);
+            renderEvolution(_entries);
+            renderTopComposants(_entries);
+            renderParEngin(_entries);
+
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        },
+
+        // ── Callback erreur ───────────────────────────────────────────────────
+        (err) => {
+            loading.classList.add('hidden');
+            showToast('⚠️ ' + err.message, 'error');
+            _unsubscribe = null;
+        }
+    );
+}
+
+// ─── Arrête le listener (appelé quand on quitte l'onglet) ────────────────────
+export function arreterStats() {
+    if (_unsubscribe) {
+        _unsubscribe();
+        _unsubscribe = null;
     }
-
 }
 
 // ─── KPI ──────────────────────────────────────────────────────────────────────
