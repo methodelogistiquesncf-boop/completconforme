@@ -8,10 +8,27 @@
     gap: .6rem;
     margin-bottom: 1rem;
 }
-@media (min-width: 500px) { .histo-toolbar { flex-direction: row; } }
+@media (min-width: 500px) { .histo-toolbar { flex-direction: row; align-items: flex-start; } }
+
+/* ─── Barre de recherche ──────────────────────────────── */
+.histo-search-wrap {
+    display: flex;
+    gap: .5rem;
+    flex: 1;
+    min-width: 0;
+    align-items: flex-start;
+}
+
+.histo-input-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    min-width: 0;
+}
 
 .histo-search-input {
-    flex: 1;
+    width: 100%;
     background: var(--input-bg);
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
@@ -21,6 +38,7 @@
     color: var(--text);
     outline: none;
     transition: border-color .15s, box-shadow .15s;
+    box-sizing: border-box;
 }
 .histo-search-input::placeholder { color: var(--muted); }
 .histo-search-input:focus {
@@ -28,6 +46,33 @@
     box-shadow: 0 0 0 3px var(--accent-soft);
     background: #fff;
 }
+
+/* Hint de mode détecté */
+.histo-mode-hint {
+    font-family: var(--mono);
+    font-size: .68rem;
+    color: var(--accent);
+    font-weight: 700;
+    min-height: 1rem;
+    padding-left: .2rem;
+    transition: opacity .15s;
+}
+
+.histo-search-btn {
+    flex-shrink: 0;
+    padding: .65rem 1rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--sans);
+    font-size: .82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s;
+    white-space: nowrap;
+}
+.histo-search-btn:hover { opacity: .88; }
 
 .histo-filter-select {
     background: var(--input-bg);
@@ -44,12 +89,83 @@
 }
 .histo-filter-select:focus { border-color: var(--accent); }
 
-.histo-list { display: flex; flex-direction: column; gap: .5rem; }
+/* ─── Invite initiale ─────────────────────────────────── */
+.histo-invite {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .75rem;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
+}
+.histo-invite-icon  { font-size: 2.2rem; }
+.histo-invite-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-soft);
+    margin: 0;
+}
+
+.histo-invite-examples {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    width: 100%;
+    max-width: 420px;
+    text-align: left;
+}
+.histo-example-item {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .6rem .85rem;
+}
+.histo-example-badge { font-size: 1.2rem; flex-shrink: 0; }
+.histo-example-item div { display: flex; flex-direction: column; gap: .1rem; }
+.histo-example-item strong { font-size: .78rem; font-weight: 700; color: var(--text); }
+.histo-example-item code {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--muted);
+}
+
+.histo-invite-sub {
+    font-size: .78rem;
+    line-height: 1.7;
+    margin: 0;
+}
+.histo-invite kbd {
+    font-family: var(--mono);
+    font-size: .72rem;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: .05rem .35rem;
+}
+
+/* ─── Compteur ────────────────────────────────────────── */
+.histo-counter {
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--muted);
+    margin: .5rem 0 .75rem;
+    text-align: right;
+    min-height: 1rem;
+}
+
+/* ─── Liste & vide ───────────────────────────────────── */
+.histo-list  { display: flex; flex-direction: column; gap: .5rem; }
 .histo-empty {
     text-align: center;
     color: var(--muted);
     font-size: .85rem;
     padding: 2rem;
+    white-space: pre-wrap;
+    word-break: break-all;
 }
 
 /* ─── ITEM ───────────────────────────────────────────── */
@@ -97,9 +213,9 @@
 .badge-ko      { background: var(--amber-soft); color: var(--amber); }
 .badge-neutral { background: var(--surface-2);  color: var(--muted); border: 1.5px solid var(--border); }
 
-.histo-ids    { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
-.histo-emp    { font-family: var(--mono); font-size: .88rem; font-weight: 800; color: var(--text); letter-spacing: .05em; }
-.histo-kit-row { display: flex; align-items: center; gap: .4rem; }
+.histo-ids     { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+.histo-emp     { font-family: var(--mono); font-size: .88rem; font-weight: 800; color: var(--text); letter-spacing: .05em; }
+.histo-kit-row { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
 .histo-engin {
     font-family: var(--mono);
     font-size: .63rem;
@@ -151,57 +267,3 @@
     border: 1px solid rgba(192,122,0,.18);
 }
 .histo-ecart strong { font-weight: 800; }
-/* Barre de recherche avec bouton */
-.histo-search-wrap {
-    display: flex;
-    gap: .5rem;
-    flex: 1;
-    min-width: 240px;
-}
- 
-.histo-search-btn {
-    flex-shrink: 0;
-    padding: .55rem 1rem;
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius);
-    font-family: var(--sans);
-    font-size: .82rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity .15s;
-    white-space: nowrap;
-}
-.histo-search-btn:hover { opacity: .88; }
- 
-/* Invite initiale */
-.histo-invite {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: .6rem;
-    padding: 3rem 1.5rem;
-    text-align: center;
-    color: var(--muted);
-}
-.histo-invite-icon   { font-size: 2.5rem; }
-.histo-invite-title  { font-size: 1rem; font-weight: 700; color: var(--text-soft); margin: 0; }
-.histo-invite-sub    { font-size: .82rem; line-height: 1.7; margin: 0; }
-.histo-invite code   { font-family: var(--mono); font-size: .78rem;
-                        background: var(--input-bg); border: 1px solid var(--border);
-                        border-radius: 4px; padding: .05rem .35rem; }
-.histo-invite kbd    { font-family: var(--mono); font-size: .75rem;
-                        background: var(--input-bg); border: 1px solid var(--border);
-                        border-radius: 4px; padding: .05rem .35rem; }
- 
-/* Compteur de résultats */
-.histo-counter {
-    font-family: var(--mono);
-    font-size: .7rem;
-    color: var(--muted);
-    margin: .5rem 0 .75rem;
-    text-align: right;
-    min-height: 1rem;
-}
- 
