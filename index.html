@@ -225,23 +225,25 @@
     <div class="card">
         <p class="card-title">Historique des contrôles</p>
  
-        <!-- Barre de recherche intelligente -->
+        <!-- Barre de recherche avec sélection manuelle du mode -->
         <div class="histo-toolbar">
             <div class="histo-search-wrap">
-                <div class="histo-input-wrap">
-                    <input
-                        type="text"
-                        id="histo-search"
-                        class="histo-search-input"
-                        placeholder="Emplacement, engin, nom de kit…"
-                        autocomplete="off"
-                        spellcheck="false"
-                    >
-                    <!-- Hint de mode détecté automatiquement -->
-                    <span class="histo-mode-hint" id="histo-mode-hint"></span>
-                </div>
+                <select id="histo-mode" class="histo-mode-select">
+                    <option value="empId">📍 Emplacement</option>
+                    <option value="engin">🚂 Engin</option>
+                    <option value="nom_du_kit">🧰 Nom de kit</option>
+                    <option value="code_kit">🔑 Code kit</option>
+                </select>
+                <input
+                    type="text"
+                    id="histo-search"
+                    class="histo-search-input"
+                    placeholder="Ex : ETKI.0070301"
+                    autocomplete="off"
+                    spellcheck="false"
+                >
                 <button class="histo-search-btn" id="histo-search-btn">
-                    🔍 Rechercher
+                    🔍
                 </button>
             </div>
             <select id="histo-filter" class="histo-filter-select">
@@ -254,7 +256,7 @@
         <!-- Invite initiale -->
         <div class="histo-invite" id="histo-invite">
             <span class="histo-invite-icon">🔍</span>
-            <p class="histo-invite-title">Que voulez-vous chercher ?</p>
+            <p class="histo-invite-title">Choisissez un mode puis lancez la recherche</p>
             <div class="histo-invite-examples">
                 <div class="histo-example-item">
                     <span class="histo-example-badge">📍</span>
@@ -267,20 +269,25 @@
                     <span class="histo-example-badge">🚂</span>
                     <div>
                         <strong>Engin</strong>
-                        <code>B82551 4C TRANSILIEN1</code>
+                        <code>B82551 4C TRANSILIEN1 (2e série)</code>
                     </div>
                 </div>
                 <div class="histo-example-item">
                     <span class="histo-example-badge">🧰</span>
                     <div>
                         <strong>Nom de kit</strong>
-                        <code>KIT TRAIT MEC PORTE</code>
+                        <code>KIT TRAIT MEC PORTE SIMPLE</code>
+                    </div>
+                </div>
+                <div class="histo-example-item">
+                    <span class="histo-example-badge">🔑</span>
+                    <div>
+                        <strong>Code kit</strong>
+                        <code>K21 OO990648</code>
                     </div>
                 </div>
             </div>
-            <p class="histo-invite-sub">
-                Le mode est détecté automatiquement · <kbd>Entrée</kbd> pour lancer
-            </p>
+            <p class="histo-invite-sub"><kbd>Entrée</kbd> pour lancer · 50 résultats max</p>
         </div>
  
         <!-- Spinner -->
