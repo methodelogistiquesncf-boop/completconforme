@@ -4,7 +4,7 @@
 import {
     doc, getDoc, getDocs, setDoc, addDoc,
     collection, collectionGroup,
-    query, where,
+    query, where, onSnapshot,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 import { db, auth }                                  from "./firebase.js";
@@ -13,8 +13,9 @@ import { $, JOURS_COURTS, MOIS_LONGS, aujourd_hui,
          showToast, showConfirmToast }               from "./utils.js";
 
 // ─── État interne ─────────────────────────────────────────────────────────────
-let currentEmpId = "";
-let currentKitId = "";
+let currentEmpId        = "";
+let currentKitId        = "";
+let _unsubscribeSemaine = null;
 
 const CAL = {
     weekOffset:  0,
@@ -27,12 +28,12 @@ const CAL = {
 
 // ─── Init & câblage ───────────────────────────────────────────────────────────
 export function initTerrain() {
-    $('cal-prev')?.addEventListener('click',  async () => { CAL.weekOffset--; await renderCalendrier(); });
-    $('cal-next')?.addEventListener('click',  async () => { CAL.weekOffset++; await renderCalendrier(); });
-    $('cal-today')?.addEventListener('click', async () => {
+    $('cal-prev')?.addEventListener('click',  () => { CAL.weekOffset--; renderCalendrier(); });
+    $('cal-next')?.addEventListener('click',  () => { CAL.weekOffset++; renderCalendrier(); });
+    $('cal-today')?.addEventListener('click', () => {
         CAL.weekOffset  = 0;
         CAL.selectedIso = aujourd_hui();
-        await renderCalendrier();
+        renderCalendrier();
     });
 
     $('cal-emp-input')?.addEventListener('input', e => {
@@ -48,7 +49,7 @@ export function initTerrain() {
     });
 
     $('btn-retour-cal')?.addEventListener('click',  () => afficherVue('calendrier'));
-$('btn-retour-cals')?.addEventListener('click', () => afficherVue('calendrier'));
+    $('btn-retour-cals')?.addEventListener('click', () => afficherVue('calendrier'));
 
     $('btn-retour-kits')?.addEventListener('click', () => {
         afficherVue('kits');
@@ -59,14 +60,25 @@ $('btn-retour-cals')?.addEventListener('click', () => afficherVue('calendrier'))
     $('btn-incomplet')?.addEventListener('click', () => _valider("Incomplet"));
 }
 
-/** Réinitialise le cache et affiche le calendrier (appelé par app.js lors du switch d'onglet). */
-export async function activerTerrain() {
+// ─── Activation / désactivation de l'onglet ──────────────────────────────────
+export function activerTerrain() {
     CAL.cache = {};
+    if (_unsubscribeSemaine) {
+        _unsubscribeSemaine();
+        _unsubscribeSemaine = null;
+    }
     afficherVue('calendrier');
-    await renderCalendrier();
+    renderCalendrier();
 }
 
-// ─── Navigation entre vues ───────────────────────────────────────────────────
+export function desactiverTerrain() {
+    if (_unsubscribeSemaine) {
+        _unsubscribeSemaine();
+        _unsubscribeSemaine = null;
+    }
+}
+
+// ─── Navigation entre vues ────────────────────────────────────────────────────
 export function afficherVue(vue) {
     $('view-calendrier').classList.toggle('hidden', vue !== 'calendrier');
     $('view-kits').classList.toggle('hidden',       vue !== 'kits');
@@ -74,63 +86,85 @@ export function afficherVue(vue) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CALENDRIER — CHARGEMENT
+// CALENDRIER — LISTENER TEMPS RÉEL
 // ═══════════════════════════════════════════════════════════════════════════════
-async function _chargerKitsSemaine(days) {
-    const isos  = days.map(toIso);
-    const debut = isos[0];
-    const fin   = isos[6];
+function _ecouterKitsSemaine(days) {
+    const isos          = days.map(toIso);
+    const debut         = isos[0];
+    const fin           = isos[6];
+    const aujourdhui    = aujourd_hui();
+    const estSemaineCourante = isos.includes(aujourdhui);
 
-    if (isos.every(iso => iso in CAL.cache)) return;
+    // Semaine passée déjà en cache → on réutilise sans listener
+    if (!estSemaineCourante && isos.every(iso => iso in CAL.cache)) {
+        _renderCalStrip(days, false);
+        if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
+        else _renderEmptyState();
+        return;
+    }
+
+    // Coupe l'ancien listener avant d'en créer un nouveau
+    if (_unsubscribeSemaine) {
+        _unsubscribeSemaine();
+        _unsubscribeSemaine = null;
+    }
 
     CAL.loading = true;
-    try {
-        const q = query(
-            collectionGroup(db, "kits"),
-            where("date_debut_iso", ">=", debut),
-            where("date_debut_iso", "<=", fin)
-        );
-        const snap = await getDocs(q);
-        isos.forEach(iso => { if (!(iso in CAL.cache)) CAL.cache[iso] = []; });
 
-        snap.forEach(kitDoc => {
-            const data = kitDoc.data();
-            const iso  = data.date_debut_iso;
-            if (!iso) return;
-            if (!CAL.cache[iso]) CAL.cache[iso] = [];
+    const q = query(
+        collectionGroup(db, "kits"),
+        where("date_debut_iso", ">=", debut),
+        where("date_debut_iso", "<=", fin)
+    );
 
-            const pathParts = kitDoc.ref.path.split('/');
-            const empId = pathParts[1] || "";
+    _unsubscribeSemaine = onSnapshot(q,
+        // ── Callback succès : déclenché à chaque changement Firestore ─────────
+        (snap) => {
+            // Réinitialise les jours de cette semaine dans le cache
+            isos.forEach(iso => { CAL.cache[iso] = []; });
 
-            CAL.cache[iso].push({
-                kitId:             kitDoc.id,
-                empId,
-                nom_du_kit:        data.nom_du_kit        || kitDoc.id,
-                engin:             data.engin             || "",
-                code_kit:          data.code_kit          || "",
-                code_contenant:    data.code_contenant    || "",
-                statut_conformite: data.statut_conformite || "Non vérifié",
-                emplacement_wms:   data.emplacement_wms_remontage || "",
-                date_debut_iso:    iso,
+            snap.forEach(kitDoc => {
+                const data = kitDoc.data();
+                const iso  = data.date_debut_iso;
+                if (!iso || !CAL.cache[iso]) return;
+
+                const empId = kitDoc.ref.path.split('/')[1] || "";
+
+                CAL.cache[iso].push({
+                    kitId:             kitDoc.id,
+                    empId,
+                    nom_du_kit:        data.nom_du_kit        || kitDoc.id,
+                    engin:             data.engin             || "",
+                    code_kit:          data.code_kit          || "",
+                    code_contenant:    data.code_contenant    || "",
+                    statut_conformite: data.statut_conformite || "Non vérifié",
+                    emplacement_wms:   data.emplacement_wms_remontage || "",
+                    date_debut_iso:    iso,
+                });
             });
-        });
-    } catch (err) {
-        console.error("[CAL] Erreur chargement semaine :", err);
-        showToast("⚠️ Erreur calendrier : " + err.message, 'error');
-    } finally {
-        CAL.loading = false;
-    }
+
+            CAL.loading = false;
+            _renderCalStrip(days, false);
+            if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
+            else _renderEmptyState();
+        },
+
+        // ── Callback erreur ───────────────────────────────────────────────────
+        (err) => {
+            CAL.loading = false;
+            console.error("[CAL] Erreur onSnapshot :", err);
+            showToast("⚠️ Erreur calendrier : " + err.message, 'error');
+            _unsubscribeSemaine = null;
+        }
+    );
 }
 
-// ─── Rendu principal ─────────────────────────────────────────────────────────
-export async function renderCalendrier() {
+// ─── Rendu principal ──────────────────────────────────────────────────────────
+export function renderCalendrier() {
     const days = getWeekDays(CAL.weekOffset);
     _renderWeekLabel(days);
-    _renderCalStrip(days, true);
-    await _chargerKitsSemaine(days);
-    _renderCalStrip(days, false);
-    if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
-    else _renderEmptyState();
+    _renderCalStrip(days, true);  // skeleton pendant le chargement
+    _ecouterKitsSemaine(days);    // onSnapshot ou cache selon la semaine
 }
 
 function _renderWeekLabel(days) {
@@ -176,9 +210,9 @@ function _renderCalStrip(days, skeleton = false) {
                     <span class="cal-num">${d.getDate()}</span>
                 </div>
                 <div class="cal-dots">
-                    ${nbKo      ? `<span class="cal-dot dot-amber" title="${nbKo} incomplet(s)"></span>` : ''}
+                    ${nbKo      ? `<span class="cal-dot dot-amber" title="${nbKo} incomplet(s)"></span>`    : ''}
                     ${nbPending ? `<span class="cal-dot dot-red"   title="${nbPending} à contrôler"></span>` : ''}
-                    ${nbOk      ? `<span class="cal-dot dot-green" title="${nbOk} conforme(s)"></span>` : ''}
+                    ${nbOk      ? `<span class="cal-dot dot-green" title="${nbOk} conforme(s)"></span>`      : ''}
                 </div>
                 ${kitsFiltered.length ? `<span class="cal-count">${kitsFiltered.length}</span>` : ''}
             `;
@@ -290,7 +324,7 @@ export async function chargerKitsEmplacement(empId) {
     }
 }
 
-// ─── Constructeur de carte kit (partagé entre les deux vues) ─────────────────
+// ─── Constructeur de carte kit ────────────────────────────────────────────────
 function _buildKitCard(k, onClick, showDate = false) {
     const statut = k.statut_conformite || 'Non vérifié';
     const isOk   = statut === 'Conforme';
@@ -301,9 +335,9 @@ function _buildKitCard(k, onClick, showDate = false) {
     card.innerHTML = `
         <div class="kit-liste-left">
             <div class="kit-liste-meta">
-                ${k.engin           ? `<span class="kit-liste-engin-badge">${k.engin}</span>` : ''}
+                ${k.engin          ? `<span class="kit-liste-engin-badge">${k.engin}</span>` : ''}
                 <span class="kit-liste-code">${k.code_kit || k.kitId}</span>
-                ${k.code_contenant  ? `<span class="kit-liste-contenant">📦 ${k.code_contenant}</span>` : ''}
+                ${k.code_contenant ? `<span class="kit-liste-contenant">📦 ${k.code_contenant}</span>` : ''}
                 ${k.empId && !showDate ? `<span class="kit-liste-emp-badge">📍 ${k.empId}</span>` : ''}
             </div>
             <span class="kit-liste-nom">${k.nom_du_kit || k.kitId}</span>
@@ -448,7 +482,6 @@ async function _valider(statut) {
     try {
         const now = new Date().toISOString();
 
-        // 1. MAJ statut sur le kit
         await setDoc(
             doc(db, "emplacements", currentEmpId, "kits", currentKitId),
             {
@@ -460,7 +493,6 @@ async function _valider(statut) {
             { merge: true }
         );
 
-        // 2. Archivage immuable
         const kitSnap = await getDoc(doc(db, "emplacements", currentEmpId, "kits", currentKitId));
         const kitData = kitSnap.exists() ? kitSnap.data() : {};
 
@@ -477,21 +509,13 @@ async function _valider(statut) {
             detail_verification: details,
         });
 
-        // 3. Invalide le cache calendrier
-        for (const iso in CAL.cache) {
-            const idx = CAL.cache[iso].findIndex(
-                k => k.kitId === currentKitId && k.empId === currentEmpId
-            );
-            if (idx !== -1) { delete CAL.cache[iso]; break; }
-        }
-        if (CAL.selectedIso && CAL.cache[CAL.selectedIso]) delete CAL.cache[CAL.selectedIso];
-
+        // Plus besoin d'invalider le cache manuellement →
+        // onSnapshot reçoit le changement et met à jour automatiquement
         showToast(`✅ Statut « ${statut} » enregistré.`, 'success');
         setTimeout(() => {
             currentEmpId = '';
             currentKitId = '';
             afficherVue('calendrier');
-            renderCalendrier();
         }, 1500);
 
     } catch (err) {
