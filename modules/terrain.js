@@ -47,7 +47,8 @@ export function initTerrain() {
         if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
     });
 
-    $('btn-retour-cal')?.addEventListener('click', () => afficherVue('calendrier'));
+    $('btn-retour-cal')?.addEventListener('click',  () => afficherVue('calendrier'));
+$('btn-retour-cals')?.addEventListener('click', () => afficherVue('calendrier'));
 
     $('btn-retour-kits')?.addEventListener('click', () => {
         afficherVue('kits');
