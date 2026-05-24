@@ -1,15 +1,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // app.js — Orchestrateur : init, auth, routing entre onglets, offline, version
 // ─────────────────────────────────────────────────────────────────────────────
-import { initAuth, setAuthCallbacks }            from "./modules/auth.js";
-import { initTerrain, activerTerrain }            from "./modules/terrain.js";
-import { initHistorique, chargerHistorique }      from "./modules/historique.js";
-import { initAdmin }                              from "./modules/admin.js";
-import { initProfil, afficherProfil }             from "./modules/profil.js";
-import { chargerStatistiques }                    from "./modules/stats.js";
-import { $ }                                      from "./modules/utils.js";
+import { initAuth, setAuthCallbacks }                      from "./modules/auth.js";
+import { initTerrain, activerTerrain, ouvrirDetailKit }    from "./modules/terrain.js";
 import { initHistorique, chargerHistorique, setOnOpenKit } from "./modules/historique.js";
-import { ouvrirDetailKit, afficherVue }                    from "./modules/terrain.js";
+import { initAdmin }                                       from "./modules/admin.js";
+import { initProfil, afficherProfil }                      from "./modules/profil.js";
+import { chargerStatistiques }                             from "./modules/stats.js";
+import { $ }                                               from "./modules/utils.js";
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,6 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
     _initTabNav();
     _initOfflineBanner();
     _detectAppVersion();
+
+    // Clic sur une carte historique → ouvre le détail dans Terrain
+    setOnOpenKit((empId, kitId) => {
+        showTab('terrain');
+        ouvrirDetailKit(empId, kitId);
+    });
 
     // Quand l'utilisateur se connecte → aller sur l'onglet Terrain
     setAuthCallbacks({
@@ -36,15 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
 const TABS = ['terrain', 'historique', 'admin', 'profil', 'stats'];
 
 export function showTab(tab) {
-    // Boutons header & sections
     TABS.forEach(t => {
         $(`tab-${t}`)?.classList.toggle('active',  t === tab);
         $(`sec-${t}`)?.classList.toggle('hidden', t !== tab);
-        // Sidebar desktop
         $(`sidebar-${t}`)?.classList.toggle('active', t === tab);
     });
 
-    // Actions spécifiques à l'onglet activé
     switch (tab) {
         case 'terrain':     activerTerrain();       break;
         case 'historique':  chargerHistorique();    break;
@@ -58,7 +59,6 @@ function _initTabNav() {
         $(`tab-${t}`)?.addEventListener('click', () => showTab(t));
     });
 
-    // Sync sidebar ↔ header (la sidebar déclenche le clic sur le tab header)
     const pairs = [
         ['sidebar-terrain',    'tab-terrain'],
         ['sidebar-historique', 'tab-historique'],
