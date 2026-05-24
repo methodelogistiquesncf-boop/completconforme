@@ -27,6 +27,11 @@ import { $, showToast } from "./utils.js";
 const COLLECTION = "historique_controles";
 const LIMIT      = 50;
 
+// ─── Callback externe (fourni par app.js) ─────────────────────────────────────
+// Appelé quand l'agent clique sur une carte → ouvre le détail du kit en Terrain
+let _onOpenKit = null;
+export function setOnOpenKit(fn) { _onOpenKit = fn; }
+
 // ─── Placeholders selon le mode ───────────────────────────────────────────────
 const PLACEHOLDERS = {
     empId:      'Ex : ETKI.0070301',
@@ -214,6 +219,14 @@ function renderResultats(docs) {
                 `).join('')}
             </div>` : ''}
         `;
+        // Clic → ouvre le détail dans Terrain
+        if (_onOpenKit && k.empId && (k.kitId || k.code_kit)) {
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', () => {
+                _onOpenKit(k.empId, k.kitId || k.code_kit);
+            });
+        }
+
         listEl.appendChild(row);
     });
 }
