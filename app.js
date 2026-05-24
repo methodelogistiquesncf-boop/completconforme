@@ -6,9 +6,8 @@ import { initTerrain, activerTerrain, ouvrirDetailKit }    from "./modules/terra
 import { initHistorique, chargerHistorique, setOnOpenKit } from "./modules/historique.js";
 import { initAdmin }                                       from "./modules/admin.js";
 import { initProfil, afficherProfil }                      from "./modules/profil.js";
-import { chargerStatistiques }                             from "./modules/stats.js";
+import { initStats, chargerStatistiques }                  from "./modules/stats.js";
 import { $ }                                               from "./modules/utils.js";
-import { initStats, chargerStatistiques } from "./modules/stats.js";
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
