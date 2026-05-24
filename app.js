@@ -8,6 +8,8 @@ import { initAdmin }                              from "./modules/admin.js";
 import { initProfil, afficherProfil }             from "./modules/profil.js";
 import { chargerStatistiques }                    from "./modules/stats.js";
 import { $ }                                      from "./modules/utils.js";
+import { initHistorique, chargerHistorique, setOnOpenKit } from "./modules/historique.js";
+import { ouvrirDetailKit, afficherVue }                    from "./modules/terrain.js";
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
