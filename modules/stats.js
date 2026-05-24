@@ -1,84 +1,103 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // modules/stats.js
+//
+// Stratégie quota :
+//   • KPI + évolution + par engin → 1 seule lecture (doc "stats/kpi")
+//   • Top composants             → getDocs limité aux N derniers contrôles incomplets
+//   • Export                     → utilise _entries (déjà chargées pour les composants)
+//
+// Le document "stats/kpi" est maintenu en temps réel par terrain.js
+// à chaque appel de _valider() via increment().
 // ─────────────────────────────────────────────────────────────────────────────
 import {
-    collection, onSnapshot,   // ← onSnapshot remplace getDocs
+    doc, getDoc,
+    collection, query, where, orderBy, limit, getDocs,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 import { db }                                    from "./firebase.js";
 import { $, showToast, numSemaine, getWeekBounds } from "./utils.js";
 import { exportHistorique, exportStatsEngin }      from "./export.js";
 
-// ─── Données en mémoire ───────────────────────────────────────────────────────
-let _entries    = [];
-let _unsubscribe = null;   // ← garde la fonction de désabonnement
+// ─── Constantes ───────────────────────────────────────────────────────────────
+// On ne lit que les contrôles incomplets récents pour calculer les top composants.
+// La limite est haute car on a besoin d'un vrai top — mais 0 lecture pour les KPI.
+const COMPOSANTS_LIMIT = 300;
 
-// ─── Init — câblé UNE SEULE FOIS par app.js ───────────────────────────────────
+// ─── Données en mémoire ───────────────────────────────────────────────────────
+let _kpiData    = null;   // contenu du doc stats/kpi (chargé une fois par session)
+let _entries    = [];     // contrôles incomplets pour le top composants + export
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
 export function initStats() {
     $('btn-export-histo')?.addEventListener('click', () => exportHistorique(_entries));
     $('btn-export-engin')?.addEventListener('click', () => exportStatsEngin(_entries));
 }
 
-// ─── Démarre le listener temps réel ──────────────────────────────────────────
-export function chargerStatistiques() {
+// ─── Chargement principal ─────────────────────────────────────────────────────
+export async function chargerStatistiques() {
     const loading = $('stats-loading');
     const content = $('stats-content');
 
-    // Si un listener tourne déjà, on ne recrée pas
-    if (_unsubscribe) return;
+    // Déjà chargé cette session → re-rendu sans requête
+    if (_kpiData) {
+        _renderTout(_kpiData, _entries);
+        return;
+    }
 
     loading.classList.remove('hidden');
     content.classList.add('hidden');
 
-    _unsubscribe = onSnapshot(
-        collection(db, "historique_controles"),
+    try {
+        // ── 1 lecture : document de synthèse ─────────────────────────────────
+        const kpiSnap = await getDoc(doc(db, "stats", "kpi"));
+        _kpiData = kpiSnap.exists() ? kpiSnap.data() : {};
 
-        // ── Callback succès : appelé à chaque changement ──────────────────────
-        (snap) => {
-            _entries = [];
-            snap.forEach(d => _entries.push({ id: d.id, ...d.data() }));
-            _entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        // ── N lectures : incomplets récents (pour top composants + export) ────
+        const q = query(
+            collection(db, "historique_controles"),
+            where("statut", "==", "Incomplet"),
+            orderBy("timestamp", "desc"),
+            limit(COMPOSANTS_LIMIT)
+        );
+        const snap = await getDocs(q);
+        _entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-            renderStatsKPI(_entries);
-            renderEvolution(_entries);
-            renderTopComposants(_entries);
-            renderParEngin(_entries);
+        _renderTout(_kpiData, _entries);
+        loading.classList.add('hidden');
+        content.classList.remove('hidden');
 
-            loading.classList.add('hidden');
-            content.classList.remove('hidden');
-        },
-
-        // ── Callback erreur ───────────────────────────────────────────────────
-        (err) => {
-            loading.classList.add('hidden');
-            showToast('⚠️ ' + err.message, 'error');
-            _unsubscribe = null;
-        }
-    );
-}
-
-// ─── Arrête le listener (appelé quand on quitte l'onglet) ────────────────────
-export function arreterStats() {
-    if (_unsubscribe) {
-        _unsubscribe();
-        _unsubscribe = null;
+    } catch (err) {
+        loading.classList.add('hidden');
+        showToast('⚠️ ' + err.message, 'error');
     }
 }
 
+/** Invalide le cache local — appelé par terrain.js après une validation. */
+export function invaliderCacheStats() {
+    _kpiData  = null;
+    _entries  = [];
+}
+
+// ─── Orchestration du rendu ───────────────────────────────────────────────────
+function _renderTout(kpi, entries) {
+    renderStatsKPI(kpi);
+    renderEvolution(kpi);
+    renderParEngin(kpi);
+    renderTopComposants(entries);
+}
+
 // ─── KPI ──────────────────────────────────────────────────────────────────────
-export function renderStatsKPI(entries) {
-    const total      = entries.length;
-    const conformes  = entries.filter(e => e.statut === 'Conforme').length;
-    const incomplets = entries.filter(e => e.statut === 'Incomplet').length;
+// Les compteurs viennent du document de synthèse — 0 itération sur les docs.
+export function renderStatsKPI(kpi) {
+    const total      = kpi.total      || 0;
+    const conformes  = kpi.conformes  || 0;
+    const incomplets = kpi.incomplets || 0;
     const taux       = total ? Math.round(conformes / total * 100) : null;
 
-    // Semaine en cours
+    // Semaine en cours : issue du résumé hebdomadaire
     const now = new Date();
-    const dow = now.getDay() || 7;
-    const lundi = new Date(now);
-    lundi.setDate(now.getDate() - dow + 1);
-    lundi.setHours(0, 0, 0, 0);
-    const semaine = entries.filter(e => new Date(e.timestamp) >= lundi).length;
+    const semLabel = `${now.getFullYear()}-W${String(numSemaine(now)).padStart(2, '0')}`;
+    const semaine  = kpi.par_semaine?.[semLabel]?.total || 0;
 
     $('kpi-total').textContent      = total;
     $('kpi-taux').textContent       = taux !== null ? taux + '%' : '—';
@@ -93,23 +112,19 @@ export function renderStatsKPI(entries) {
 }
 
 // ─── Évolution 8 semaines ─────────────────────────────────────────────────────
-export function renderEvolution(entries) {
+// Les totaux hebdomadaires viennent du document de synthèse.
+export function renderEvolution(kpi) {
     const el = $('chart-evolution');
     if (!el) return;
 
+    const semaines_data = kpi.par_semaine || {};
     const weeks = [];
+
     for (let i = 7; i >= 0; i--) {
-        const { start, end } = getWeekBounds(i);
-        const w = entries.filter(e => {
-            const t = new Date(e.timestamp);
-            return t >= start && t < end;
-        });
-        weeks.push({
-            label:      `S${String(numSemaine(start)).padStart(2, '0')}`,
-            total:      w.length,
-            conformes:  w.filter(e => e.statut === 'Conforme').length,
-            incomplets: w.filter(e => e.statut === 'Incomplet').length,
-        });
+        const { start } = getWeekBounds(i);
+        const label = `${start.getFullYear()}-W${String(numSemaine(start)).padStart(2, '0')}`;
+        const w     = semaines_data[label] || { total: 0, conformes: 0, incomplets: 0 };
+        weeks.push({ label: `S${String(numSemaine(start)).padStart(2, '0')}`, ...w });
     }
 
     const maxVal = Math.max(...weeks.map(w => w.total), 1);
@@ -120,11 +135,11 @@ export function renderEvolution(entries) {
                 <div class="evo-col">
                     <div class="evo-bars">
                         <div class="evo-bar evo-bar-ko"
-                             style="height:${w.incomplets / maxVal * 100}%"
-                             title="${w.incomplets} non conforme(s)"></div>
+                             style="height:${(w.incomplets || 0) / maxVal * 100}%"
+                             title="${w.incomplets || 0} non conforme(s)"></div>
                         <div class="evo-bar evo-bar-ok"
-                             style="height:${w.conformes / maxVal * 100}%"
-                             title="${w.conformes} conforme(s)"></div>
+                             style="height:${(w.conformes || 0) / maxVal * 100}%"
+                             title="${w.conformes || 0} conforme(s)"></div>
                     </div>
                     <div class="evo-total">${w.total || ''}</div>
                     <div class="evo-label">${w.label}</div>
@@ -143,19 +158,18 @@ export function renderEvolution(entries) {
 }
 
 // ─── Top composants en écart ──────────────────────────────────────────────────
+// Seule fonction qui lit de vrais documents — limitée aux incomplets récents.
 export function renderTopComposants(entries) {
     const el = $('stats-top-composants');
     if (!el) return;
 
     const compteur = {};
-    entries
-        .filter(e => e.statut === 'Incomplet')
-        .forEach(e => {
-            (e.detail_verification || []).forEach(c => {
-                if (c.quantite_comptee !== null && c.quantite_comptee !== c.quantite_requise)
-                    compteur[c.nom] = (compteur[c.nom] || 0) + 1;
-            });
+    entries.forEach(e => {
+        (e.detail_verification || []).forEach(c => {
+            if (c.quantite_comptee !== null && c.quantite_comptee !== c.quantite_requise)
+                compteur[c.nom] = (compteur[c.nom] || 0) + 1;
         });
+    });
 
     const sorted = Object.entries(compteur).sort((a, b) => b[1] - a[1]).slice(0, 8);
 
@@ -182,20 +196,19 @@ export function renderTopComposants(entries) {
 }
 
 // ─── Taux de conformité par engin ─────────────────────────────────────────────
-export function renderParEngin(entries) {
+// Vient du document de synthèse — 0 itération sur les docs.
+export function renderParEngin(kpi) {
     const el = $('stats-par-engin');
     if (!el) return;
 
-    const map = {};
-    entries.forEach(e => {
-        const engin = e.engin || '—';
-        if (!map[engin]) map[engin] = { total: 0, conformes: 0 };
-        map[engin].total++;
-        if (e.statut === 'Conforme') map[engin].conformes++;
-    });
-
+    const map  = kpi.par_engin || {};
     const rows = Object.entries(map)
-        .map(([engin, s]) => ({ engin, ...s, taux: Math.round(s.conformes / s.total * 100) }))
+        .map(([engin, s]) => ({
+            engin,
+            total:     s.total     || 0,
+            conformes: s.conformes || 0,
+            taux:      s.total ? Math.round((s.conformes || 0) / s.total * 100) : 0,
+        }))
         .sort((a, b) => b.total - a.total);
 
     if (!rows.length) {
@@ -223,4 +236,10 @@ export function renderParEngin(entries) {
             </div>
         `;
     }).join('');
+}
+
+// ─── Arrêt (appelé à la déconnexion seulement) ────────────────────────────────
+export function arreterStats() {
+    _kpiData = null;
+    _entries = [];
 }
