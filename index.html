@@ -220,26 +220,60 @@
             <!-- ════════════════════════════════════════════
                  SECTION HISTORIQUE
                  ════════════════════════════════════════════ -->
-            <section id="sec-historique" class="hidden">
-                <div class="card">
-                    <p class="card-title">Historique des contrôles</p>
-                    <div class="histo-toolbar">
-                        <input type="text" id="histo-search" class="histo-search-input"
-                               placeholder="Rechercher un emplacement ou kit…" autocomplete="off">
-                        <select id="histo-filter" class="histo-filter-select">
-                            <option value="tous">Tous les statuts</option>
-                            <option value="Conforme">Conforme</option>
-                            <option value="Incomplet">Incomplet</option>
-                        </select>
-                    </div>
-                    <div class="loading-wrap" id="histo-loading">
-                        <div class="spinner"></div>
-                        <span>Chargement de l'historique…</span>
-                    </div>
-                    <p class="histo-empty hidden" id="histo-empty">Aucun contrôle enregistré.</p>
-                    <div id="histo-list" class="histo-list"></div>
-                </div>
-            </section>
+
+<section id="sec-historique" class="hidden">
+    <div class="card">
+        <p class="card-title">Historique des contrôles</p>
+ 
+        <!-- Barre de recherche -->
+        <div class="histo-toolbar">
+            <div class="histo-search-wrap">
+                <input
+                    type="text"
+                    id="histo-search"
+                    class="histo-search-input"
+                    placeholder="Emplacement, ex : ETKI.001.01"
+                    autocomplete="off"
+                    spellcheck="false"
+                >
+                <button class="histo-search-btn" id="histo-search-btn">
+                    🔍 Rechercher
+                </button>
+            </div>
+            <select id="histo-filter" class="histo-filter-select">
+                <option value="tous">Tous les statuts</option>
+                <option value="Conforme">Conforme</option>
+                <option value="Incomplet">Incomplet</option>
+            </select>
+        </div>
+ 
+        <!-- Invite initiale (visible avant toute recherche) -->
+        <div class="histo-invite" id="histo-invite">
+            <span class="histo-invite-icon">🔍</span>
+            <p class="histo-invite-title">Recherchez un emplacement</p>
+            <p class="histo-invite-sub">
+                Tapez un identifiant d'emplacement (ex : <code>ETKI.001.01</code>)
+                puis appuyez sur <kbd>Entrée</kbd> ou cliquez sur Rechercher.<br>
+                Seul cet emplacement sera chargé — aucune lecture inutile.
+            </p>
+        </div>
+ 
+        <!-- Spinner -->
+        <div class="loading-wrap hidden" id="histo-loading">
+            <div class="spinner"></div>
+            <span>Chargement…</span>
+        </div>
+ 
+        <!-- Message vide / erreur -->
+        <p class="histo-empty hidden" id="histo-empty"></p>
+ 
+        <!-- Compteur de résultats -->
+        <p class="histo-counter" id="histo-counter"></p>
+ 
+        <!-- Liste des résultats -->
+        <div id="histo-list" class="histo-list"></div>
+    </div>
+</section>
 
             <!-- ════════════════════════════════════════════
                  SECTION ADMIN
