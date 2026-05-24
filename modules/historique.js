@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// modules/historique.js — Recherche intelligente sur historique_controles
+// modules/historique.js — Recherche manuelle sur historique_controles
 //
 // Collection cible : /historique_controles (plate, un doc par contrôle)
 // Champs : empId, engin, nom_du_kit, code_kit, statut, timestamp,
@@ -8,12 +8,13 @@
 // Stratégie quota :
 //   • Rien chargé au démarrage
 //   • Requête ciblée where() + orderBy(timestamp) + limit(50)
-//   • Cache mémoire par clé de recherche dans la session
+//   • Cache mémoire par clé "mode:valeur" dans la session
 //
-// Index Firestore composites à créer (console Firebase → Indexes) :
-//   1. Collection: historique_controles | empId ASC, timestamp DESC
-//   2. Collection: historique_controles | engin ASC, timestamp DESC
-//   3. Collection: historique_controles | nom_du_kit ASC, timestamp DESC
+// Index Firestore composites à créer (console Firebase → Indexes → Composite) :
+//   1. historique_controles | empId ASC      · timestamp DESC
+//   2. historique_controles | engin ASC      · timestamp DESC
+//   3. historique_controles | nom_du_kit ASC · timestamp DESC
+//   4. historique_controles | code_kit ASC   · timestamp DESC
 // ─────────────────────────────────────────────────────────────────────────────
 import {
     collection, query, where, orderBy, limit, getDocs,
@@ -23,44 +24,34 @@ import { db }           from "./firebase.js";
 import { $, showToast } from "./utils.js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
-const COLLECTION   = "historique_controles";
-const LIMIT        = 50;
+const COLLECTION = "historique_controles";
+const LIMIT      = 50;
+
+// ─── Placeholders selon le mode ───────────────────────────────────────────────
+const PLACEHOLDERS = {
+    empId:      'Ex : ETKI.0070301',
+    engin:      'Ex : B82551 4C TRANSILIEN1 (2e série)',
+    nom_du_kit: 'Ex : KIT TRAIT MEC PORTE SIMPLE',
+    code_kit:   'Ex : K21 OO990648',
+};
 
 // ─── Cache mémoire session (clé = "mode:valeur") ──────────────────────────────
 const _cache = new Map();
 
-// ─── Résultats courants (pour re-filtrer sans re-requêter) ────────────────────
+// ─── Résultats courants (re-filtrer sans re-requêter) ─────────────────────────
 let _currentDocs = [];
-
-// ─── Détection automatique du mode de recherche ───────────────────────────────
-// • Emplacement : contient un point  → ex: ETKI.001.01, MAG2.003
-// • Engin       : commence par une série de chiffres ou contient "série"
-//                 ou ressemble à un code matériel (>= 4 chars, maj+chiffres)
-// • Nom de kit  : tout le reste (texte libre)
-function detecterMode(val) {
-    if (!val) return null;
-    const v = val.trim();
-
-    // Emplacement : contient un point entouré de caractères
-    if (/[A-Z0-9]+\.[A-Z0-9]/.test(v.toUpperCase())) return 'empId';
-
-    // Engin : commence par B ou un code série connu, ou contient un espace
-    // (les engins ont souvent la forme "B82551 4C TRANSILIEN1...")
-    // On considère qu'un engin contient au moins un espace ET commence par
-    // une lettre majuscule + chiffres
-    if (/^[A-Z][0-9]/.test(v.toUpperCase()) && v.includes(' ')) return 'engin';
-
-    // Code kit : que des majuscules/chiffres/tirets sans point ni espace
-    if (/^[A-Z0-9_-]+$/i.test(v) && v.length >= 4) return 'code_kit';
-
-    // Sinon : nom de kit (texte libre)
-    return 'nom_du_kit';
-}
 
 // ─── Init & câblage ───────────────────────────────────────────────────────────
 export function initHistorique() {
-    const input      = $('histo-search');
-    const filterSel  = $('histo-filter');
+    const input     = $('histo-search');
+    const modeSel   = $('histo-mode');
+    const filterSel = $('histo-filter');
+
+    // Mettre à jour le placeholder quand le mode change
+    modeSel?.addEventListener('change', () => {
+        if (input) input.placeholder = PLACEHOLDERS[modeSel.value] || '';
+        input?.focus();
+    });
 
     // Lancer sur Entrée
     input?.addEventListener('keydown', e => {
@@ -70,38 +61,24 @@ export function initHistorique() {
     // Bouton recherche
     $('histo-search-btn')?.addEventListener('click', lancerRecherche);
 
-    // Filtrer les résultats déjà chargés
+    // Filtrer les résultats déjà chargés sans re-requêter
     filterSel?.addEventListener('change', () => renderResultats());
-
-    // Hint de mode en temps réel sous le champ
-    input?.addEventListener('input', () => {
-        const val  = input.value.trim();
-        const mode = detecterMode(val);
-        const hint = $('histo-mode-hint');
-        if (!hint) return;
-        if (!val) { hint.textContent = ''; return; }
-        const labels = {
-            empId:      '📍 Recherche par emplacement',
-            engin:      '🚂 Recherche par engin',
-            nom_du_kit: '🧰 Recherche par nom de kit',
-            code_kit:   '🔑 Recherche par code kit',
-        };
-        hint.textContent = labels[mode] || '';
-    });
 }
 
 // ─── Recherche principale ─────────────────────────────────────────────────────
 async function lancerRecherche() {
-    const raw = ($('histo-search')?.value || '').trim();
-    if (!raw) { showToast('Entrez un emplacement, un engin ou un nom de kit.'); return; }
+    const raw  = ($('histo-search')?.value || '').trim();
+    const mode = $('histo-mode')?.value || 'empId';
 
-    const mode = detecterMode(raw);
-    if (!mode) { showToast('Recherche non reconnue.'); return; }
+    if (!raw) {
+        showToast('Entrez une valeur à rechercher.');
+        return;
+    }
 
-    // Normaliser la valeur selon le mode
+    // Normaliser : emplacement et code kit en majuscules
     const val = (mode === 'empId' || mode === 'code_kit')
         ? raw.toUpperCase()
-        : raw;   // engin et nom_du_kit : respecter la casse Firestore
+        : raw;
 
     const cacheKey = `${mode}:${val}`;
 
@@ -119,20 +96,20 @@ async function lancerRecherche() {
         let q;
 
         if (mode === 'nom_du_kit') {
-            // Recherche préfixe sur nom_du_kit (Firestore ne supporte pas LIKE)
-            // On utilise range >= val, < val + '\uf8ff' pour simuler "startsWith"
-            const end = val + '\uf8ff';
+            // Préfixe : >= val, <= val + '\uf8ff'  (simule un startsWith)
+            // Les noms sont stockés en majuscules dans Firestore
+            const v   = val.toUpperCase();
+            const end = v + '\uf8ff';
             q = query(col,
-                where('nom_du_kit', '>=', val.toUpperCase()),
-                where('nom_du_kit', '<=', val.toUpperCase() + '\uf8ff'),
+                where('nom_du_kit', '>=', v),
+                where('nom_du_kit', '<=', end),
                 orderBy('nom_du_kit'),
                 orderBy('timestamp', 'desc'),
                 limit(LIMIT)
             );
         } else {
-            const field = mode; // empId | engin | code_kit
             q = query(col,
-                where(field, '==', val),
+                where(mode, '==', val),
                 orderBy('timestamp', 'desc'),
                 limit(LIMIT)
             );
@@ -145,12 +122,12 @@ async function lancerRecherche() {
         renderResultats(docs);
 
     } catch (err) {
-        // Si l'index n'existe pas encore, Firestore retourne un lien direct
-        const msg = err.message || '';
+        // Firestore renvoie un lien direct si l'index est manquant
+        const msg       = err.message || '';
         const indexLink = msg.match(/https:\/\/console\.firebase\.google\.com[^\s]*/)?.[0];
         if (indexLink) {
             afficherEtat('error',
-                `⚠️ Index manquant — cliquez ici pour le créer automatiquement dans Firebase : ${indexLink}`
+                `⚠️ Index manquant — créez-le ici :\n${indexLink}`
             );
         } else {
             afficherEtat('error', '⚠️ Erreur : ' + msg);
@@ -184,8 +161,7 @@ function renderResultats(docs) {
 
     const counter = $('histo-counter');
     if (counter) {
-        const total = _currentDocs.length;
-        const plus  = total >= LIMIT ? ` (${LIMIT} max affichés)` : '';
+        const plus = _currentDocs.length >= LIMIT ? ` · ${LIMIT} max` : '';
         counter.textContent =
             `${filtered.length} contrôle${filtered.length > 1 ? 's' : ''}${plus}`;
     }
@@ -281,7 +257,6 @@ export function chargerHistorique() {
     if (empty)   { empty.textContent = ''; empty.classList.add('hidden'); }
     if (counter) counter.textContent = '';
 
-    // Ré-afficher les résultats si on revient sur l'onglet
     const searchVal = ($('histo-search')?.value || '').trim();
     if (searchVal && _currentDocs.length) {
         renderResultats();
