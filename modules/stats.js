@@ -7,6 +7,14 @@ import {
 
 import { db }                               from "./firebase.js";
 import { $, showToast, numSemaine, getWeekBounds } from "./utils.js";
+import { exportHistorique, exportStatsEngin } from "./export.js";
+
+let _entries = [];
+
+export function initStats() {
+    $('btn-export-histo')?.addEventListener('click', () => exportHistorique(_entries));
+    $('btn-export-engin')?.addEventListener('click', () => exportStatsEngin(_entries));
+}
 
 // ─── Point d'entrée ───────────────────────────────────────────────────────────
 export async function chargerStatistiques() {
@@ -14,17 +22,16 @@ export async function chargerStatistiques() {
     const content = $('stats-content');
     loading.classList.remove('hidden');
     content.classList.add('hidden');
-
     try {
         const snap = await getDocs(collection(db, "historique_controles"));
-        const entries = [];
-        snap.forEach(d => entries.push({ id: d.id, ...d.data() }));
-        entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        _entries = [];  // ← tableau du module, plus "const entries"
+        snap.forEach(d => _entries.push({ id: d.id, ...d.data() }));
+        _entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-        renderStatsKPI(entries);
-        renderEvolution(entries);
-        renderTopComposants(entries);
-        renderParEngin(entries);
+        renderStatsKPI(_entries);
+        renderEvolution(_entries);
+        renderTopComposants(_entries);
+        renderParEngin(_entries);
 
         loading.classList.add('hidden');
         content.classList.remove('hidden');
@@ -32,6 +39,7 @@ export async function chargerStatistiques() {
         loading.classList.add('hidden');
         showToast('⚠️ ' + err.message, 'error');
     }
+
 }
 
 // ─── KPI ──────────────────────────────────────────────────────────────────────
