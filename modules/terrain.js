@@ -4,17 +4,19 @@
 import {
     doc, getDoc, getDocs, setDoc, addDoc,
     collection, collectionGroup,
-    query, where, onSnapshot,
+    query, where, onSnapshot, increment,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 import { db, auth }                                  from "./firebase.js";
 import { $, JOURS_COURTS, MOIS_LONGS, aujourd_hui,
          toIso, fromIso, isoToDisplay, getWeekDays,
-         showToast, showConfirmToast }               from "./utils.js";
+         showToast, showConfirmToast, numSemaine }   from "./utils.js";
+import { invaliderCacheStats }                        from "./stats.js";
 
 // ─── État interne ─────────────────────────────────────────────────────────────
 let currentEmpId        = "";
 let currentKitId        = "";
+let _currentKitData     = {};
 let _unsubscribeSemaine = null;
 
 const CAL = {
@@ -89,13 +91,12 @@ export function afficherVue(vue) {
 // CALENDRIER — LISTENER TEMPS RÉEL
 // ═══════════════════════════════════════════════════════════════════════════════
 function _ecouterKitsSemaine(days) {
-    const isos          = days.map(toIso);
-    const debut         = isos[0];
-    const fin           = isos[6];
-    const aujourdhui    = aujourd_hui();
+    const isos               = days.map(toIso);
+    const debut              = isos[0];
+    const fin                = isos[6];
+    const aujourdhui         = aujourd_hui();
     const estSemaineCourante = isos.includes(aujourdhui);
 
-    // Semaine passée déjà en cache → on réutilise sans listener
     if (!estSemaineCourante && isos.every(iso => iso in CAL.cache)) {
         _renderCalStrip(days, false);
         if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
@@ -103,7 +104,6 @@ function _ecouterKitsSemaine(days) {
         return;
     }
 
-    // Coupe l'ancien listener avant d'en créer un nouveau
     if (_unsubscribeSemaine) {
         _unsubscribeSemaine();
         _unsubscribeSemaine = null;
@@ -118,9 +118,7 @@ function _ecouterKitsSemaine(days) {
     );
 
     _unsubscribeSemaine = onSnapshot(q,
-        // ── Callback succès : déclenché à chaque changement Firestore ─────────
         (snap) => {
-            // Réinitialise les jours de cette semaine dans le cache
             isos.forEach(iso => { CAL.cache[iso] = []; });
 
             snap.forEach(kitDoc => {
@@ -148,8 +146,6 @@ function _ecouterKitsSemaine(days) {
             if (CAL.selectedIso) renderKitsJour(CAL.selectedIso);
             else _renderEmptyState();
         },
-
-        // ── Callback erreur ───────────────────────────────────────────────────
         (err) => {
             CAL.loading = false;
             console.error("[CAL] Erreur onSnapshot :", err);
@@ -163,8 +159,8 @@ function _ecouterKitsSemaine(days) {
 export function renderCalendrier() {
     const days = getWeekDays(CAL.weekOffset);
     _renderWeekLabel(days);
-    _renderCalStrip(days, true);  // skeleton pendant le chargement
-    _ecouterKitsSemaine(days);    // onSnapshot ou cache selon la semaine
+    _renderCalStrip(days, true);
+    _ecouterKitsSemaine(days);
 }
 
 function _renderWeekLabel(days) {
@@ -210,7 +206,7 @@ function _renderCalStrip(days, skeleton = false) {
                     <span class="cal-num">${d.getDate()}</span>
                 </div>
                 <div class="cal-dots">
-                    ${nbKo      ? `<span class="cal-dot dot-amber" title="${nbKo} incomplet(s)"></span>`    : ''}
+                    ${nbKo      ? `<span class="cal-dot dot-amber" title="${nbKo} incomplet(s)"></span>`     : ''}
                     ${nbPending ? `<span class="cal-dot dot-red"   title="${nbPending} à contrôler"></span>` : ''}
                     ${nbOk      ? `<span class="cal-dot dot-green" title="${nbOk} conforme(s)"></span>`      : ''}
                 </div>
@@ -389,6 +385,8 @@ export async function ouvrirDetailKit(empId, kitId) {
 }
 
 function _afficherDetailKit(kitId, data, empId) {
+    _currentKitData = data;  // ← mémoriser pour _valider()
+
     $('detail-loading-card').classList.add('hidden');
 
     $('detail-emp-badge').textContent = empId;
@@ -411,8 +409,8 @@ function _afficherDetailKit(kitId, data, empId) {
     compList.innerHTML = '';
     (data.composants || []).forEach(comp => {
         const item = document.createElement('div');
-        item.className        = 'comp-item';
-        item.dataset.required = comp.quantite_requise;
+        item.className         = 'comp-item';
+        item.dataset.required  = comp.quantite_requise;
         item.dataset.codePiece = comp.code_piece || '';
         item.innerHTML = `
             <div class="comp-left">
@@ -482,22 +480,26 @@ async function _valider(statut) {
     }));
 
     try {
-        const now = new Date().toISOString();
+        const now      = new Date().toISOString();
+        const email    = auth.currentUser?.email || "inconnu";
+        const kitData  = _currentKitData;
+        const engin    = kitData.engin || "—";
+        const dateNow  = new Date();
+        const semLabel = `${dateNow.getFullYear()}-W${String(numSemaine(dateNow)).padStart(2, '0')}`;
 
+        // ── 1. Statut sur le kit ──────────────────────────────────────────────
         await setDoc(
             doc(db, "emplacements", currentEmpId, "kits", currentKitId),
             {
                 statut_conformite:     statut,
                 derniere_verification: now,
-                verificateur_email:    auth.currentUser?.email || 'inconnu',
+                verificateur_email:    email,
                 detail_verification:   details,
             },
             { merge: true }
         );
 
-        const kitSnap = await getDoc(doc(db, "emplacements", currentEmpId, "kits", currentKitId));
-        const kitData = kitSnap.exists() ? kitSnap.data() : {};
-
+        // ── 2. Historique ─────────────────────────────────────────────────────
         await addDoc(collection(db, "historique_controles"), {
             empId:               currentEmpId,
             kitId:               currentKitId,
@@ -506,17 +508,35 @@ async function _valider(statut) {
             code_kit:            kitData.code_kit       || "",
             code_contenant:      kitData.code_contenant || "",
             statut,
-            verificateur_email:  auth.currentUser?.email || "inconnu",
+            verificateur_email:  email,
             timestamp:           now,
             detail_verification: details,
         });
 
-        // Plus besoin d'invalider le cache manuellement →
-        // onSnapshot reçoit le changement et met à jour automatiquement
+        // ── 3. Document de synthèse stats/kpi ─────────────────────────────────
+        await setDoc(
+            doc(db, "stats", "kpi"),
+            {
+                total:                                       increment(1),
+                conformes:                                   increment(statut === "Conforme"  ? 1 : 0),
+                incomplets:                                  increment(statut === "Incomplet" ? 1 : 0),
+                [`par_engin.${engin}.total`]:                increment(1),
+                [`par_engin.${engin}.conformes`]:            increment(statut === "Conforme"  ? 1 : 0),
+                [`par_semaine.${semLabel}.total`]:           increment(1),
+                [`par_semaine.${semLabel}.conformes`]:       increment(statut === "Conforme"  ? 1 : 0),
+                [`par_semaine.${semLabel}.incomplets`]:      increment(statut === "Incomplet" ? 1 : 0),
+            },
+            { merge: true }
+        );
+
+        // ── 4. Invalide le cache stats ────────────────────────────────────────
+        invaliderCacheStats();
+
         showToast(`✅ Statut « ${statut} » enregistré.`, 'success');
         setTimeout(() => {
-            currentEmpId = '';
-            currentKitId = '';
+            currentEmpId    = '';
+            currentKitId    = '';
+            _currentKitData = {};
             afficherVue('calendrier');
         }, 1500);
 
