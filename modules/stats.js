@@ -166,25 +166,34 @@ export function renderTopComposants(entries) {
     const compteur = {};
     entries.forEach(e => {
         (e.detail_verification || []).forEach(c => {
-            if (c.quantite_comptee !== null && c.quantite_comptee !== c.quantite_requise)
-                compteur[c.nom] = (compteur[c.nom] || 0) + 1;
+            if (c.quantite_comptee !== null && c.quantite_comptee !== c.quantite_requise) {
+                if (!compteur[c.nom]) {
+                    compteur[c.nom] = { count: 0, code: c.code_pieces || '—' };
+                }
+                compteur[c.nom].count += 1;
+            }
         });
     });
 
-    const sorted = Object.entries(compteur).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const sorted = Object.entries(compteur)
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 8);
 
     if (!sorted.length) {
         el.innerHTML = `<p class="stats-empty">Aucun composant manquant enregistré.</p>`;
         return;
     }
 
-    const max = sorted[0][1];
-    el.innerHTML = sorted.map(([nom, count], i) => `
+    const max = sorted[0][1].count;
+    el.innerHTML = sorted.map(([nom, { count, code }], i) => `
         <div class="comp-stat-row">
             <span class="comp-stat-rank">${i + 1}</span>
             <div class="comp-stat-info">
                 <div class="comp-stat-header">
-                    <span class="comp-stat-nom">${nom}</span>
+                    <span class="comp-stat-nom">
+                        ${nom}
+                        <span class="comp-stat-code">${code}</span>
+                    </span>
                     <span class="comp-stat-count">${count}×</span>
                 </div>
                 <div class="comp-stat-bar-wrap">
