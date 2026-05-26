@@ -4,9 +4,10 @@
 import { initAuth, setAuthCallbacks }                      from "./modules/auth.js";
 import { initHistorique, chargerHistorique, setOnOpenKit } from "./modules/historique.js";
 import { initAdmin }                                       from "./modules/admin.js";
+import { initImport }                                      from "./modules/import.js";
 import { initProfil, afficherProfil }                      from "./modules/profil.js";
 import { $ }                                               from "./modules/utils.js";
-import { initStats, chargerStatistiques, arreterStats } from "./modules/stats.js";
+import { initStats, chargerStatistiques, arreterStats }    from "./modules/stats.js";
 import { initTerrain, activerTerrain, desactiverTerrain, ouvrirDetailKit } from "./modules/terrain.js";
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
@@ -14,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTerrain();
     initHistorique();
     initAdmin();
+    initImport();
     initProfil();
     _initTabNav();
     _initOfflineBanner();
@@ -38,9 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // NAVIGATION ONGLETS
 // ═══════════════════════════════════════════════════════════════════════════════
-const TABS = ['terrain', 'historique', 'admin', 'profil', 'stats'];
-
-
+const TABS = ['terrain', 'historique', 'import', 'admin', 'profil', 'stats'];
 
 export function showTab(tab) {
     if (tab !== 'terrain') desactiverTerrain();
@@ -68,6 +68,7 @@ function _initTabNav() {
     const pairs = [
         ['sidebar-terrain',    'tab-terrain'],
         ['sidebar-historique', 'tab-historique'],
+        ['sidebar-import',     'tab-import'],
         ['sidebar-admin',      'tab-admin'],
         ['sidebar-profil',     'tab-profil'],
         ['sidebar-stats',      'tab-stats'],
