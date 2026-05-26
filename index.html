@@ -415,10 +415,9 @@
                     <!-- ── Panneau 2 : Import kits Excel ── -->
                     <div class="admin-tab-panel hidden" id="import-tab-kits">
                         <div class="card">
-                            <p class="card-title">Import fichier kits — Dépôt GitHub</p>
+                            <p class="card-title">Import fichier kits</p>
                             <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
-                                Déposez le fichier Excel pour l'envoyer dans
-                                <code style="font-family:var(--mono);font-size:.75rem;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:.1rem .45rem;">imports/pending/</code>.
+                                Déposez le fichier Excel pour l'envoyer dans la base de données.                               
                                 Le pipeline GitHub Actions s'exécutera automatiquement.
                             </p>
 
@@ -429,7 +428,7 @@
                             <div class="drop-zone" id="drop-zone-xls">
                                 <span class="drop-icon">📊</span>
                                 <p class="drop-title">Glisser-déposer le fichier Excel</p>
-                                <p class="drop-sub">Fichiers .xlsx, .xls ou .csv · envoyé dans imports/pending/</p>
+                                <p class="drop-sub">Fichiers .xlsx, .xls ou .csv · a envoyer.</p>
                             </div>
 
                             <div id="progress-area-xls" class="hidden" style="margin-top:1rem;">
@@ -445,12 +444,8 @@
                             <div id="workflow-panel" class="hidden" style="margin-top:1.5rem;">
                                 <div style="display:flex;align-items:center;justify-content:space-between;
                                             margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem;">
-                                    <p class="card-title" style="margin-bottom:0;">Pipeline GitHub Actions</p>
-                                    <a id="workflow-link" href="#" target="_blank" rel="noopener"
-                                       style="font-family:var(--mono);font-size:.72rem;color:var(--accent);
-                                              text-decoration:none;display:none;">
-                                        Voir sur GitHub ↗
-                                    </a>
+                                    <p class="card-title" style="margin-bottom:0;">État d’avancement.</p>
+                                    
                                 </div>
                                 <div id="workflow-run-status"
                                      style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;
