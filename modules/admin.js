@@ -6,7 +6,7 @@ import { initGithubConfig, initDropZoneEmplacements,
          initImportGithubXls, chargerListeEmplacementsAutorises }
                                                 from "./github.js";
 
-const ADMIN_PIN = "1234";
+const ADMIN_PIN = "8184";
 
 // ─── Init & câblage ───────────────────────────────────────────────────────────
 export function initAdmin() {
