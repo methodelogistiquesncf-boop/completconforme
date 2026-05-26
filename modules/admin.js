@@ -5,6 +5,7 @@ import { $, showToast }                         from "./utils.js";
 import { initGithubConfig, initDropZoneEmplacements,
          initImportGithubXls, chargerListeEmplacementsAutorises }
                                                 from "./github.js";
+import { initialiserDocumentStats }             from "./init_stats_kpi.js";
 
 const ADMIN_PIN = "8184";
 
@@ -14,12 +15,16 @@ export function initAdmin() {
     _initAdminTabs();
     _initTogglesPwd();
 
+    $('btn-init-stats')?.addEventListener('click', async () => {
+        $('btn-init-stats').disabled = true;
+        await initialiserDocumentStats();
+        $('btn-init-stats').disabled = false;
+    });
 }
 
 // ─── Verrou PIN ───────────────────────────────────────────────────────────────
 function _initPin() {
     const pinInputs = document.querySelectorAll('.pin-input');
-
     pinInputs.forEach((input, i) => {
         input.addEventListener('input', () => {
             input.value = input.value.replace(/\D/g, '').slice(0, 1);
@@ -38,10 +43,7 @@ function _initPin() {
             content.classList.remove('hidden');
             content.style.display = 'flex';
             $('pin-error').textContent = '';
-
-            // Initialisation différée des outils admin au premier déverrouillage
             initGithubConfig();
-
         } else {
             $('pin-error').textContent = 'Code incorrect. Réessayez.';
             pinInputs.forEach(i => i.value = '');
