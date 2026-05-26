@@ -14,11 +14,6 @@ export function initAdmin() {
     _initAdminTabs();
     _initTogglesPwd();
 
-    // Bouton rafraîchir emplacements
-    $("btn-refresh-emp")?.addEventListener("click", chargerListeEmplacementsAutorises);
-
-    // Chargement immédiat de la liste actuelle
-    chargerListeEmplacementsAutorises();
 }
 
 // ─── Verrou PIN ───────────────────────────────────────────────────────────────
@@ -46,8 +41,7 @@ function _initPin() {
 
             // Initialisation différée des outils admin au premier déverrouillage
             initGithubConfig();
-            initDropZoneEmplacements();
-            initImportGithubXls();
+
         } else {
             $('pin-error').textContent = 'Code incorrect. Réessayez.';
             pinInputs.forEach(i => i.value = '');
