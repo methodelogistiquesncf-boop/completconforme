@@ -474,7 +474,7 @@ async function _valider(statut) {
 
     const details = items.map(item => ({
         nom:              item.querySelector('.comp-name').textContent,
-        code_piece:       item.dataset.codePiece || ''
+        code_piece:       item.dataset.codePiece || '',
         quantite_requise: parseInt(item.dataset.required, 10),
         quantite_comptee: item.querySelector('.qty-input').value !== ''
                               ? parseInt(item.querySelector('.qty-input').value, 10)
