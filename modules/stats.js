@@ -168,7 +168,7 @@ export function renderTopComposants(entries) {
         (e.detail_verification || []).forEach(c => {
             if (c.quantite_comptee !== null && c.quantite_comptee !== c.quantite_requise) {
                 if (!compteur[c.nom]) {
-                    compteur[c.nom] = { count: 0, code: c.code_pieces || '—' };
+                    compteur[c.nom] = { count: 0, code: c.code_piece || '—' };
                 }
                 compteur[c.nom].count += 1;
             }
