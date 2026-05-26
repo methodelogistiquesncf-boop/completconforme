@@ -413,6 +413,7 @@ function _afficherDetailKit(kitId, data, empId) {
         const item = document.createElement('div');
         item.className        = 'comp-item';
         item.dataset.required = comp.quantite_requise;
+        item.dataset.codePiece = comp.code_piece || '';
         item.innerHTML = `
             <div class="comp-left">
                 <div class="comp-status-icon">
@@ -473,6 +474,7 @@ async function _valider(statut) {
 
     const details = items.map(item => ({
         nom:              item.querySelector('.comp-name').textContent,
+        code_piece:       item.dataset.codePiece || ''
         quantite_requise: parseInt(item.dataset.required, 10),
         quantite_comptee: item.querySelector('.qty-input').value !== ''
                               ? parseInt(item.querySelector('.qty-input').value, 10)
