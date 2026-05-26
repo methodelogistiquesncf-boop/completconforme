@@ -190,10 +190,10 @@ export function renderTopComposants(entries) {
             <span class="comp-stat-rank">${i + 1}</span>
             <div class="comp-stat-info">
                 <div class="comp-stat-header">
-                    <span class="comp-stat-nom">
-                        ${nom}
-                        <span class="comp-stat-code">${code}</span>
-                    </span>
+<span class="comp-stat-nom">
+    <span class="comp-stat-code">${code}</span>
+    ${nom}
+</span>
                     <span class="comp-stat-count">${count}×</span>
                 </div>
                 <div class="comp-stat-bar-wrap">
