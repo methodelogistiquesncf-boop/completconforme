@@ -2,7 +2,7 @@
 // COMPLET CONFORME — Service Worker
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'completconforme-v2.4'; // ← bump pour invalider l'ancien cache
+const CACHE_NAME = 'completconforme-v2.5'; // ← bump pour invalider l'ancien cache
 
 const PRECACHE_ASSETS = [
     './',
