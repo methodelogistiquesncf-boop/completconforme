@@ -11,8 +11,6 @@ import { initStats, chargerStatistiques, arreterStats }    from "./modules/stats
 import { initTerrain, activerTerrain, desactiverTerrain, ouvrirDetailKit } from "./modules/terrain.js";
 
 
-import { initialiserDocumentStats } from "./init_stats_kpi.js";
-window._initStats = initialiserDocumentStats;
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
