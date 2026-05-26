@@ -314,25 +314,8 @@
                  ════════════════════════════════════════════ -->
             <section id="sec-import" class="hidden">
 
-                <!-- Verrou PIN -->
-                <div class="card" id="import-auth">
-                    <div class="auth-gate">
-                        <span class="auth-icon">🔐</span>
-                        <p class="auth-title">Accès Import</p>
-                        <p class="auth-sub">Entrez votre code PIN à 4 chiffres pour déverrouiller les outils d'import.</p>
-                        <div class="pin-row" id="import-pin-row">
-                            <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                            <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                            <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                            <input class="pin-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                        </div>
-                        <p class="pin-error" id="import-pin-error"></p>
-                        <button class="btn-pin-validate" id="btn-import-pin">Déverrouiller</button>
-                    </div>
-                </div>
-
-                <!-- Contenu déverrouillé -->
-                <div id="import-content" class="hidden" style="display:none;flex-direction:column;gap:1rem;">
+                <!-- Contenu directement accessible (pas de PIN) -->
+                <div id="import-content" style="display:none;flex-direction:column;gap:1rem;">
 
                     <!-- Onglets import -->
                     <div class="admin-tabs">
