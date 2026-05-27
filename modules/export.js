@@ -1,32 +1,45 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // modules/export.js
-// Charge toujours les données directement depuis Firestore
-// (conformes + incomplets, sans limite arbitraire).
+// Exports limités aux 8 dernières semaines pour préserver le quota Firestore.
 // ─────────────────────────────────────────────────────────────────────────────
 import {
-    collection, getDocs, query, orderBy,
+    collection, getDocs, query, orderBy, where,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { db }          from "./firebase.js";
-import { showToast }   from "./utils.js";
+import { db }        from "./firebase.js";
+import { showToast } from "./utils.js";
+
+// ─── Fenêtre temporelle ───────────────────────────────────────────────────────
+const SEMAINES_EXPORT = 8;
+
+/** Retourne la date ISO (string) du lundi il y a N semaines. */
+function _dateDebut8Semaines() {
+    const d = new Date();
+    // Recule jusqu'au lundi de la semaine courante, puis N-1 semaines de plus
+    const jourSemaine = (d.getDay() + 6) % 7; // lundi = 0
+    d.setDate(d.getDate() - jourSemaine - (SEMAINES_EXPORT - 1) * 7);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+}
 
 // ─── Chargement SheetJS ───────────────────────────────────────────────────────
 async function loadXLSX() {
     if (window.XLSX) return window.XLSX;
     await new Promise((resolve, reject) => {
-        const s    = document.createElement('script');
-        s.src      = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-        s.onload   = resolve;
-        s.onerror  = reject;
+        const s  = document.createElement('script');
+        s.src    = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+        s.onload = resolve;
+        s.onerror = reject;
         document.head.appendChild(s);
     });
     return window.XLSX;
 }
 
-// ─── Chargement de tous les contrôles ────────────────────────────────────────
-// Conformes ET incomplets, triés par date décroissante.
-async function _chargerTousLesControles() {
-    const q    = query(
+// ─── Chargement des contrôles (8 semaines) ───────────────────────────────────
+async function _chargerControles() {
+    const debut = _dateDebut8Semaines();
+    const q = query(
         collection(db, "historique_controles"),
+        where("timestamp", ">=", debut),
         orderBy("timestamp", "desc")
     );
     const snap = await getDocs(q);
@@ -34,14 +47,14 @@ async function _chargerTousLesControles() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EXPORT HISTORIQUE COMPLET
+// EXPORT HISTORIQUE
 // ═══════════════════════════════════════════════════════════════════════════════
 export async function exportHistorique() {
-    showToast("⏳ Chargement des données…", "info");
+    showToast("⏳ Chargement des données (8 semaines)…", "info");
     try {
-        const entries = await _chargerTousLesControles();
+        const entries = await _chargerControles();
         if (!entries.length) {
-            showToast("Aucun contrôle enregistré.", "error");
+            showToast("Aucun contrôle sur les 8 dernières semaines.", "error");
             return;
         }
 
@@ -92,7 +105,7 @@ export async function exportHistorique() {
         });
 
         _telecharger(XLSX, rows, "historique_controles");
-        showToast(`✅ ${entries.length} contrôle(s) exporté(s) — ${rows.length} lignes.`, "success");
+        showToast(`✅ ${entries.length} contrôle(s) — ${rows.length} lignes exportées.`, "success");
 
     } catch (err) {
         showToast("❌ " + err.message, "error");
@@ -103,17 +116,16 @@ export async function exportHistorique() {
 // EXPORT STATS PAR ENGIN
 // ═══════════════════════════════════════════════════════════════════════════════
 export async function exportStatsEngin() {
-    showToast("⏳ Chargement des données…", "info");
+    showToast("⏳ Chargement des données (8 semaines)…", "info");
     try {
-        const entries = await _chargerTousLesControles();
+        const entries = await _chargerControles();
         if (!entries.length) {
-            showToast("Aucun contrôle enregistré.", "error");
+            showToast("Aucun contrôle sur les 8 dernières semaines.", "error");
             return;
         }
 
         const XLSX = await loadXLSX();
 
-        // ── Agrégation par engin ──────────────────────────────────────────────
         const map = {};
         entries.forEach(e => {
             const engin = (e.engin || "—").trim() || "—";
@@ -141,7 +153,7 @@ export async function exportStatsEngin() {
     }
 }
 
-// ─── Helper — génération du fichier ──────────────────────────────────────────
+// ─── Helper — génération fichier Excel ───────────────────────────────────────
 function _telecharger(XLSX, rows, nomFichier) {
     if (!rows.length) return;
 
@@ -149,7 +161,6 @@ function _telecharger(XLSX, rows, nomFichier) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Export");
 
-    // Largeurs de colonnes automatiques
     const keys = Object.keys(rows[0]);
     ws['!cols'] = keys.map(key => ({
         wch: Math.max(key.length, ...rows.map(r => String(r[key] ?? "").length)) + 2,
