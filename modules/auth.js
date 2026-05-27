@@ -7,14 +7,14 @@ import {
     sendPasswordResetEmail,
     signOut,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
- 
+
 import { auth }                    from "./firebase.js";
 import { $, showConfirmToast }     from "./utils.js";
- 
+
 // ─── Callbacks injectés par app.js ────────────────────────────────────────────
 let _onLogin  = () => {};
 let _onLogout = () => {};
- 
+
 /**
  * Enregistre les callbacks appelés lors des transitions d'état.
  * @param {{ onLogin: (user) => void, onLogout: () => void }} cbs
@@ -23,31 +23,63 @@ export function setAuthCallbacks({ onLogin, onLogout }) {
     _onLogin  = onLogin  || _onLogin;
     _onLogout = onLogout || _onLogout;
 }
- 
+
+// ─── Déconnexion automatique par inactivité ───────────────────────────────────
+const INACTIVITY_DELAY = 30 * 60 * 1000; // 30 minutes
+let _inactivityTimer   = null;
+
+function _resetInactivityTimer() {
+    clearTimeout(_inactivityTimer);
+    _inactivityTimer = setTimeout(async () => {
+        await signOut(auth);
+        const err = $('login-error');
+        if (err) {
+            err.textContent = "Session expirée pour inactivité.";
+            err.classList.add('visible');
+        }
+    }, INACTIVITY_DELAY);
+}
+
+function _startInactivityWatcher() {
+    ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(evt =>
+        document.addEventListener(evt, _resetInactivityTimer, { passive: true })
+    );
+    _resetInactivityTimer();
+}
+
+function _stopInactivityWatcher() {
+    clearTimeout(_inactivityTimer);
+    ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(evt =>
+        document.removeEventListener(evt, _resetInactivityTimer)
+    );
+}
+
 // ─── Surveillance état auth ───────────────────────────────────────────────────
 export function initAuth() {
     onAuthStateChanged(auth, user => {
         if (user) {
             _showApp(user);
+            _startInactivityWatcher();
             _onLogin(user);
         } else {
             _showLogin();
+            _stopInactivityWatcher();
             _onLogout();
         }
     });
- 
+
     // ── Formulaire de connexion ────────────────────────────────────────────────
     $('btn-login').addEventListener('click', _handleLogin);
- 
+
     [$('login-email'), $('login-pwd')].forEach(el =>
         el?.addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-login').click(); })
     );
- 
+
     // ── Déconnexion ────────────────────────────────────────────────────────────
     $('btn-logout').addEventListener('click', async () => {
         if (await showConfirmToast("Se déconnecter ?")) signOut(auth);
     });
- 
+
     // ── Toggle affichage mot de passe (page login) ────────────────────────────
     $('toggle-pwd')?.addEventListener('click', () => {
         const pwd = $('login-pwd');
@@ -55,23 +87,23 @@ export function initAuth() {
         pwd.type = isPassword ? 'text' : 'password';
         $('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
     });
- 
+
     // ── Mot de passe oublié ────────────────────────────────────────────────────
     $('btn-forgot-pwd')?.addEventListener('click', _handleForgotPassword);
 }
- 
+
 // ─── Handlers privés ──────────────────────────────────────────────────────────
 async function _handleLogin() {
     const email = $('login-email').value.trim();
     const pwd   = $('login-pwd').value;
     if (!email || !pwd) { _showLoginError("Veuillez remplir tous les champs."); return; }
- 
+
     const btn = $('btn-login');
     btn.disabled    = true;
     btn.textContent = "Connexion…";
     $('login-error').classList.remove('visible');
     $('forgot-success')?.classList.remove('visible');
- 
+
     try {
         await signInWithEmailAndPassword(auth, email, pwd);
     } catch (err) {
@@ -81,20 +113,20 @@ async function _handleLogin() {
         btn.textContent = "Se connecter →";
     }
 }
- 
+
 async function _handleForgotPassword() {
     const email = $('login-email').value.trim();
- 
+
     if (!email) {
         _showLoginError("Entrez votre adresse e-mail ci-dessus.");
         return;
     }
- 
+
     const btn = $('btn-forgot-pwd');
     btn.disabled    = true;
     btn.textContent = "Envoi…";
     $('login-error').classList.remove('visible');
- 
+
     try {
         await sendPasswordResetEmail(auth, email);
         const ok = $('forgot-success');
@@ -109,7 +141,7 @@ async function _handleForgotPassword() {
         btn.textContent = "Mot de passe oublié ?";
     }
 }
- 
+
 function _showLogin() {
     $('login-page').style.display = 'flex';
     $('app').classList.remove('visible');
@@ -118,7 +150,7 @@ function _showLogin() {
     $('login-error').classList.remove('visible');
     $('forgot-success')?.classList.remove('visible');
 }
- 
+
 function _showApp(user) {
     $('login-page').style.display = 'none';
     $('app').classList.add('visible');
@@ -128,13 +160,13 @@ function _showApp(user) {
         chip.title       = user.email;
     }
 }
- 
+
 function _showLoginError(msg) {
     const el = $('login-error');
     el.textContent = msg;
     el.classList.add('visible');
 }
- 
+
 function _firebaseAuthMessage(code) {
     const map = {
         'auth/invalid-email':          "Adresse e-mail invalide.",
