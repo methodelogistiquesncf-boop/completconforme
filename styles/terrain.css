@@ -613,9 +613,15 @@
     color: #fff;
     filter: none;
 }
-/* ── Conteneur principal ─────────────────────────────────────────── */
+
+
+
+
+
+ 
+/* CSS pour le champ obersation dans la page detail du kit. ──────────────────────────────────── */
 .obs-wrap {
-    margin: 1.5rem 0;
+    margin: 1.5rem 0 1.25rem;
 }
  
 /* ── Ligne label + compteur ──────────────────────────────────────── */
@@ -623,7 +629,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 6px;
+    margin-bottom: 7px;
 }
  
 .obs-label {
@@ -634,14 +640,17 @@
     font-weight: 700;
     letter-spacing: .09em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: #888;
     cursor: default;
     user-select: none;
+    margin: 0;
 }
  
 .obs-label-icon {
     flex-shrink: 0;
-    color: var(--muted);
+    color: #888;
+    width: 13px;
+    height: 13px;
 }
  
 .obs-optional {
@@ -650,28 +659,83 @@
     font-style: italic;
     text-transform: none;
     letter-spacing: 0;
-    color: var(--muted);
-    opacity: .7;
+    color: #aaa;
 }
  
 .obs-counter {
-    font-family: var(--mono);
     font-size: .68rem;
-    color: var(--muted);
-    opacity: .8;
+    font-family: 'JetBrains Mono', monospace;
+    color: #bbb;
     font-variant-numeric: tabular-nums;
     transition: color .2s;
 }
+.obs-counter.warn   { color: #d97706; }
+.obs-counter.danger { color: #e03a52; }
  
-/* Compteur en alerte */
-.obs-counter.warn   { color: #BA7517; opacity: 1; }
-.obs-counter.danger { color: var(--accent); opacity: 1; }
- 
-/* ── Enveloppe du champ (textarea + footer) ──────────────────────── */
+/* ── Enveloppe champ ─────────────────────────────────────────────── */
 .obs-field-wrap {
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--input-bg);
+    border: 1.5px solid #e2e2e2;
+    border-radius: 12px;
+    background: #fafafa;
+    transition: border-color .18s, box-shadow .18s, background .18s;
+    overflow: hidden;
+}
+ 
+.obs-field-wrap:focus-within {
+    border-color: #e03a52;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(224, 58, 82, .1);
+}
+ 
+/* ── Textarea ─────────────────────────────────────────────────────── */
+.obs-textarea {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    border: none !important;
+    outline: none !important;
+    background: transparent;
+    resize: vertical;
+    padding: 12px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .875rem;
+    line-height: 1.65;
+    color: #1a1a1a;
+    min-height: 90px;
+    box-shadow: none !important;
+}
+ 
+.obs-textarea::placeholder {
+    color: #bbb;
+    font-style: italic;
+}
+ 
+/* ── Pied du champ ───────────────────────────────────────────────── */
+.obs-footer {
+    display: flex;
+    align-items: center;
+    padding: 6px 16px 8px;
+    border-top: 1px solid #ebebeb;
+}
+ 
+.obs-field-wrap:focus-within .obs-footer {
+    border-top-color: rgba(224, 58, 82, .15);
+}
+ 
+.obs-hint {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: .7rem;
+    color: #aaa;
+    user-select: none;
+}
+ 
+.obs-hint svg {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+}
     transition: border-color .18s, box-shadow .18s, background .18s;
     overflow: hidden;
 }
