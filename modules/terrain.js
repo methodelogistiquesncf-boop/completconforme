@@ -437,17 +437,22 @@ function _afficherDetailKit(kitId, data, empId) {
     });
 
     // ── Observation ───────────────────────────────────────────────────────────
-    const obsEl      = $('obs-textarea');
-    const obsCounter = $('obs-counter');
-    if (obsEl) {
-        obsEl.value = data.observation || '';
-        if (obsCounter) obsCounter.textContent = `${obsEl.value.length} / 500`;
-        obsEl.oninput = () => {
-            if (obsCounter) obsCounter.textContent = `${obsEl.value.length} / 500`;
-        };
-    }
-
-    $('detail-kit-card').classList.remove('hidden');
+const obsEl      = $('obs-textarea');
+const obsCounter = $('obs-counter');
+ 
+if (obsEl) {
+    obsEl.value = data.observation || '';
+ 
+    const _majCompteur = () => {
+        if (!obsCounter) return;
+        const n = obsEl.value.length;
+        obsCounter.textContent = `${n} / 500`;
+        obsCounter.className   = 'obs-counter'
+            + (n > 480 ? ' danger' : n > 450 ? ' warn' : '');
+    };
+ 
+    _majCompteur();                          // initialisation
+    obsEl.addEventListener('input', _majCompteur);
 }
 
 function _evaluerItem(item, input, required) {
