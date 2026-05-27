@@ -83,11 +83,6 @@
                 <button class="tab-btn" id="tab-admin">⚙️ Admin</button>
                 <button class="tab-btn" id="tab-stats">📊 Stats</button>
 
-                 
-                 
-
-
-                 
                 <div class="header-user-chip" id="header-user" title="Utilisateur connecté"></div>
                 <button class="btn-logout" id="btn-logout" title="Se déconnecter">Déconnexion</button>
             </nav>
@@ -119,14 +114,13 @@
                 <span class="sb-icon">📊</span> Statistiques
             </button>
 
-<a href="https://methodelogistiquesncf-boop.github.io/completconforme/aide.html"
-   target="_blank"
-   rel="noopener"
-   class="sidebar-btn"
-   style="text-decoration:none; margin-top:auto; border-top:1px solid var(--border); padding-top:1rem;">
-    <span class="sb-icon">📖</span> Mode opératoire
-</a>
-             
+            <a href="https://methodelogistiquesncf-boop.github.io/completconforme/aide.html"
+               target="_blank"
+               rel="noopener"
+               class="sidebar-btn"
+               style="text-decoration:none; margin-top:auto; border-top:1px solid var(--border); padding-top:1rem;">
+                <span class="sb-icon">📖</span> Mode opératoire
+            </a>
         </aside>
 
         <main>
@@ -220,8 +214,27 @@
                                 <p class="kit-engin" id="detail-engin"></p>
                             </div>
                         </div>
+
                         <p class="card-title">Composition théorique à valider</p>
                         <div class="comp-list" id="comp-list"></div>
+
+                        <!-- ── Observation libre ── -->
+                        <div class="obs-wrap">
+                            <label for="obs-textarea" class="obs-label">
+                                📝 Observation
+                                <span class="obs-optional">facultatif</span>
+                            </label>
+                            <textarea
+                                id="obs-textarea"
+                                class="obs-textarea"
+                                rows="3"
+                                maxlength="500"
+                                placeholder="Remarque libre sur l'état du kit, contexte, anomalie…"
+                                spellcheck="true"
+                            ></textarea>
+                            <span class="obs-counter" id="obs-counter">0 / 500</span>
+                        </div>
+
                         <div class="btn-actions">
                             <button class="btn-action btn-conforme" id="btn-conforme">
                                 ✅ Kit complet &amp; conforme
@@ -458,8 +471,7 @@
                             <div id="workflow-panel" class="hidden" style="margin-top:1.5rem;">
                                 <div style="display:flex;align-items:center;justify-content:space-between;
                                             margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem;">
-                                    <p class="card-title" style="margin-bottom:0;">État d’avancement.</p>
-                                    
+                                    <p class="card-title" style="margin-bottom:0;">État d'avancement.</p>
                                 </div>
                                 <div id="workflow-run-status"
                                      style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;
@@ -539,26 +551,21 @@
                         </div>
                     </div>
 
-
-<hr style="border:none;border-top:1px solid var(--border);margin:1.5rem 0;">
-<div class="card">
-    <p class="card-title">Initialisation des statistiques</p>
-    <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
-        À exécuter <strong>une seule fois</strong> pour construire le document stats/kpi 
-        à partir de l'historique existant.
-    </p>
-    <button class="btn-search" id="btn-init-stats" style="max-width:260px;">
-        ⚡ Initialiser les statistiques →
-    </button>
-    <div class="admin-status" id="init-stats-status"></div>
-</div>
-                     
+                    <hr style="border:none;border-top:1px solid var(--border);margin:1.5rem 0;">
+                    <div class="card">
+                        <p class="card-title">Initialisation des statistiques</p>
+                        <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
+                            À exécuter <strong>une seule fois</strong> pour construire le document stats/kpi
+                            à partir de l'historique existant.
+                        </p>
+                        <button class="btn-search" id="btn-init-stats" style="max-width:260px;">
+                            ⚡ Initialiser les statistiques →
+                        </button>
+                        <div class="admin-status" id="init-stats-status"></div>
+                    </div>
 
                 </div><!-- /admin-content -->
 
-
-
-                 
             </section>
 
             <!-- ════════════════════════════════════════════
