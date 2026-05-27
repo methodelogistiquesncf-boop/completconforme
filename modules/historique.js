@@ -215,7 +215,7 @@ function renderResultats(docs) {
             <div class="histo-detail">
                 ${manquants.map(c => `
                     <span class="histo-ecart">
-                        ${c.nom} : <strong>${c.quantite_comptee}</strong>/${c.quantite_requise}
+                        ${c.code_piece} : <strong>${c.quantite_comptee}</strong>/${c.quantite_requise}
                     </span>
                 `).join('')}
             </div>` : ''}
