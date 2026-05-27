@@ -219,21 +219,45 @@
                         <div class="comp-list" id="comp-list"></div>
 
                         <!-- ── Observation libre ── -->
-                        <div class="obs-wrap">
-                            <label for="obs-textarea" class="obs-label">
-                                📝 Observation
-                                <span class="obs-optional">facultatif</span>
-                            </label>
-                            <textarea
-                                id="obs-textarea"
-                                class="obs-textarea"
-                                rows="3"
-                                maxlength="500"
-                                placeholder="Remarque libre sur l'état du kit, contexte, anomalie…"
-                                spellcheck="true"
-                            ></textarea>
-                            <span class="obs-counter" id="obs-counter">0 / 500</span>
-                        </div>
+<div class="obs-wrap">
+ 
+    <div class="obs-label-row">
+        <label for="obs-textarea" class="obs-label">
+            <svg class="obs-label-icon" width="14" height="14" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            Observation
+            <span class="obs-optional">— facultatif</span>
+        </label>
+        <span class="obs-counter" id="obs-counter">0 / 500</span>
+    </div>
+ 
+    <div class="obs-field-wrap">
+        <textarea
+            id="obs-textarea"
+            class="obs-textarea"
+            rows="3"
+            maxlength="500"
+            placeholder="Remarque libre sur l'état du kit, contexte, anomalie…"
+            spellcheck="true"
+        ></textarea>
+        <div class="obs-footer">
+            <span class="obs-hint">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                Visible dans l'historique des contrôles
+            </span>
+        </div>
+    </div>
+ 
+</div>
 
                         <div class="btn-actions">
                             <button class="btn-action btn-conforme" id="btn-conforme">
