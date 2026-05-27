@@ -32,6 +32,7 @@ function _initOutils() {
 function _initImportTabs() {
     const container = document.getElementById('sec-import');
     if (!container) return;
+
     const btns   = container.querySelectorAll('.admin-tab-btn');
     const panels = container.querySelectorAll('.admin-tab-panel');
 
@@ -44,5 +45,12 @@ function _initImportTabs() {
                       ?.classList.remove('hidden');
         });
     });
-    // ← accolade fermante de _initImportTabs — elle manquait !
+
+    // ── Onglet par défaut : "kit" ──────────────────────────────────────────
+    const defaultBtn = container.querySelector('.admin-tab-btn[data-tab="kit"]');
+    if (defaultBtn) {
+        defaultBtn.click();          // réutilise exactement la même logique
+    } else if (btns.length) {
+        btns[0].click();             // repli sur le premier onglet si "kit" absent
+    }
 }
