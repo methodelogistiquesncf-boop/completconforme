@@ -437,24 +437,28 @@ function _afficherDetailKit(kitId, data, empId) {
     });
 
     // ── Observation ───────────────────────────────────────────────────────────
-const obsEl      = $('obs-textarea');
-const obsCounter = $('obs-counter');
- 
-if (obsEl) {
-    obsEl.value = data.observation || '';
- 
-    const _majCompteur = () => {
-        if (!obsCounter) return;
-        const n = obsEl.value.length;
-        obsCounter.textContent = `${n} / 500`;
-        obsCounter.className   = 'obs-counter'
-            + (n > 480 ? ' danger' : n > 450 ? ' warn' : '');
-    };
- 
-    _majCompteur();
-    obsEl.oninput = _majCompteur;
+    const obsEl      = $('obs-textarea');
+    const obsCounter = $('obs-counter');
+
+    if (obsEl) {
+        obsEl.value = data.observation || '';
+
+        const _majCompteur = () => {
+            if (!obsCounter) return;
+            const n = obsEl.value.length;
+            obsCounter.textContent = `${n} / 500`;
+            obsCounter.className   = 'obs-counter'
+                + (n > 480 ? ' danger' : n > 450 ? ' warn' : '');
+        };
+
+        _majCompteur();
+        obsEl.oninput = _majCompteur;
+    }
+
+    $('detail-kit-card').classList.remove('hidden');
 }
 
+// ─── Évaluation d'un item ─────────────────────────────────────────────────────
 function _evaluerItem(item, input, required) {
     const val = input.value.trim();
     if (val === '') { item.classList.remove('checked', 'non-conforme'); return; }
@@ -534,14 +538,10 @@ async function _valider(statut) {
         });
 
         // ── 3. Document de synthèse stats/kpi ─────────────────────────────────
-        // ⚠️ updateDoc (pas setDoc+merge) : seul updateDoc interprète le
-        //    dot-notation comme des chemins imbriqués → évite les clés plates
-        //    du style "par_engin.X76673 BFC3.total" dans Firestore.
         const statsRef  = doc(db, "stats", "kpi");
         const statsSnap = await getDoc(statsRef);
 
         if (!statsSnap.exists()) {
-            // Première validation : créer le document avec la structure de base
             await setDoc(statsRef, {
                 total:      0,
                 conformes:  0,
