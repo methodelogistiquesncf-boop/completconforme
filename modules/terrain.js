@@ -344,6 +344,7 @@ function _buildKitCard(k, onClick, showDate = false) {
                     hour:'2-digit', minute:'2-digit',
                 })
             }</span>` : ''}
+            ${k.observation ? `<span class="kit-liste-obs">💬 ${k.observation}</span>` : ''}
         </div>
         <div class="kit-liste-right">
             <span class="kit-liste-statut ${isOk ? 'ok' : isKo ? 'ko' : 'pending'}">
@@ -435,6 +436,17 @@ function _afficherDetailKit(kitId, data, empId) {
         compList.appendChild(item);
     });
 
+    // ── Observation ───────────────────────────────────────────────────────────
+    const obsEl      = $('obs-textarea');
+    const obsCounter = $('obs-counter');
+    if (obsEl) {
+        obsEl.value = data.observation || '';
+        if (obsCounter) obsCounter.textContent = `${obsEl.value.length} / 500`;
+        obsEl.oninput = () => {
+            if (obsCounter) obsCounter.textContent = `${obsEl.value.length} / 500`;
+        };
+    }
+
     $('detail-kit-card').classList.remove('hidden');
 }
 
@@ -453,7 +465,8 @@ function _evaluerItem(item, input, required) {
 async function _valider(statut) {
     if (!currentEmpId || !currentKitId) return;
 
-    const items = [...$('comp-list').querySelectorAll('.comp-item')];
+    const items       = [...$('comp-list').querySelectorAll('.comp-item')];
+    const observation = ($('obs-textarea')?.value || '').trim();
 
     if (statut === "Conforme") {
         const nonConformes  = items.filter(i => i.classList.contains('non-conforme'));
@@ -495,6 +508,7 @@ async function _valider(statut) {
                 derniere_verification: now,
                 verificateur_email:    email,
                 detail_verification:   details,
+                observation,
             },
             { merge: true }
         );
@@ -508,6 +522,7 @@ async function _valider(statut) {
             code_kit:            kitData.code_kit       || "",
             code_contenant:      kitData.code_contenant || "",
             statut,
+            observation,
             verificateur_email:  email,
             timestamp:           now,
             detail_verification: details,
