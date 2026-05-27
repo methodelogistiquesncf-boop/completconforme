@@ -25,7 +25,7 @@ export function setAuthCallbacks({ onLogin, onLogout }) {
 }
 
 // ─── Déconnexion automatique par inactivité ───────────────────────────────────
-const INACTIVITY_DELAY = 2 * 60 * 1000; // 30 minutes
+const INACTIVITY_DELAY = 59 * 60 * 1000; // 30 minutes
 let _inactivityTimer   = null;
 
 function _resetInactivityTimer() {
