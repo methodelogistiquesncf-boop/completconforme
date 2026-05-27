@@ -20,9 +20,9 @@ const POLL_TIMEOUT_MS  = 300_000;
 // Évite de retaper Firestore à chaque opération.
 // TTL de 5 minutes — invalidé immédiatement après une mise à jour du token.
 // ═══════════════════════════════════════════════════════════════════════════════
-let _tokenCache     = null;
-let _tokenCachedAt  = 0;
-const TOKEN_TTL_MS  = 5 * 60 * 1000; // 5 min
+let _tokenCache    = null;
+let _tokenCachedAt = 0;
+const TOKEN_TTL_MS = 5 * 60 * 1000; // 5 min
 
 async function _lireToken() {
     const now = Date.now();
@@ -47,8 +47,8 @@ function _invaliderTokenCache() {
 // ─── Helpers communs ─────────────────────────────────────────────────────────
 export function githubHeaders(token) {
     return {
-        Authorization:       `Bearer ${token}`,
-        Accept:              "application/vnd.github+json",
+        Authorization:          `Bearer ${token}`,
+        Accept:                 "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
     };
 }
@@ -116,8 +116,7 @@ export function initGithubConfig() {
                 { merge: true }
             );
 
-            // ✅ Invalide le cache immédiatement — le prochain appel à _lireToken()
-            // rechargera le nouveau token depuis Firestore.
+            // ✅ Invalide le cache immédiatement
             _invaliderTokenCache();
 
             tokenInput.value       = "";
@@ -133,8 +132,7 @@ export function initGithubConfig() {
     });
 }
 
-// Vérifie si un token existe déjà — lecture directe Firestore (pas de cache,
-// car on veut l'état réel au chargement de la page admin).
+// Vérifie si un token existe déjà — lecture directe Firestore (pas de cache)
 async function _afficherEtatTokenExistant(tokenInput, tokenStatus) {
     try {
         const snap = await getDoc(doc(db, FIRESTORE_SECRET.col, FIRESTORE_SECRET.doc));
@@ -171,17 +169,17 @@ export function initDropZoneEmplacements() {
         e.target.value = "";
     });
 
-    // Bouton téléchargement de l'exemple — câblé ici plutôt qu'au niveau module
+    // Bouton téléchargement de l'exemple
     $("btn-dl-exemple-emp")?.addEventListener("click", _telechargerExempleEmp);
 }
 
 async function _traiterFichierEmp(file) {
-    const statusEl    = $("admin-status-emp");
-    const progArea    = $("progress-area-emp");
-    const progBar     = $("progress-bar-emp");
-    const progLabel   = $("progress-label-emp");
-    const previewWrap = $("emp-preview-wrap");
-    const previewList = $("emp-preview-list");
+    const statusEl     = $("admin-status-emp");
+    const progArea     = $("progress-area-emp");
+    const progBar      = $("progress-bar-emp");
+    const progLabel    = $("progress-label-emp");
+    const previewWrap  = $("emp-preview-wrap");
+    const previewList  = $("emp-preview-list");
     const previewCount = $("emp-preview-count");
 
     if (file.name !== EXPECTED_FILENAME) {
@@ -204,7 +202,7 @@ async function _traiterFichierEmp(file) {
         }
 
         _setProgress(progBar, progLabel, 20, "Récupération du token…");
-        const token = await _lireToken();  // ← cache
+        const token = await _lireToken();
 
         _setProgress(progBar, progLabel, 40, "Récupération du SHA actuel…");
         _setStatus(statusEl, "⏳ Connexion à GitHub…", "info");
@@ -274,7 +272,7 @@ function _afficherApercu(listEl, countEl, wrapEl, lignes) {
 }
 
 export async function chargerListeEmplacementsAutorises() {
-    const empFileUrl = `${API_BASE}/${EXPECTED_FILENAME}`;  // ← renommé : évite de masquer le global URL
+    const empFileUrl = `${API_BASE}/${EXPECTED_FILENAME}`;
     const listWrap   = $("emp-current-wrap");
     const listEl     = $("emp-current-list");
     const countEl    = $("emp-current-count");
@@ -287,7 +285,7 @@ export async function chargerListeEmplacementsAutorises() {
     listWrap.classList.add("hidden");
 
     try {
-        const token = await _lireToken();  // ← cache
+        const token = await _lireToken();
         const res   = await fetch(empFileUrl, { headers: githubHeaders(token) });
         if (!res.ok) throw new Error(`GitHub GET : ${(await res.json()).message}`);
 
@@ -379,14 +377,13 @@ async function _traiterFichierXls(rawFile) {
     const progBar       = $("progress-bar-xls");
     const progLabel     = $("progress-label-xls");
     const workflowPanel = $("workflow-panel");
-    const workflowLink  = $("workflow-link");
     const workflowDur   = $("workflow-duration");
     const workflowSteps = $("workflow-steps");
 
+    // Réinitialisation de l'UI
     workflowPanel.classList.add("hidden");
-    workflowSteps.innerHTML    = "";
-    workflowLink.style.display = "none";
-    workflowDur.style.display  = "none";
+    workflowSteps.innerHTML   = "";
+    workflowDur.style.display = "none";
     progArea.classList.remove("hidden");
     _setProgress(progBar, progLabel, 5, "Lecture du fichier…");
     _setStatus(statusEl, "⏳ Lecture du fichier…", "info");
@@ -397,7 +394,7 @@ async function _traiterFichierXls(rawFile) {
         const base64 = btoa(uint8.reduce((d, b) => d + String.fromCharCode(b), ""));
 
         _setProgress(progBar, progLabel, 20, "Récupération du token…");
-        const token      = await _lireToken();  // ← cache
+        const token      = await _lireToken();
         const targetPath = `${TARGET_FOLDER}/${file.name}`;
 
         _setProgress(progBar, progLabel, 40, "Vérification du fichier existant…");
@@ -450,7 +447,6 @@ async function _traiterFichierXls(rawFile) {
 // ─── Polling workflow ────────────────────────────────────────────────────────
 async function _pollWorkflow(commitSha, token) {
     const panel   = $("workflow-panel");
-    const link    = $("workflow-link");
     const spinner = $("workflow-spinner");
     const runLbl  = $("workflow-run-label");
     const runSt   = $("workflow-run-status");
@@ -477,16 +473,14 @@ async function _pollWorkflow(commitSha, token) {
             ) ?? data.workflow_runs?.[0];
             if (!run) continue;
 
-            link.href          = run.html_url;
-            link.style.display = "inline";
             _renderRunStatus(spinner, runLbl, runSt, run.status, run.conclusion);
             await _pollRunJobs(run, token, deadline, spinner, runLbl, runSt, steps, dur);
             return;
         } catch {}
     }
 
-    runLbl.textContent    = "⚠️ Délai dépassé — vérifiez GitHub Actions.";
-    runLbl.style.color    = "var(--amber)";
+    runLbl.textContent = "⚠️ Délai dépassé — vérifiez GitHub Actions.";
+    runLbl.style.color = "var(--amber)";
     spinner.style.display = "none";
 }
 
@@ -555,8 +549,8 @@ async function _fetchKitCount(runId, jobId, token) {
 // ─── Rendu statut run ────────────────────────────────────────────────────────
 function _renderRunStatus(spinner, runLbl, runSt, status, conclusion) {
     const MAP = {
-        queued:      { icon: "⏳", label: "En file d'attente…",          color: "var(--muted)" },
-        in_progress: { icon: "🔄", label: "Pipeline en cours…",          color: "var(--blue)"  },
+        queued:      { icon: "⏳", label: "En file d'attente…",  color: "var(--muted)" },
+        in_progress: { icon: "🔄", label: "Pipeline en cours…",  color: "var(--blue)"  },
     };
     const CONC = {
         success:   { icon: "✅", label: "Pipeline terminé avec succès !", color: "var(--green)" },
@@ -584,11 +578,14 @@ function _renderBusinessSteps(stepsEl, githubSteps, runConclusion, kitCount) {
         const relevant = githubSteps.filter(s =>
             matches.some(m => s.name.toLowerCase().includes(m.toLowerCase()))
         );
-        if (!relevant.length)                                                         return { status: "queued",      conclusion: null      };
-        if (relevant.some(s => s.conclusion === "failure"))                           return { status: "completed",   conclusion: "failure" };
+        if (!relevant.length)
+            return { status: "queued", conclusion: null };
+        if (relevant.some(s => s.conclusion === "failure"))
+            return { status: "completed", conclusion: "failure" };
         if (relevant.every(s => s.conclusion === "success" || s.conclusion === "skipped"))
-                                                                                      return { status: "completed",   conclusion: "success" };
-        if (relevant.some(s => s.status === "in_progress"))                           return { status: "in_progress", conclusion: null      };
+            return { status: "completed", conclusion: "success" };
+        if (relevant.some(s => s.status === "in_progress"))
+            return { status: "in_progress", conclusion: null };
         return { status: "queued", conclusion: null };
     }
 
