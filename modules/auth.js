@@ -4,16 +4,17 @@
 import {
     onAuthStateChanged,
     signInWithEmailAndPassword,
+    sendPasswordResetEmail,
     signOut,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
+ 
 import { auth }                    from "./firebase.js";
 import { $, showConfirmToast }     from "./utils.js";
-
+ 
 // ─── Callbacks injectés par app.js ────────────────────────────────────────────
 let _onLogin  = () => {};
 let _onLogout = () => {};
-
+ 
 /**
  * Enregistre les callbacks appelés lors des transitions d'état.
  * @param {{ onLogin: (user) => void, onLogout: () => void }} cbs
@@ -22,7 +23,7 @@ export function setAuthCallbacks({ onLogin, onLogout }) {
     _onLogin  = onLogin  || _onLogin;
     _onLogout = onLogout || _onLogout;
 }
-
+ 
 // ─── Surveillance état auth ───────────────────────────────────────────────────
 export function initAuth() {
     onAuthStateChanged(auth, user => {
@@ -34,19 +35,19 @@ export function initAuth() {
             _onLogout();
         }
     });
-
+ 
     // ── Formulaire de connexion ────────────────────────────────────────────────
     $('btn-login').addEventListener('click', _handleLogin);
-
+ 
     [$('login-email'), $('login-pwd')].forEach(el =>
         el?.addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-login').click(); })
     );
-
+ 
     // ── Déconnexion ────────────────────────────────────────────────────────────
     $('btn-logout').addEventListener('click', async () => {
         if (await showConfirmToast("Se déconnecter ?")) signOut(auth);
     });
-
+ 
     // ── Toggle affichage mot de passe (page login) ────────────────────────────
     $('toggle-pwd')?.addEventListener('click', () => {
         const pwd = $('login-pwd');
@@ -54,19 +55,23 @@ export function initAuth() {
         pwd.type = isPassword ? 'text' : 'password';
         $('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
     });
+ 
+    // ── Mot de passe oublié ────────────────────────────────────────────────────
+    $('btn-forgot-pwd')?.addEventListener('click', _handleForgotPassword);
 }
-
+ 
 // ─── Handlers privés ──────────────────────────────────────────────────────────
 async function _handleLogin() {
     const email = $('login-email').value.trim();
     const pwd   = $('login-pwd').value;
     if (!email || !pwd) { _showLoginError("Veuillez remplir tous les champs."); return; }
-
+ 
     const btn = $('btn-login');
     btn.disabled    = true;
     btn.textContent = "Connexion…";
     $('login-error').classList.remove('visible');
-
+    $('forgot-success')?.classList.remove('visible');
+ 
     try {
         await signInWithEmailAndPassword(auth, email, pwd);
     } catch (err) {
@@ -76,15 +81,44 @@ async function _handleLogin() {
         btn.textContent = "Se connecter →";
     }
 }
-
+ 
+async function _handleForgotPassword() {
+    const email = $('login-email').value.trim();
+ 
+    if (!email) {
+        _showLoginError("Entrez votre adresse e-mail ci-dessus.");
+        return;
+    }
+ 
+    const btn = $('btn-forgot-pwd');
+    btn.disabled    = true;
+    btn.textContent = "Envoi…";
+    $('login-error').classList.remove('visible');
+ 
+    try {
+        await sendPasswordResetEmail(auth, email);
+        const ok = $('forgot-success');
+        if (ok) {
+            ok.textContent = `✅ E-mail envoyé à ${email}. Vérifiez votre boîte.`;
+            ok.classList.add('visible');
+        }
+    } catch (err) {
+        _showLoginError(_firebaseAuthMessage(err.code));
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = "Mot de passe oublié ?";
+    }
+}
+ 
 function _showLogin() {
     $('login-page').style.display = 'flex';
     $('app').classList.remove('visible');
     $('login-email').value = '';
     $('login-pwd').value   = '';
     $('login-error').classList.remove('visible');
+    $('forgot-success')?.classList.remove('visible');
 }
-
+ 
 function _showApp(user) {
     $('login-page').style.display = 'none';
     $('app').classList.add('visible');
@@ -94,13 +128,13 @@ function _showApp(user) {
         chip.title       = user.email;
     }
 }
-
+ 
 function _showLoginError(msg) {
     const el = $('login-error');
     el.textContent = msg;
     el.classList.add('visible');
 }
-
+ 
 function _firebaseAuthMessage(code) {
     const map = {
         'auth/invalid-email':          "Adresse e-mail invalide.",
