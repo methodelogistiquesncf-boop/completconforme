@@ -223,10 +223,11 @@
  
     <div class="obs-label-row">
         <label for="obs-textarea" class="obs-label">
-            <svg class="obs-label-icon" width="14" height="14" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2"
+            <svg class="obs-label-icon" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
             </svg>
             Observation
             <span class="obs-optional">— facultatif</span>
@@ -244,16 +245,15 @@
             spellcheck="true"
         ></textarea>
         <div class="obs-footer">
-            <span class="obs-hint">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                     stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                Visible dans l'historique des contrôles
-            </span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true" class="obs-hint-icon"
+                 style="width:12px;height:12px;flex-shrink:0;color:#aaa;margin-right:5px;">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span class="obs-hint">Visible dans l'historique des contrôles</span>
         </div>
     </div>
  
