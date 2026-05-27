@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  /* ── Reset & base ─────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
@@ -46,14 +45,13 @@
     min-height: 100vh;
   }
 
-  /* ── Layout ───────────────────────────────────────── */
   .layout {
     display: grid;
     grid-template-columns: 260px 1fr;
     min-height: 100vh;
   }
 
-  /* ── Sidebar ──────────────────────────────────────── */
+  /* ── Sidebar ── */
   .sidebar {
     position: sticky;
     top: 0;
@@ -74,6 +72,7 @@
     padding: 0 1.5rem 2rem;
     border-bottom: 1px solid var(--border);
     margin-bottom: 1.5rem;
+    cursor: default;
   }
 
   .logo-app {
@@ -83,6 +82,7 @@
     text-transform: uppercase;
     color: var(--accent);
     margin-bottom: 2px;
+    user-select: none;
   }
 
   .logo-doc {
@@ -113,10 +113,7 @@
     cursor: pointer;
   }
 
-  .nav-item:hover {
-    color: var(--text);
-    background: rgba(0,0,0,.04);
-  }
+  .nav-item:hover { color: var(--text); background: rgba(0,0,0,.04); }
 
   .nav-item.active {
     color: var(--accent);
@@ -125,13 +122,7 @@
     font-weight: 500;
   }
 
-  .nav-icon {
-    width: 18px;
-    height: 18px;
-    opacity: .7;
-    flex-shrink: 0;
-  }
-
+  .nav-icon { width: 18px; height: 18px; opacity: .7; flex-shrink: 0; }
   .nav-item.active .nav-icon { opacity: 1; }
 
   .sidebar-footer {
@@ -143,13 +134,9 @@
     line-height: 1.6;
   }
 
-  /* ── Main ─────────────────────────────────────────── */
-  .main {
-    padding: 0;
-    overflow-x: hidden;
-  }
+  /* ── Main ── */
+  .main { padding: 0; overflow-x: hidden; }
 
-  /* ── Hero ─────────────────────────────────────────── */
   .hero {
     padding: 4rem 4rem 3rem;
     border-bottom: 1px solid var(--border);
@@ -199,11 +186,7 @@
     margin-bottom: 2rem;
   }
 
-  .hero-badges {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+  .hero-badges { display: flex; gap: 8px; flex-wrap: wrap; }
 
   .badge {
     display: inline-flex;
@@ -220,13 +203,8 @@
   .badge-green { color: #15803d; background: rgba(22,163,74,.08); border-color: rgba(22,163,74,.2); }
   .badge-amber { color: #b45309; background: rgba(217,119,6,.08); border-color: rgba(217,119,6,.2); }
 
-  /* ── Content area ─────────────────────────────────── */
-  .content {
-    padding: 3rem 4rem;
-    max-width: 820px;
-  }
+  .content { padding: 3rem 4rem; max-width: 820px; }
 
-  /* ── Section ──────────────────────────────────────── */
   .section {
     margin-bottom: 4rem;
     animation: fadeUp .4s ease both;
@@ -245,50 +223,29 @@
   .section:nth-child(6) { animation-delay: .3s; }
   .section:nth-child(7) { animation-delay: .35s; }
 
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 1.75rem;
-  }
+  .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 1.75rem; }
 
   .section-num {
-    width: 34px;
-    height: 34px;
+    width: 34px; height: 34px;
     border-radius: 8px;
     background: var(--accent-soft);
     border: 1px solid rgba(37,99,235,.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
     color: var(--accent);
     flex-shrink: 0;
     font-family: var(--mono);
   }
 
-  .section-title {
-    font-size: 22px;
-    font-weight: 600;
-    color: #0f172a;
-    letter-spacing: -.01em;
-  }
+  .section-title { font-size: 22px; font-weight: 600; color: #0f172a; letter-spacing: -.01em; }
 
-  .section-lead {
-    font-size: 14.5px;
-    color: var(--text2);
-    margin-bottom: 1.5rem;
-    line-height: 1.75;
-  }
+  .section-lead { font-size: 14.5px; color: var(--text2); margin-bottom: 1.5rem; line-height: 1.75; }
 
-  /* ── Step cards ───────────────────────────────────── */
+  /* ── Steps ── */
   .steps { display: flex; flex-direction: column; gap: 1px; }
 
   .step {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
+    display: flex; gap: 16px; align-items: flex-start;
     background: var(--bg2);
     border: 1px solid var(--border);
     padding: 1.1rem 1.25rem;
@@ -298,52 +255,31 @@
   .step:first-child { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
   .step:last-child  { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
   .step:only-child  { border-radius: var(--radius-lg); }
-
-  .step:hover {
-    background: var(--bg3);
-    border-color: var(--border-med);
-  }
+  .step:hover { background: var(--bg3); border-color: var(--border-med); }
 
   .step-icon-wrap {
-    width: 38px;
-    height: 38px;
+    width: 38px; height: 38px;
     border-radius: var(--radius);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
 
-  .icon-blue   { background: rgba(37,99,235,.1);   }
-  .icon-green  { background: rgba(22,163,74,.1);   }
-  .icon-amber  { background: rgba(217,119,6,.1);   }
-  .icon-red    { background: rgba(220,38,38,.1);   }
-  .icon-purple { background: rgba(124,58,237,.1);  }
+  .icon-blue   { background: rgba(37,99,235,.1); }
+  .icon-green  { background: rgba(22,163,74,.1); }
+  .icon-amber  { background: rgba(217,119,6,.1); }
+  .icon-red    { background: rgba(220,38,38,.1); }
+  .icon-purple { background: rgba(124,58,237,.1); }
 
   .step-body { flex: 1; min-width: 0; }
 
   .step-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text2);
-    margin-bottom: 3px;
-    text-transform: uppercase;
-    letter-spacing: .05em;
-    font-size: 11px;
+    font-size: 11px; font-weight: 600;
+    color: var(--text2); margin-bottom: 3px;
+    text-transform: uppercase; letter-spacing: .05em;
   }
 
-  .step-title {
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text);
-    margin-bottom: 4px;
-  }
-
-  .step-desc {
-    font-size: 14px;
-    color: var(--text2);
-    line-height: 1.7;
-  }
+  .step-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .step-desc  { font-size: 14px; color: var(--text2); line-height: 1.7; }
 
   .step-note {
     margin-top: .65rem;
@@ -351,62 +287,48 @@
     background: rgba(0,0,0,.03);
     border-left: 2px solid var(--accent);
     border-radius: 0 var(--radius) var(--radius) 0;
-    font-size: 13px;
-    color: var(--text2);
-    line-height: 1.65;
+    font-size: 13px; color: var(--text2); line-height: 1.65;
   }
 
-  .step-note.note-warn  { border-left-color: var(--amber); }
-  .step-note.note-ok    { border-left-color: var(--green); }
+  .step-note.note-warn { border-left-color: var(--amber); }
+  .step-note.note-ok   { border-left-color: var(--green); }
 
-  /* ── Info boxes ───────────────────────────────────── */
+  /* ── Info boxes ── */
   .info-box {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
+    display: flex; gap: 12px; align-items: flex-start;
     padding: .9rem 1.1rem;
     border-radius: var(--radius);
     border: 1px solid;
-    font-size: 14px;
-    line-height: 1.65;
+    font-size: 14px; line-height: 1.65;
     margin-bottom: 1rem;
   }
 
   .info-box svg { flex-shrink: 0; margin-top: 2px; }
 
-  .box-warn  { background: var(--amber-soft); border-color: rgba(217,119,6,.2);  color: #92400e; }
-  .box-ok    { background: var(--green-soft);  border-color: rgba(22,163,74,.2);   color: #14532d; }
-  .box-info  { background: var(--accent-soft); border-color: rgba(37,99,235,.2);   color: #1e40af; }
+  .box-warn { background: var(--amber-soft); border-color: rgba(217,119,6,.2);  color: #92400e; }
+  .box-ok   { background: var(--green-soft);  border-color: rgba(22,163,74,.2);   color: #14532d; }
+  .box-info { background: var(--accent-soft); border-color: rgba(37,99,235,.2);   color: #1e40af; }
 
-  /* ── Status pills ─────────────────────────────────── */
+  /* ── Pills ── */
   .status-row { display: flex; gap: 8px; flex-wrap: wrap; margin: .75rem 0; }
 
   .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 13px;
-    font-weight: 500;
-    padding: 5px 12px;
-    border-radius: 20px;
-    border: 1px solid;
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 500;
+    padding: 5px 12px; border-radius: 20px; border: 1px solid;
   }
 
   .pill-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .pill-green  { color: #15803d; background: rgba(22,163,74,.08);  border-color: rgba(22,163,74,.2); }
-  .pill-amber  { color: #b45309; background: rgba(217,119,6,.08);   border-color: rgba(217,119,6,.2); }
-  .pill-gray   { color: var(--text2); background: rgba(0,0,0,.04); border-color: var(--border); }
+  .pill-green { color: #15803d; background: rgba(22,163,74,.08);  border-color: rgba(22,163,74,.2); }
+  .pill-amber { color: #b45309; background: rgba(217,119,6,.08);   border-color: rgba(217,119,6,.2); }
+  .pill-gray  { color: var(--text2); background: rgba(0,0,0,.04); border-color: var(--border); }
+  .dot-green { background: var(--green); }
+  .dot-amber { background: var(--amber); }
+  .dot-gray  { background: var(--text3); }
 
-  .dot-green  { background: var(--green); }
-  .dot-amber  { background: var(--amber); }
-  .dot-gray   { background: var(--text3); }
-
-  /* ── Flow ─────────────────────────────────────────── */
+  /* ── Flow ── */
   .flow {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    flex-wrap: wrap;
+    display: flex; align-items: center; gap: 0; flex-wrap: wrap;
     margin: 1rem 0 1.5rem;
     background: var(--bg2);
     border: 1px solid var(--border);
@@ -415,15 +337,10 @@
   }
 
   .flow-step {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: flex; align-items: center; gap: 8px;
     padding: .75rem 1.25rem;
-    font-size: 13.5px;
-    font-weight: 500;
-    color: var(--text2);
-    flex: 1;
-    min-width: 120px;
+    font-size: 13.5px; font-weight: 500; color: var(--text2);
+    flex: 1; min-width: 120px;
   }
 
   .flow-step span.num {
@@ -434,25 +351,13 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 11px;
     font-family: var(--mono);
-    font-weight: 600;
-    color: var(--text2);
-    flex-shrink: 0;
+    font-weight: 600; color: var(--text2); flex-shrink: 0;
   }
 
-  .flow-arrow {
-    color: var(--text3);
-    font-size: 16px;
-    padding: 0 .25rem;
-    flex-shrink: 0;
-  }
+  .flow-arrow { color: var(--text3); font-size: 16px; padding: 0 .25rem; flex-shrink: 0; }
 
-  /* ── Info grid ────────────────────────────────────── */
-  .info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: .75rem;
-    margin-bottom: 1.25rem;
-  }
+  /* ── Info grid ── */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-bottom: 1.25rem; }
 
   .info-card {
     background: var(--bg2);
@@ -462,80 +367,266 @@
   }
 
   .info-card-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .07em;
-    text-transform: uppercase;
-    color: var(--text3);
-    margin-bottom: 5px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: .07em; text-transform: uppercase;
+    color: var(--text3); margin-bottom: 5px;
   }
 
-  .info-card-value {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text);
-  }
+  .info-card-value { font-size: 14px; font-weight: 500; color: var(--text); }
 
-  /* ── Feature list ─────────────────────────────────── */
-  .feature-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: .6rem;
-    margin-bottom: 1.25rem;
-  }
+  /* ── Feature list ── */
+  .feature-list { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: 1.25rem; }
 
   .feature-item {
-    display: flex;
-    align-items: center;
-    gap: 9px;
+    display: flex; align-items: center; gap: 9px;
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: .65rem 1rem;
-    font-size: 13.5px;
-    color: var(--text2);
+    font-size: 13.5px; color: var(--text2);
   }
 
   .feature-item svg { flex-shrink: 0; }
 
-  /* ── Code ─────────────────────────────────────────── */
   code {
-    font-family: var(--mono);
-    font-size: 12px;
+    font-family: var(--mono); font-size: 12px;
     background: rgba(37,99,235,.06);
     border: 1px solid rgba(37,99,235,.15);
-    padding: 2px 7px;
-    border-radius: 5px;
-    color: #1d4ed8;
+    padding: 2px 7px; border-radius: 5px; color: #1d4ed8;
   }
 
   kbd {
-    font-family: var(--mono);
-    font-size: 11px;
+    font-family: var(--mono); font-size: 11px;
     background: #fff;
     border: 1px solid var(--border-med);
     border-bottom: 2px solid var(--border-med);
-    padding: 2px 8px;
-    border-radius: 5px;
-    color: var(--text2);
+    padding: 2px 8px; border-radius: 5px; color: var(--text2);
   }
 
-  /* ── Divider ──────────────────────────────────────── */
   .divider { height: 1px; background: var(--border); margin: 0 0 3.5rem; }
 
-  /* ── Scroll progress bar ──────────────────────────── */
   .progress-bar {
-    position: fixed;
-    top: 0; left: 0;
-    height: 2px;
-    background: var(--accent);
-    z-index: 100;
-    width: 0%;
+    position: fixed; top: 0; left: 0;
+    height: 2px; background: var(--accent);
+    z-index: 100; width: 0%;
     transition: width .1s;
     box-shadow: 0 0 10px var(--accent-glow);
   }
 
-  /* ── Mobile ───────────────────────────────────────── */
+  /* ─────────────────────────────────────────────── */
+  /* ── EASTER EGGS & HIDDEN ELEMENTS ───────────── */
+  /* ─────────────────────────────────────────────── */
+
+  /* Mot à double sens : tooltip sur hover */
+  .double-sens {
+    cursor: help;
+    position: relative;
+    border-bottom: 1px dashed transparent;
+    transition: border-color .2s;
+  }
+
+  .double-sens:hover {
+    border-bottom-color: var(--accent);
+  }
+
+  .double-sens::after {
+    content: attr(data-secret);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: #0f172a;
+    color: #e2e8f0;
+    font-size: 11.5px;
+    font-family: var(--mono);
+    padding: 5px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+    z-index: 50;
+  }
+
+  .double-sens:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Lien invisible — visible uniquement au survol de la zone parent */
+  .ghost-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color .2s, color .2s;
+  }
+
+  .ghost-link:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* Lettre piège — cliquable, invisible */
+  .trap-char {
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background .15s;
+  }
+
+  .trap-char:hover {
+    background: rgba(37,99,235,.12);
+  }
+
+  /* Texte fantôme — invisible jusqu'au select/survol */
+  .phantom-text {
+    color: transparent;
+    user-select: text;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .05em;
+    transition: color .3s;
+  }
+
+  .phantom-text:hover {
+    color: var(--text3);
+  }
+
+  /* Séquence chiffrée (style radio) */
+  .cipher-line {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: transparent;
+    letter-spacing: .15em;
+    cursor: default;
+    transition: color .4s;
+  }
+
+  .cipher-line:hover {
+    color: rgba(37,99,235,.25);
+  }
+
+  /* Logo cliquable x3 */
+  .logo-app {
+    cursor: pointer;
+  }
+
+  /* Panneau secret débloqué */
+  #secret-panel {
+    display: none;
+    position: fixed;
+    bottom: 24px; right: 24px;
+    width: 280px;
+    background: #0f172a;
+    border: 1px solid rgba(37,99,235,.4);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    z-index: 200;
+    box-shadow: 0 8px 32px rgba(0,0,0,.3), 0 0 0 1px rgba(37,99,235,.1);
+    animation: slideIn .35s ease;
+    color: #94a3b8;
+    font-size: 13px;
+    font-family: var(--mono);
+    line-height: 1.7;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  #secret-panel .sp-title {
+    font-size: 11px;
+    color: #3b82f6;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    margin-bottom: .75rem;
+    display: flex; align-items: center; gap: 7px;
+  }
+
+  #secret-panel .sp-close {
+    position: absolute; top: 10px; right: 12px;
+    font-size: 16px; cursor: pointer; color: #475569;
+    background: none; border: none;
+    transition: color .15s;
+  }
+
+  #secret-panel .sp-close:hover { color: #94a3b8; }
+
+  #secret-panel code {
+    font-size: 11px;
+    background: rgba(37,99,235,.15);
+    border-color: rgba(37,99,235,.3);
+    color: #60a5fa;
+  }
+
+  /* Toast notification */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: #0f172a;
+    color: #94a3b8;
+    font-size: 12px;
+    font-family: var(--mono);
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,.08);
+    z-index: 300;
+    opacity: 0;
+    transition: opacity .3s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .toast.show { opacity: 1; }
+
+  /* Konami overlay */
+  #konami-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.9);
+    z-index: 400;
+    align-items: center; justify-content: center;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  #konami-overlay.active { display: flex; }
+
+  #konami-overlay h2 {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: .2em;
+    color: #3b82f6;
+    text-transform: uppercase;
+  }
+
+  #konami-overlay p {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #475569;
+    text-align: center;
+    max-width: 340px;
+    line-height: 2;
+  }
+
+  #konami-overlay button {
+    margin-top: .5rem;
+    background: none;
+    border: 1px solid #1e3a5f;
+    color: #3b82f6;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .1em;
+    padding: 6px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+
+  #konami-overlay button:hover { background: rgba(37,99,235,.12); }
+
+  /* ── Mobile ── */
   @media (max-width: 768px) {
     .layout { grid-template-columns: 1fr; }
     .sidebar { position: static; height: auto; }
@@ -551,13 +642,41 @@
 
 <div class="progress-bar" id="progress"></div>
 
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- KONAMI OVERLAY -->
+<div id="konami-overlay">
+  <h2>// ACCÈS NIVEAU 2 //</h2>
+  <p>
+    Protocole <code style="font-family:monospace;font-size:11px;color:#60a5fa">QACK-OVERRIDE</code> activé.<br>
+    Bienvenue, opérateur de niveau 2.<br>
+    Tous les mouvements sont enregistrés.<br>
+    <span style="color:#1e3a5f">— Système de surveillance actif —</span>
+  </p>
+  <button onclick="document.getElementById('konami-overlay').classList.remove('active')">[ FERMER ]</button>
+</div>
+
+<!-- SECRET PANEL -->
+<div id="secret-panel">
+  <button class="sp-close" onclick="document.getElementById('secret-panel').style.display='none'">✕</button>
+  <div class="sp-title">
+    <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="#3b82f6" opacity=".3"/><circle cx="5" cy="5" r="2" fill="#3b82f6"/></svg>
+    CANAL INTERNE
+  </div>
+  <div>
+    <span style="color:#1e3a5f;font-size:10px">// C'est une situation qui peut faire mal.</span>
+  </div>
+</div>
+
 <div class="layout">
 
-  <!-- ── SIDEBAR ──────────────────────────────────────── -->
+  <!-- ── SIDEBAR ── -->
   <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-app">Complet Conforme</div>
-      <div class="logo-doc">Mode opératoire · v1.0</div>
+    <div class="sidebar-logo" id="logo-click-zone" title="">
+      <!-- Logo cliquable 3× pour ouvrir le panel secret -->
+      <div class="logo-app" id="logo-app-text">Complet Conforme</div>
+      <div class="logo-doc">Mode opératoire · <span class="double-sens" data-secret="version de façade">v1.0</span></div>
     </div>
 
     <div class="nav-section" style="margin-bottom:.5rem">Navigation</div>
@@ -612,25 +731,35 @@
 
     <div class="sidebar-footer">
       Application de contrôle de conformité des kits.<br>
-      <span style="color:var(--text3)">Usage interne</span>
+      <!-- Lien fantôme dans le footer -->
+      <a class="ghost-link" href="#" onclick="showToast('Niveau d\'accès insuffisant.'); return false;">Usage interne</a>
+      <!-- Texte fantôme invisible (visible en survol ou sélection) -->
+      <div class="phantom-text" style="margin-top:.5rem">// nœud: MAG2 · clé: 0x4CC</div>
     </div>
   </aside>
 
-  <!-- ── MAIN ─────────────────────────────────────────── -->
+  <!-- ── MAIN ── -->
   <div class="main">
 
-    <!-- Hero -->
     <div class="hero">
       <div class="hero-eyebrow">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M6 4v4M6 3v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Guide utilisateur
+        Guide <span class="double-sens" data-secret="et de dissimulation">utilisateur</span>
       </div>
-      <h1 class="hero-title">Mode opératoire<br>Complet Conforme</h1>
-      <p class="hero-sub">Toutes les étapes pour réaliser un contrôle de conformité de kit, consulter l'historique, analyser les statistiques et administrer l'application.</p>
+
+      <h1 class="hero-title">
+        <span class="double-sens" data-secret="M.O. — modus operandi">Mode opératoire</span><br>
+        <!-- Le "C" de Complet est une lettre piège -->
+        <span class="trap-char" onclick="showToast('Accès non autorisé. Tentative journalisée.')">C</span>omplet <span class="double-sens" data-secret="obéissant · sans écart">Conforme</span>
+      </h1>
+
+      <p class="hero-sub">Toutes les étapes pour réaliser un <span class="double-sens" data-secret="audit de terrain · opération discrète">contrôle de conformité</span> de kit, consulter l'historique, analyser les statistiques et administrer l'application.</p>
+
       <div class="hero-badges">
         <span class="badge badge-blue">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4.5" r="2"/><path d="M1.5 11c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-          Agents terrain
+          <!-- "Agents" est un double sens volontaire -->
+          <span class="double-sens" data-secret="agents de renseignement">Agents terrain</span>
         </span>
         <span class="badge badge-green">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 9V5M4.5 9V2M7 9V6M9.5 9V3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
@@ -641,17 +770,20 @@
           Administrateurs
         </span>
       </div>
+
+      <!-- Séquence chiffrée cachée dans le hero -->
+      <div class="cipher-line" style="margin-top:1.5rem; font-size:10px">4343 2d30 3730 3330 3120 2f2f 206e 6f64 653a 2041 4354 4956 45</div>
     </div>
 
     <div class="content">
 
-      <!-- ── 1. CONNEXION ─────────────────────────────── -->
+      <!-- ── 1. CONNEXION ── -->
       <section class="section" id="connexion">
         <div class="section-header">
           <div class="section-num">01</div>
           <h2 class="section-title">Connexion à l'application</h2>
         </div>
-        <p class="section-lead">L'accès à Complet Conforme nécessite un compte créé par un administrateur. Vous recevez vos identifiants par e-mail.</p>
+        <p class="section-lead">L'accès à Complet Conforme nécessite un <span class="double-sens" data-secret="une identité de couverture">compte créé par un administrateur</span>. Vous recevez vos identifiants par e-mail.</p>
 
         <div class="steps">
           <div class="step">
@@ -664,7 +796,7 @@
             <div class="step-body">
               <div class="step-label">Étape 1</div>
               <div class="step-title">Renseigner les identifiants</div>
-              <div class="step-desc">Saisissez votre adresse e-mail professionnelle et votre mot de passe. Cliquez sur l'icône 👁 pour afficher le mot de passe en clair si besoin.</div>
+              <div class="step-desc">Saisissez votre adresse e-mail professionnelle et votre mot de passe. Cliquez sur l'icône <span class="trap-char" onclick="showToast('👁 Vous êtes observé.')">👁</span> pour afficher le mot de passe en clair si besoin.</div>
             </div>
           </div>
 
@@ -677,8 +809,8 @@
             <div class="step-body">
               <div class="step-label">Étape 2</div>
               <div class="step-title">Se connecter</div>
-              <div class="step-desc">Cliquez sur <strong>Se connecter →</strong> ou appuyez sur <kbd>Entrée</kbd>. L'application s'ouvre directement sur l'onglet Terrain.</div>
-              <div class="step-note">Après plusieurs tentatives échouées, le compte est temporairement verrouillé. Contactez votre administrateur si vous êtes bloqué.</div>
+              <div class="step-desc">Cliquez sur <strong>Se connecter →</strong> ou appuyez sur <kbd>Entrée</kbd>. L'application s'ouvre directement sur l'onglet <span class="double-sens" data-secret="le vrai terrain, lui, ne se voit pas">Terrain</span>.</div>
+              <div class="step-note">Après plusieurs <span class="double-sens" data-secret="intrusions détectées">tentatives échouées</span>, le compte est temporairement verrouillé. Contactez votre administrateur si vous êtes bloqué.</div>
             </div>
           </div>
         </div>
@@ -686,16 +818,16 @@
 
       <div class="divider"></div>
 
-      <!-- ── 2. CALENDRIER ────────────────────────────── -->
+      <!-- ── 2. CALENDRIER ── -->
       <section class="section" id="calendrier">
         <div class="section-header">
           <div class="section-num">02</div>
           <h2 class="section-title">Vue calendrier</h2>
         </div>
-        <p class="section-lead">Le calendrier est l'écran d'accueil de l'onglet <strong>Terrain</strong>. Il affiche les sept jours de la semaine et le nombre de kits à contrôler pour chaque journée. Cette dernière correspond à la date de besoin en production., mis à jour en temps réel.</p>
+        <p class="section-lead">Le calendrier est l'écran d'accueil de l'onglet <strong>Terrain</strong>. Il affiche les sept jours de la semaine et le nombre de kits à contrôler pour chaque journée. Cette dernière correspond à la date de besoin en production, mis à jour en <span class="double-sens" data-secret="surveillance continue, 24h/24">temps réel</span>.</p>
 
         <div class="status-row">
-          <span class="pill pill-gray"><span class="pill-dot dot-gray"></span>À contrôler</span>
+          <span class="pill pill-gray"><span class="pill-dot dot-gray"></span><span class="double-sens" data-secret="en attente d'inspection">À contrôler</span></span>
           <span class="pill pill-amber"><span class="pill-dot dot-amber"></span>Incomplet</span>
           <span class="pill pill-green"><span class="pill-dot dot-green"></span>Conforme</span>
         </div>
@@ -723,7 +855,7 @@
             <div class="step-body">
               <div class="step-label">Filtres</div>
               <div class="step-title">Filtrer par emplacement ou WMS</div>
-              <div class="step-desc">Le champ <strong>Emplacement</strong> filtre par code d'emplacement (ex : <code>ETKI.0070301</code>). Le champ <strong>WMS</strong> filtre par zone de remontage — pré-rempli sur <code>MAG2-E-PRE</code> par défaut.</div>
+              <div class="step-desc">Le champ <strong>Emplacement</strong> filtre par code d'emplacement (ex : <code class="trap-char" onclick="showToast('Code emplacement actif · nœud validé')">ETKI.0070301</code>). Le champ <strong>WMS</strong> filtre par zone de remontage — pré-rempli sur <code>MAG2-E-PRE</code> par défaut.</div>
               <div class="step-note">Les filtres s'appliquent instantanément, sans rechargement des données.</div>
             </div>
           </div>
@@ -738,7 +870,7 @@
             <div class="step-body">
               <div class="step-label">Sélection</div>
               <div class="step-title">Voir les kits d'une journée</div>
-              <div class="step-desc">Cliquez sur une case du calendrier pour afficher la liste des kits de cette date dans le panneau du bas. Ils sont triés par priorité : incomplets d'abord, puis à contrôler, puis conformes.</div>
+              <div class="step-desc">Cliquez sur une case du calendrier pour afficher la liste des kits de cette date dans le panneau du bas. Ils sont triés par <span class="double-sens" data-secret="criticité opérationnelle">priorité</span> : incomplets d'abord, puis à contrôler, puis conformes.</div>
             </div>
           </div>
         </div>
@@ -746,20 +878,20 @@
 
       <div class="divider"></div>
 
-      <!-- ── 3. CONTRÔLE ──────────────────────────────── -->
+      <!-- ── 3. CONTRÔLE ── -->
       <section class="section" id="controle">
         <div class="section-header">
           <div class="section-num">03</div>
-          <h2 class="section-title">Contrôle d'un kit</h2>
+          <h2 class="section-title">Contrôle d'un <span class="double-sens" data-secret="dossier · colis · mission">kit</span></h2>
         </div>
-        <p class="section-lead">Depuis la liste des kits, cliquez sur une carte pour ouvrir la fiche de contrôle. Chaque composant du kit est listé avec sa quantité requise.</p>
+        <p class="section-lead">Depuis la liste des kits, cliquez sur une carte pour ouvrir la <span class="double-sens" data-secret="rapport de terrain">fiche de contrôle</span>. Chaque composant du kit est listé avec sa quantité requise.</p>
 
         <div class="flow">
           <div class="flow-step"><span class="num">1</span> Ouvrir le kit</div>
           <div class="flow-arrow">→</div>
           <div class="flow-step"><span class="num">2</span> Saisir les quantités</div>
           <div class="flow-arrow">→</div>
-          <div class="flow-step"><span class="num">3</span> Valider le statut</div>
+          <div class="flow-step"><span class="num">3</span> <span class="double-sens" data-secret="sceller le rapport">Valider le statut</span></div>
         </div>
 
         <div class="steps">
@@ -772,7 +904,7 @@
             <div class="step-body">
               <div class="step-label">Étape 1</div>
               <div class="step-title">Saisir les quantités comptées</div>
-              <div class="step-desc">Pour chaque composant, entrez la quantité physiquement comptée dans le champ de saisie à droite. La ligne passe <strong style="color:#15803d">en vert</strong> si la quantité est conforme, <strong style="color:#b91c1c">en rouge</strong> en cas d'écart. Un champ laissé vide signifie "non renseigné".</div>
+              <div class="step-desc">Pour chaque composant, entrez la quantité physiquement comptée dans le champ de saisie à droite. La ligne passe <strong style="color:#15803d">en vert</strong> si la quantité est conforme, <strong style="color:#b91c1c">en rouge</strong> en cas d'<span class="double-sens" data-secret="anomalie détectée">écart</span>. Un champ laissé vide signifie "non renseigné".</div>
             </div>
           </div>
 
@@ -809,19 +941,19 @@
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
             <circle cx="8" cy="8" r="6.5"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span>Après validation, l'application revient automatiquement au calendrier. Le statut du kit est mis à jour en temps réel pour tous les utilisateurs connectés simultanément.</span>
+          <span>Après validation, l'application revient automatiquement au calendrier. Le statut du kit est mis à jour en temps réel pour tous les <span class="double-sens" data-secret="opérateurs actifs sur le réseau">utilisateurs connectés simultanément</span>.</span>
         </div>
       </section>
 
       <div class="divider"></div>
 
-      <!-- ── 4. HISTORIQUE ────────────────────────────── -->
+      <!-- ── 4. HISTORIQUE ── -->
       <section class="section" id="historique">
         <div class="section-header">
           <div class="section-num">04</div>
-          <h2 class="section-title">Historique des contrôles</h2>
+          <h2 class="section-title"><span class="double-sens" data-secret="registre des opérations passées">Historique</span> des contrôles</h2>
         </div>
-        <p class="section-lead">L'onglet <strong>Historique</strong> permet de retrouver tout contrôle passé via une recherche ciblée. Les 50 derniers résultats correspondants sont affichés.</p>
+        <p class="section-lead">L'onglet <strong>Historique</strong> permet de retrouver tout contrôle passé via une <span class="double-sens" data-secret="investigation ciblée">recherche ciblée</span>. Les 50 derniers résultats correspondants sont affichés.</p>
 
         <div class="info-grid">
           <div class="info-card">
@@ -880,11 +1012,11 @@
 
       <div class="divider"></div>
 
-      <!-- ── 5. STATISTIQUES ──────────────────────────── -->
+      <!-- ── 5. STATISTIQUES ── -->
       <section class="section" id="statistiques">
         <div class="section-header">
           <div class="section-num">05</div>
-          <h2 class="section-title">Statistiques et indicateurs</h2>
+          <h2 class="section-title">Statistiques et <span class="double-sens" data-secret="métriques d'exposition">indicateurs</span></h2>
         </div>
         <p class="section-lead">L'onglet <strong>Statistiques</strong> donne une vue d'ensemble de la qualité des contrôles : KPI globaux, évolution hebdomadaire, taux par engin, composants en écart.</p>
 
@@ -953,16 +1085,13 @@
 
       <div class="divider"></div>
 
-      <!-- ── 6. IMPORT ─────────────────────────────────── -->
+      <!-- ── 6. IMPORT ── -->
       <section class="section" id="import">
         <div class="section-header">
           <div class="section-num">06</div>
-          <h2 class="section-title">
-            Onglet Import
-            
-          </h2>
+          <h2 class="section-title">Onglet Import</h2>
         </div>
-        <p class="section-lead">L'onglet Import permet de mettre à jour les emplacements autorisés pour controle et d'importer de nouveaux kits depuis un fichier Excel. Les fichiers sont envoyés automatiquement dans la base de données.</p>
+        <p class="section-lead">L'onglet Import permet de mettre à jour les <span class="double-sens" data-secret="zones d'opération autorisées">emplacements autorisés</span> pour contrôle et d'importer de nouveaux kits depuis un fichier Excel. Les fichiers sont envoyés automatiquement dans la base de données.</p>
 
         <div class="steps">
           <div class="step">
@@ -974,8 +1103,8 @@
             <div class="step-body">
               <div class="step-label">Onglet Emplacements</div>
               <div class="step-title">Mettre à jour les emplacements autorisés</div>
-              <div class="step-desc">Déposez le fichier <code>emplacements_autorises.txt</code> (un identifiant par ligne, lignes commençant par <code>#</code> ignorées) dans la zone de dépôt ou cliquez pour parcourir vos fichiers. Le fichier est envoyé vers la BDD et la liste active est mise à jour.</div>
-              <div class="step-note">Le nom du fichier doit être exactement <code>emplacements_autorises.txt</code>. Tout autre nom sera refusé et provoquera une erreur QACK dans le logiciel. </div>
+              <div class="step-desc">Déposez le fichier <code>emplacements_autorises.txt</code> (un identifiant par ligne, lignes commençant par <code>#</code> ignorées) dans la zone de dépôt ou cliquez pour parcourir vos fichiers.</div>
+              <div class="step-note">Le nom du fichier doit être exactement <code>emplacements_autorises.txt</code>. Tout autre nom sera refusé et provoquera une erreur <span class="trap-char" onclick="openSecretPanel()" style="font-family:var(--mono);font-size:12px;background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.15);padding:2px 7px;border-radius:5px;color:#1d4ed8">QACK</span> dans le logiciel.</div>
             </div>
           </div>
 
@@ -989,7 +1118,7 @@
             <div class="step-body">
               <div class="step-label">Onglet Import kits</div>
               <div class="step-title">Importer un fichier Excel de kits</div>
-              <div class="step-desc">Déposez un fichier <code>.xlsx</code>, <code>.xls</code> ou <code>.csv</code> dans la zone de dépôt. Le fichier est envoyé dans la BDD pour traitement, ce qui déclenche automatiquement le pipeline.</div>
+              <div class="step-desc">Déposez un fichier <code>.xlsx</code>, <code>.xls</code> ou <code>.csv</code> dans la zone de dépôt. Le fichier est envoyé dans la BDD pour traitement, ce qui déclenche automatiquement le <span class="double-sens" data-secret="chaîne de traitement automatisé · aussi : tuyau de refoulement">pipeline</span>.</div>
               <div class="step-note note-warn">Les noms de fichiers contenant des accents, espaces ou caractères spéciaux sont automatiquement normalisés avant l'envoi. Ex : <em>Kit été 2024.xlsx</em> → <em>kit-ete-2024.xlsx</em>.</div>
             </div>
           </div>
@@ -1003,8 +1132,8 @@
             <div class="step-body">
               <div class="step-label">Suivi pipeline</div>
               <div class="step-title">Surveiller le traitement en temps réel</div>
-              <div class="step-desc">Après l'envoi, un panneau de suivi s'affiche avec 4 étapes : <strong>Réception → Traitement → Import Firestore → Finalisation</strong>. Attendez la confirmation ✅ avant de fermer la page.</div>
-              <div class="step-note">En cas d'échec pipeline (étape rouge), un lien vers GitHub Actions est fourni pour consulter les logs détaillés.</div>
+              <div class="step-desc">Après l'envoi, un panneau de suivi s'affiche avec 4 étapes : <strong>Réception → Traitement → Import Firestore → <span class="double-sens" data-secret="opération close · dossier classé">Finalisation</span></strong>. Attendez la confirmation ✅ avant de fermer la page.</div>
+              <div class="step-note">En cas d'échec pipeline (étape rouge), un lien vers <a class="ghost-link" href="#" onclick="showToast('Accès GitHub Actions non disponible en lecture publique.'); return false;">GitHub Actions</a> est fourni pour consulter les logs détaillés.</div>
             </div>
           </div>
         </div>
@@ -1013,13 +1142,13 @@
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
             <circle cx="8" cy="8" r="6.5"/><path d="M8 5v.5M8 7.5v4" stroke-linecap="round"/>
           </svg>
-          <span>La configuration du token GitHub se fait depuis l'onglet <strong>Admin</strong> (protégé par code PIN). Seul l'administrateur système y a accès.</span>
+          <span>La configuration du <span class="double-sens" data-secret="jeton d'authentification · sésame">token</span> GitHub se fait depuis l'onglet <strong>Admin</strong> (protégé par code PIN). Seul l'<span class="double-sens" data-secret="officier traitant">administrateur système</span> y a accès.</span>
         </div>
       </section>
 
       <div class="divider"></div>
 
-      <!-- ── 7. COMPTE ─────────────────────────────────── -->
+      <!-- ── 7. COMPTE ── -->
       <section class="section" id="compte">
         <div class="section-header">
           <div class="section-num">07</div>
@@ -1037,7 +1166,7 @@
             <div class="step-body">
               <div class="step-label">Accès</div>
               <div class="step-title">Accéder au profil</div>
-              <div class="step-desc">Cliquez sur l'initiale de votre e-mail en haut à droite de l'écran. Vous accédez à votre adresse e-mail, identifiant unique, date de création du compte et date de dernière connexion.</div>
+              <div class="step-desc">Cliquez sur l'<span class="double-sens" data-secret="initiale de votre identité de couverture">initiale de votre e-mail</span> en haut à droite de l'écran. Vous accédez à votre adresse e-mail, identifiant unique, date de création du compte et date de dernière connexion.</div>
             </div>
           </div>
 
@@ -1051,7 +1180,7 @@
             <div class="step-body">
               <div class="step-label">Sécurité</div>
               <div class="step-title">Changer le mot de passe</div>
-              <div class="step-desc">Renseignez votre mot de passe actuel, puis le nouveau mot de passe deux fois. La barre de force s'affiche automatiquement et indique si votre mot de passe est suffisamment sécurisé.</div>
+              <div class="step-desc">Renseignez votre mot de passe actuel, puis le nouveau mot de passe deux fois. La <span class="double-sens" data-secret="indicateur de résistance aux intrusions">barre de force</span> s'affiche automatiquement.</div>
               <div class="step-note">Minimum 6 caractères requis. Recommandé : 12 caractères ou plus, avec majuscules, chiffres et caractères spéciaux (score "Très fort").</div>
             </div>
           </div>
@@ -1065,24 +1194,30 @@
             </div>
             <div class="step-body">
               <div class="step-label">Déconnexion</div>
-              <div class="step-title">Se déconnecter</div>
+              <div class="step-title"><span class="double-sens" data-secret="sortie sécurisée · effacement de session">Se déconnecter</span></div>
               <div class="step-desc">Cliquez sur <strong>Se déconnecter</strong> dans le menu en haut à droite (accessible depuis n'importe quel onglet). Une fenêtre de confirmation est affichée avant la déconnexion effective.</div>
             </div>
           </div>
         </div>
+
+        <!-- Texte chiffré caché en bas de page -->
+        <div style="margin-top:3rem;text-align:right">
+          <div class="phantom-text">// CC-NODE · SIG:7f3a · OP:NOMINAL · rev.4CC0</div>
+        </div>
+
       </section>
 
-    </div><!-- /content -->
-  </div><!-- /main -->
-</div><!-- /layout -->
+    </div>
+  </div>
+</div>
 
 <script>
+  /* ── Navigation ── */
   function setActive(el) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     el.classList.add('active');
   }
 
-  /* Scroll spy */
   const sections = document.querySelectorAll('section[id]');
   const navItems = document.querySelectorAll('.nav-item[href]');
 
@@ -1090,21 +1225,77 @@
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const id = entry.target.id;
-        navItems.forEach(n => {
-          n.classList.toggle('active', n.getAttribute('href') === '#' + id);
-        });
+        navItems.forEach(n => n.classList.toggle('active', n.getAttribute('href') === '#' + id));
       }
     });
   }, { rootMargin: '-30% 0px -60% 0px' });
 
   sections.forEach(s => observer.observe(s));
 
-  /* Progress bar */
+  /* ── Progress bar ── */
   const bar = document.getElementById('progress');
   window.addEventListener('scroll', () => {
-    const total  = document.body.scrollHeight - window.innerHeight;
-    const done   = window.scrollY / total * 100;
+    const done = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
     bar.style.width = done + '%';
+  });
+
+  /* ── Toast ── */
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  /* ── Logo cliqué 3× → panel secret ── */
+  let logoClicks = 0, logoTimer;
+  document.getElementById('logo-app-text').addEventListener('click', () => {
+    logoClicks++;
+    clearTimeout(logoTimer);
+    logoTimer = setTimeout(() => { logoClicks = 0; }, 1200);
+    if (logoClicks >= 3) {
+      logoClicks = 0;
+      openSecretPanel();
+    } else {
+      showToast(`[ ${logoClicks}/3 ]`);
+    }
+  });
+
+  function openSecretPanel() {
+    document.getElementById('session-id').textContent =
+      Math.random().toString(16).slice(2, 8).toUpperCase();
+    document.getElementById('secret-panel').style.display = 'block';
+  }
+
+  /* ── Konami code ── */
+  const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  let konamiIdx = 0;
+
+  document.addEventListener('keydown', e => {
+    if (e.key === KONAMI[konamiIdx]) {
+      konamiIdx++;
+      if (konamiIdx === KONAMI.length) {
+        konamiIdx = 0;
+        document.getElementById('konami-overlay').classList.add('active');
+      }
+    } else {
+      konamiIdx = 0;
+    }
+  });
+
+  /* ── Déchiffrement ligne cipher au double-clic ── */
+  document.querySelectorAll('.cipher-line').forEach(el => {
+    el.addEventListener('dblclick', () => {
+      try {
+        const hex = el.textContent.replace(/\s/g, '');
+        const decoded = hex.match(/.{2}/g).map(h => String.fromCharCode(parseInt(h, 16))).join('');
+        showToast(decoded);
+      } catch(e) {
+        showToast('Déchiffrement impossible.');
+      }
+    });
   });
 </script>
 
