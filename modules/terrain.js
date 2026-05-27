@@ -4,7 +4,7 @@
 import {
     doc, getDoc, getDocs, setDoc, addDoc, updateDoc,
     collection, collectionGroup,
-    query, where, onSnapshot, increment,
+    query, where, onSnapshot, increment, orderBy,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 import { db, auth }                                  from "./firebase.js";
@@ -53,9 +53,10 @@ export function initTerrain() {
     $('btn-retour-cal')?.addEventListener('click',  () => afficherVue('calendrier'));
     $('btn-retour-cals')?.addEventListener('click', () => afficherVue('calendrier'));
 
+    // ── Retour vers la vue kits : on repasse la date sélectionnée ────────────
     $('btn-retour-kits')?.addEventListener('click', () => {
         afficherVue('kits');
-        if (currentEmpId) chargerKitsEmplacement(currentEmpId);
+        if (currentEmpId) chargerKitsEmplacement(currentEmpId, CAL.selectedIso);
     });
 
     $('btn-conforme')?.addEventListener('click',  () => _valider("Conforme"));
@@ -282,8 +283,15 @@ function _renderEmptyState() {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // VUE KITS D'UN EMPLACEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+// Filtre sur une fenêtre glissante de ±4 semaines autour de la date de
+// référence (semaine sélectionnée dans le calendrier, ou aujourd'hui).
+// Pas de limit() : on charge tous les kits de la fenêtre.
+// Index Firestore requis :
+//   Collection : kits (sous-collection)
+//   Champs     : date_debut_iso ASC · __name__ ASC
 // ═══════════════════════════════════════════════════════════════════════════════
-export async function chargerKitsEmplacement(empId) {
+export async function chargerKitsEmplacement(empId, dateRef = null) {
     currentEmpId = empId;
     afficherVue('kits');
 
@@ -298,22 +306,39 @@ export async function chargerKitsEmplacement(empId) {
     listEl.innerHTML = '';
 
     try {
-        const kitsSnap = await getDocs(collection(db, "emplacements", empId, "kits"));
+        // Centre de la fenêtre = date sélectionnée dans le calendrier, sinon aujourd'hui
+        const centre = dateRef ? fromIso(dateRef) : new Date();
+        const debut  = new Date(centre);
+        const fin    = new Date(centre);
+        debut.setDate(centre.getDate() - 28); // 4 semaines en arrière
+        fin.setDate(centre.getDate() + 28);   // 4 semaines en avant
+
+        const debutIso = toIso(debut);
+        const finIso   = toIso(fin);
+
+        const q = query(
+            collection(db, "emplacements", empId, "kits"),
+            where("date_debut_iso", ">=", debutIso),
+            where("date_debut_iso", "<=", finIso),
+            orderBy("date_debut_iso", "desc")
+        );
+
+        const kitsSnap = await getDocs(q);
         const kits = [];
         kitsSnap.forEach(d => kits.push({ kitId: d.id, ...d.data() }));
         loading.classList.add('hidden');
 
         if (!kits.length) {
             vide.classList.remove('hidden');
-            vide.textContent = 'Aucun kit trouvé pour cet emplacement.';
+            vide.textContent = `Aucun kit trouvé sur les ±4 semaines autour du ${isoToDisplay(toIso(centre))}.`;
             return;
         }
 
-        kits.sort((a, b) => a.kitId.localeCompare(b.kitId));
         kits.forEach(k => {
             const card = _buildKitCard(k, () => ouvrirDetailKit(empId, k.kitId), true);
             listEl.appendChild(card);
         });
+
     } catch (err) {
         loading.classList.add('hidden');
         showToast('⚠️ ' + err.message, 'error');
