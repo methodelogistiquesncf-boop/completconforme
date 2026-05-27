@@ -672,72 +672,79 @@
 
             </section>
 
-            <!-- ════════════════════════════════════════════
-                 SECTION STATISTIQUES
-                 ════════════════════════════════════════════ -->
-            <section id="sec-stats" class="hidden">
+<!-- ════════════════════════════════════════════
+     SECTION STATISTIQUES
+     ════════════════════════════════════════════ -->
+<section id="sec-stats" class="hidden">
 
-                <div class="loading-wrap" id="stats-loading">
-                    <div class="spinner"></div>
-                    <span>Chargement des statistiques…</span>
-                </div>
+    <div class="loading-wrap" id="stats-loading">
+        <div class="spinner"></div>
+        <span>Chargement des statistiques…</span>
+    </div>
 
-                <div id="stats-content" class="hidden">
+    <div id="stats-content" class="hidden">
 
-                    <!-- KPI -->
-                    <div class="stats-kpi-row">
-                        <div class="stats-kpi-card">
-                            <span class="stats-kpi-icon">📋</span>
-                            <span class="stats-kpi-value" id="kpi-total">—</span>
-                            <span class="stats-kpi-label">Total contrôles</span>
-                        </div>
-                        <div class="stats-kpi-card" id="kpi-taux-card">
-                            <span class="stats-kpi-icon">✅</span>
-                            <span class="stats-kpi-value" id="kpi-taux">—</span>
-                            <span class="stats-kpi-label">Taux conformité</span>
-                        </div>
-                        <div class="stats-kpi-card stats-kpi-red">
-                            <span class="stats-kpi-icon">❌</span>
-                            <span class="stats-kpi-value" id="kpi-incomplets">—</span>
-                            <span class="stats-kpi-label">Non conformes</span>
-                        </div>
-                        <div class="stats-kpi-card stats-kpi-blue">
-                            <span class="stats-kpi-icon">📅</span>
-                            <span class="stats-kpi-value" id="kpi-semaine">—</span>
-                            <span class="stats-kpi-label">Cette semaine</span>
-                        </div>
-                    </div>
+        <!-- KPI -->
+        <div class="stats-kpi-row">
+            <div class="stats-kpi-card">
+                <span class="stats-kpi-icon">📋</span>
+                <span class="stats-kpi-value" id="kpi-total">—</span>
+                <span class="stats-kpi-label">Total contrôles</span>
+            </div>
+            <div class="stats-kpi-card" id="kpi-taux-card">
+                <span class="stats-kpi-icon">✅</span>
+                <span class="stats-kpi-value" id="kpi-taux">—</span>
+                <span class="stats-kpi-label">Taux conformité</span>
+            </div>
+            <div class="stats-kpi-card stats-kpi-red">
+                <span class="stats-kpi-icon">❌</span>
+                <span class="stats-kpi-value" id="kpi-incomplets">—</span>
+                <span class="stats-kpi-label">Non conformes</span>
+            </div>
+            <div class="stats-kpi-card stats-kpi-blue">
+                <span class="stats-kpi-icon">📅</span>
+                <span class="stats-kpi-value" id="kpi-semaine">—</span>
+                <span class="stats-kpi-label">Cette semaine</span>
+            </div>
+        </div>
 
-                    <!-- Évolution + Top composants -->
-                    <div class="stats-grid">
-                        <div class="card">
-                            <p class="card-title">Évolution — 8 dernières semaines</p>
-                            <div id="chart-evolution"></div>
-                        </div>
-                        <div class="card">
-                            <p class="card-title">Symbole le plus souvent en écart</p>
-                            <div id="stats-top-composants"></div>
-                        </div>
-                    </div>
+        <!-- Évolution + Top composants -->
+        <div class="stats-grid">
+            <div class="card">
+                <p class="card-title">Évolution — 8 dernières semaines</p>
+                <div id="chart-evolution"></div>
+            </div>
+            <div class="card">
+                <p class="card-title">Symbole le plus souvent en écart</p>
+                <div id="stats-top-composants"></div>
+            </div>
+        </div>
 
-                    <!-- Par engin -->
-                    <div class="card">
-                        <p class="card-title">Taux de conformité par engin</p>
-                        <div id="stats-par-engin"></div>
-                    </div>
+        <!-- Kits les plus souvent non conformes -->
+        <div class="card">
+            <p class="card-title">Kits les plus souvent non conformes</p>
+            <p class="stats-card-sub">Basé sur les {{ COMPOSANTS_LIMIT }} derniers contrôles incomplets</p>
+            <div id="stats-top-kits"></div>
+        </div>
 
-                </div>
+        <!-- Par engin -->
+        <div class="card">
+            <p class="card-title">Taux de conformité par engin</p>
+            <div id="stats-par-engin"></div>
+        </div>
 
-                <div class="stats-export-row">
-                    <button id="btn-export-histo" class="btn-export btn-export-primary">
-                        <span class="btn-export-icon">⬇</span> Exporter l'historique
-                    </button>
-                    <button id="btn-export-engin" class="btn-export">
-                        <span class="btn-export-icon">⬇</span> Exporter par engin
-                    </button>
-                </div>
+    </div>
 
-            </section>
+    <div class="stats-export-row">
+        <button id="btn-export-histo" class="btn-export btn-export-primary">
+            <span class="btn-export-icon">⬇</span> Exporter l'historique
+        </button>
+        <button id="btn-export-engin" class="btn-export">
+            <span class="btn-export-icon">⬇</span> Exporter par engin
+        </button>
+    </div>
+
+</section>
 
         </main>
     </div><!-- /.app-body -->
