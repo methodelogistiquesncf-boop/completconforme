@@ -321,3 +321,35 @@
     transition: filter .15s;
 }
 #pwa-update-btn:hover { filter: brightness(.92); }
+
+/* ─── MOT DE PASSE OUBLIÉ ─────────────────────────────── */
+.login-forgot-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -.25rem;
+    margin-bottom: .25rem;
+}
+
+.btn-forgot-pwd {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--sans);
+    font-size: .78rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color .15s;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.btn-forgot-pwd:hover { color: var(--accent); }
+
+.login-success {
+    color: var(--green) !important;
+    background: var(--green-soft) !important;
+    border: 1px solid rgba(26,138,90,.2) !important;
+    border-radius: var(--radius) !important;
+    padding: .6rem .9rem !important;
+    font-size: .82rem !important;
+}
+.login-success.visible { display: block !important; }
