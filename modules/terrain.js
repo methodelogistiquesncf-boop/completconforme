@@ -451,8 +451,8 @@ if (obsEl) {
             + (n > 480 ? ' danger' : n > 450 ? ' warn' : '');
     };
  
-    _majCompteur();                          // initialisation
-    obsEl.addEventListener('input', _majCompteur);
+    _majCompteur();
+    obsEl.oninput = _majCompteur;
 }
 
 function _evaluerItem(item, input, required) {
