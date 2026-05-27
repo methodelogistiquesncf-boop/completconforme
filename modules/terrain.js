@@ -2,7 +2,7 @@
 // modules/terrain.js — Calendrier, vue kits, vue détail, validation
 // ─────────────────────────────────────────────────────────────────────────────
 import {
-    doc, getDoc, getDocs, setDoc, addDoc,
+    doc, getDoc, getDocs, setDoc, addDoc, updateDoc,
     collection, collectionGroup,
     query, where, onSnapshot, increment,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -385,7 +385,7 @@ export async function ouvrirDetailKit(empId, kitId) {
 }
 
 function _afficherDetailKit(kitId, data, empId) {
-    _currentKitData = data;  // ← mémoriser pour _valider()
+    _currentKitData = data;
 
     $('detail-loading-card').classList.add('hidden');
 
@@ -483,7 +483,7 @@ async function _valider(statut) {
         const now      = new Date().toISOString();
         const email    = auth.currentUser?.email || "inconnu";
         const kitData  = _currentKitData;
-        const engin    = kitData.engin || "—";
+        const engin    = kitData.engin?.trim() || "—";
         const dateNow  = new Date();
         const semLabel = `${dateNow.getFullYear()}-W${String(numSemaine(dateNow)).padStart(2, '0')}`;
 
@@ -514,20 +514,33 @@ async function _valider(statut) {
         });
 
         // ── 3. Document de synthèse stats/kpi ─────────────────────────────────
-        await setDoc(
-            doc(db, "stats", "kpi"),
-            {
-                total:                                       increment(1),
-                conformes:                                   increment(statut === "Conforme"  ? 1 : 0),
-                incomplets:                                  increment(statut === "Incomplet" ? 1 : 0),
-                [`par_engin.${engin}.total`]:                increment(1),
-                [`par_engin.${engin}.conformes`]:            increment(statut === "Conforme"  ? 1 : 0),
-                [`par_semaine.${semLabel}.total`]:           increment(1),
-                [`par_semaine.${semLabel}.conformes`]:       increment(statut === "Conforme"  ? 1 : 0),
-                [`par_semaine.${semLabel}.incomplets`]:      increment(statut === "Incomplet" ? 1 : 0),
-            },
-            { merge: true }
-        );
+        // ⚠️ updateDoc (pas setDoc+merge) : seul updateDoc interprète le
+        //    dot-notation comme des chemins imbriqués → évite les clés plates
+        //    du style "par_engin.X76673 BFC3.total" dans Firestore.
+        const statsRef  = doc(db, "stats", "kpi");
+        const statsSnap = await getDoc(statsRef);
+
+        if (!statsSnap.exists()) {
+            // Première validation : créer le document avec la structure de base
+            await setDoc(statsRef, {
+                total:      0,
+                conformes:  0,
+                incomplets: 0,
+                par_engin:  {},
+                par_semaine: {},
+            });
+        }
+
+        await updateDoc(statsRef, {
+            total:                                       increment(1),
+            conformes:                                   increment(statut === "Conforme"  ? 1 : 0),
+            incomplets:                                  increment(statut === "Incomplet" ? 1 : 0),
+            [`par_engin.${engin}.total`]:                increment(1),
+            [`par_engin.${engin}.conformes`]:            increment(statut === "Conforme"  ? 1 : 0),
+            [`par_semaine.${semLabel}.total`]:           increment(1),
+            [`par_semaine.${semLabel}.conformes`]:       increment(statut === "Conforme"  ? 1 : 0),
+            [`par_semaine.${semLabel}.incomplets`]:      increment(statut === "Incomplet" ? 1 : 0),
+        });
 
         // ── 4. Invalide le cache stats ────────────────────────────────────────
         invaliderCacheStats();
