@@ -90,6 +90,7 @@ async function lancerRecherche() {
     afficherEtat('loading');
 
     // Cache hit
+     _cache.delete(cacheKey);
     if (_cache.has(cacheKey)) {
         renderResultats(_cache.get(cacheKey));
         return;
