@@ -3,14 +3,12 @@ on:
   push:
     paths:
       - "imports/pending/**"
-
 jobs:
   import:
     name: Traitement & injection Firestore
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
       # ── 1. Récupération du repo ──────────────────────────────────────────
       - name: Checkout
@@ -68,14 +66,15 @@ jobs:
           mkdir -p imports/done
           mv "$FILE" "$DEST"
 
-      # ── 7. Archivage git (sans action externe) ───────────────────────────
+      # ── 7. Archivage git ─────────────────────────────────────────────────
       - name: Archiver le fichier traité
         if: steps.detect.outputs.file != ''
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # ✅ Pull --rebase AVANT le git add — évite l'erreur "uncommitted changes"
+          git pull --rebase --autostash origin ${{ github.ref_name }}
           git add imports/done/ imports/pending/
-          git pull --rebase origin ${{ github.ref_name }}
           git diff --staged --quiet || \
             git commit -m "✅ Archivage import : ${{ steps.detect.outputs.file }}"
           git push origin ${{ github.ref_name }}
