@@ -613,3 +613,126 @@
     color: #fff;
     filter: none;
 }
+/* ── Conteneur principal ─────────────────────────────────────────── */
+.obs-wrap {
+    margin: 1.5rem 0;
+}
+ 
+/* ── Ligne label + compteur ──────────────────────────────────────── */
+.obs-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+ 
+.obs-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: default;
+    user-select: none;
+}
+ 
+.obs-label-icon {
+    flex-shrink: 0;
+    color: var(--muted);
+}
+ 
+.obs-optional {
+    font-size: .68rem;
+    font-weight: 400;
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--muted);
+    opacity: .7;
+}
+ 
+.obs-counter {
+    font-family: var(--mono);
+    font-size: .68rem;
+    color: var(--muted);
+    opacity: .8;
+    font-variant-numeric: tabular-nums;
+    transition: color .2s;
+}
+ 
+/* Compteur en alerte */
+.obs-counter.warn   { color: #BA7517; opacity: 1; }
+.obs-counter.danger { color: var(--accent); opacity: 1; }
+ 
+/* ── Enveloppe du champ (textarea + footer) ──────────────────────── */
+.obs-field-wrap {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--input-bg);
+    transition: border-color .18s, box-shadow .18s, background .18s;
+    overflow: hidden;
+}
+ 
+.obs-field-wrap:focus-within {
+    border-color: var(--accent);
+    background: var(--card-bg, #fff);
+    box-shadow: 0 0 0 3px rgba(224, 58, 82, .12);
+}
+ 
+/* ── Textarea ─────────────────────────────────────────────────────── */
+.obs-textarea {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    background: transparent;
+    resize: none;
+    padding: 10px 14px;
+    font-family: var(--sans);
+    font-size: .875rem;
+    line-height: 1.65;
+    color: var(--text);
+    outline: none;
+    min-height: 88px;
+    /* Masquer la poignée de redimensionnement native
+       pour conserver le look propre ; l'utilisateur peut
+       toujours agrandir via Shift+Entrée */
+    resize: vertical;
+}
+ 
+.obs-textarea::placeholder {
+    color: var(--muted);
+    opacity: .6;
+}
+ 
+/* ── Pied du champ (hint contextuel) ─────────────────────────────── */
+.obs-footer {
+    display: flex;
+    align-items: center;
+    padding: 5px 14px 7px;
+    border-top: 1px solid var(--border);
+    background: transparent;
+    transition: border-color .18s;
+}
+ 
+.obs-field-wrap:focus-within .obs-footer {
+    border-top-color: rgba(224, 58, 82, .15);
+}
+ 
+.obs-hint {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: .7rem;
+    color: var(--muted);
+    opacity: .75;
+    user-select: none;
+}
+ 
+.obs-hint svg {
+    flex-shrink: 0;
+}
+ 
