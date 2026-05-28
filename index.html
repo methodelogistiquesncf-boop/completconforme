@@ -30,72 +30,72 @@
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════
+html<!-- ══════════════════════════════════════════════════════
      PAGE DE CONNEXION
      ══════════════════════════════════════════════════════ -->
 <div id="login-page" style="display:none;">
-    <div class="login-card">
-        <div class="login-logo">
-            Complet<span>Conforme</span>
-            <em class="app-version" id="login-version"></em>
-        </div>
-        <div class="login-title">
-            <h2>Connexion</h2>
-            <p>Accédez à votre espace de contrôle.</p>
-        </div>
-        <div class="field-group">
-            <label for="login-email">Adresse e-mail</label>
-            <input type="email" id="login-email" class="field-input"
-                   placeholder="vous@exemple.com" autocomplete="email" spellcheck="false">
-        </div>
-        <div class="field-group">
-            <label for="login-pwd">Mot de passe</label>
-            <div class="pwd-wrapper">
-                <input type="password" id="login-pwd" class="field-input"
-                       placeholder="••••••••" autocomplete="current-password">
-                <button type="button" id="toggle-pwd" class="btn-toggle-pwd" title="Afficher/Masquer">👁</button>
-            </div>
-        </div>
+  <div class="login-card">
 
-          <div class="login-forgot-wrap">
-    <button type="button" id="btn-forgot-pwd" class="btn-forgot-pwd">
-        Mot de passe oublié ?
-    </button>
-</div>
-<div class="login-error login-success" id="forgot-success"></div>
-
-
-         
-        <div class="login-error" id="login-error"></div>
-        <button class="btn-login" id="btn-login">Se connecter →</button>
-        <hr class="login-divider">
-        <p class="login-footer">Connexion sécurisée · Complet Conforme</p>
+    <div class="login-logo">
+      Complet<span>Conforme</span>
+      <em class="app-version" id="login-version"></em>
     </div>
-</div>
 
- <!-- QR Code partage — dans la carte, aligné à gauche -->
-      <div class="qr-share">
-        <button class="qr-toggle" id="qr-toggle" onclick="toggleQR()">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-            <rect x="3" y="14" width="7" height="7"/>
-            <path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/>
-          </svg>
-          Partager l'application
-        </button>
-        <div class="qr-panel" id="qr-panel">
-          <p class="qr-label">Scannez pour ouvrir l'application</p>
-          <div id="qr-code"></div>
-          <p class="qr-url">methodelogistiquesncf-boop.github.io/completconforme/</p>
-        </div>
+    <div class="login-title">
+      <h2>Connexion</h2>
+      <p>Accédez à votre espace de contrôle.</p>
+    </div>
+
+    <div class="field-group">
+      <label for="login-email">Adresse e-mail</label>
+      <input type="email" id="login-email" class="field-input"
+             placeholder="vous@exemple.com" autocomplete="email" spellcheck="false">
+    </div>
+
+    <div class="field-group">
+      <label for="login-pwd">Mot de passe</label>
+      <div class="pwd-wrapper">
+        <input type="password" id="login-pwd" class="field-input"
+               placeholder="••••••••" autocomplete="current-password">
+        <button type="button" id="toggle-pwd" class="btn-toggle-pwd" title="Afficher/Masquer">👁</button>
       </div>
-
     </div>
 
-    
-  </div>     
+    <div class="login-forgot-wrap">
+      <button type="button" id="btn-forgot-pwd" class="btn-forgot-pwd">
+        Mot de passe oublié ?
+      </button>
+    </div>
 
+    <div class="login-error login-success" id="forgot-success"></div>
+    <div class="login-error" id="login-error"></div>
+
+    <button class="btn-login" id="btn-login">Se connecter →</button>
+
+    <hr class="login-divider">
+    <p class="login-footer">Connexion sécurisée · Complet Conforme</p>
+
+    <!-- QR Code partage — dans la carte, aligné à gauche -->
+    <div class="qr-share">
+      <button class="qr-toggle" id="qr-toggle" onclick="toggleQR()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"/>
+          <rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/>
+          <path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/>
+        </svg>
+        Partager l'application
+      </button>
+      <div class="qr-panel" id="qr-panel">
+        <p class="qr-label">Scannez pour ouvrir l'application</p>
+        <div id="qr-code"></div>
+        <p class="qr-url">methodelogistiquesncf-boop.github.io/completconforme/</p>
+      </div>
+    </div>
+
+  </div> 
+</div>   
 <!-- ══════════════════════════════════════════════════════
      APPLICATION (visible après auth)
      ══════════════════════════════════════════════════════ -->
