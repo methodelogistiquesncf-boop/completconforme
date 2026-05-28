@@ -15,17 +15,13 @@ import { $, showConfirmToast }     from "./utils.js";
 let _onLogin  = () => {};
 let _onLogout = () => {};
 
-/**
- * Enregistre les callbacks appelés lors des transitions d'état.
- * @param {{ onLogin: (user) => void, onLogout: () => void }} cbs
- */
 export function setAuthCallbacks({ onLogin, onLogout }) {
     _onLogin  = onLogin  || _onLogin;
     _onLogout = onLogout || _onLogout;
 }
 
 // ─── Déconnexion automatique par inactivité ───────────────────────────────────
-const INACTIVITY_DELAY = 59 * 60 * 1000; // 30 minutes
+const INACTIVITY_DELAY = 59 * 60 * 1000;
 let _inactivityTimer   = null;
 
 function _resetInactivityTimer() {
@@ -68,19 +64,16 @@ export function initAuth() {
         }
     });
 
-    // ── Formulaire de connexion ────────────────────────────────────────────────
     $('btn-login').addEventListener('click', _handleLogin);
 
     [$('login-email'), $('login-pwd')].forEach(el =>
         el?.addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-login').click(); })
     );
 
-    // ── Déconnexion ────────────────────────────────────────────────────────────
     $('btn-logout').addEventListener('click', async () => {
         if (await showConfirmToast("Se déconnecter ?")) signOut(auth);
     });
 
-    // ── Toggle affichage mot de passe (page login) ────────────────────────────
     $('toggle-pwd')?.addEventListener('click', () => {
         const pwd = $('login-pwd');
         const isPassword = pwd.type === 'password';
@@ -88,9 +81,30 @@ export function initAuth() {
         $('toggle-pwd').textContent = isPassword ? '🙈' : '👁';
     });
 
-    // ── Mot de passe oublié ────────────────────────────────────────────────────
     $('btn-forgot-pwd')?.addEventListener('click', _handleForgotPassword);
 }
+
+// ─── QR Code partage ──────────────────────────────────────────────────────────
+let _qrGenerated = false;
+
+window.toggleQR = function () {
+    const panel  = document.getElementById('qr-panel');
+    const toggle = document.getElementById('qr-toggle');
+    const open   = panel.classList.toggle('show');
+    toggle.classList.toggle('active', open);
+
+    if (open && !_qrGenerated) {
+        new QRCode(document.getElementById('qr-code'), {
+            text:         "https://methodelogistiquesncf-boop.github.io/completconforme/",
+            width:        100,
+            height:       100,
+            colorDark:    "#151c2c",
+            colorLight:   "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        _qrGenerated = true;
+    }
+};
 
 // ─── Handlers privés ──────────────────────────────────────────────────────────
 async function _handleLogin() {
