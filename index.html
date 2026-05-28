@@ -73,6 +73,29 @@
     </div>
 </div>
 
+ <!-- QR Code partage — dans la carte, aligné à gauche -->
+      <div class="qr-share">
+        <button class="qr-toggle" id="qr-toggle" onclick="toggleQR()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+            <path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/>
+          </svg>
+          Partager l'application
+        </button>
+        <div class="qr-panel" id="qr-panel">
+          <p class="qr-label">Scannez pour ouvrir l'application</p>
+          <div id="qr-code"></div>
+          <p class="qr-url">methodelogistiquesncf-boop.github.io/completconforme/</p>
+        </div>
+      </div>
+
+    </div>
+
+    
+  </div>     
+
 <!-- ══════════════════════════════════════════════════════
      APPLICATION (visible après auth)
      ══════════════════════════════════════════════════════ -->
