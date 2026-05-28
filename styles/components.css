@@ -353,3 +353,67 @@
     font-size: .82rem !important;
 }
 .login-success.visible { display: block !important; }
+
+/* ── QR CODE PARTAGE — dans la carte, gauche, compact ── */
+.qr-share {
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.qr-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: border-color .15s, color .15s, background .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.qr-toggle svg { width: 14px; height: 14px; flex-shrink: 0; }
+.qr-toggle:hover,
+.qr-toggle.active { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
+
+.qr-panel {
+  display: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 0 0;
+}
+.qr-panel.show { display: flex; }
+
+.qr-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+}
+#qr-code {
+  padding: 6px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  line-height: 0;
+}
+#qr-code img,
+#qr-code canvas {
+  width: 100px !important;
+  height: 100px !important;
+  border-radius: 3px;
+}
+.qr-url {
+  font-size: 9px;
+  color: var(--muted);
+  word-break: break-all;
+  opacity: .6;
+  max-width: 200px;
+}
