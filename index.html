@@ -27,6 +27,7 @@
 <link rel="stylesheet" href="./styles/admin.css">
 <link rel="stylesheet" href="./styles/profil.css">
 <link rel="stylesheet" href="./styles/stats.css">
+<link rel="stylesheet" href="./styles/reprises.css">
 </head>
 <body>
 
@@ -115,6 +116,7 @@
                 <button class="tab-btn" id="tab-import">📥 Import</button>
                 <button class="tab-btn" id="tab-admin">⚙️ Admin</button>
                 <button class="tab-btn" id="tab-stats">📊 Stats</button>
+                <button class="tab-btn" id="tab-reprises">🔧 Reprises</button>
 
                 <div class="header-user-chip" id="header-user" title="Utilisateur connecté"></div>
                 <button class="btn-logout" id="btn-logout" title="Se déconnecter">Déconnexion</button>
@@ -146,6 +148,9 @@
             <button class="sidebar-btn" id="sidebar-stats">
                 <span class="sb-icon">📊</span> Statistiques
             </button>
+             <button class="sidebar-btn" id="sidebar-reprises">
+                   <span class="sb-icon">🔧</span> Reprises
+               </button>
 
             <a href="https://methodelogistiquesncf-boop.github.io/completconforme/aide.html"
                target="_blank"
@@ -393,6 +398,72 @@
                     <div id="histo-list" class="histo-list"></div>
                 </div>
             </section>
+
+             <!-- ════════════════════════════════════════════
+     SECTION REPRISES
+     ════════════════════════════════════════════ -->
+<section id="sec-reprises" class="hidden">
+ 
+    <!-- KPI -->
+    <div class="reprises-kpi-row">
+        <div class="reprises-kpi-card reprises-kpi-card--accent">
+            <span class="reprises-kpi-icon">❌</span>
+            <span class="reprises-kpi-value" id="reprises-kpi-total">—</span>
+            <span class="reprises-kpi-label">Non conformes</span>
+        </div>
+        <div class="reprises-kpi-card">
+            <span class="reprises-kpi-icon">📅</span>
+            <span class="reprises-kpi-value" id="reprises-kpi-semaine">—</span>
+            <span class="reprises-kpi-label">Récents (≤ 7j)</span>
+        </div>
+        <div class="reprises-kpi-card reprises-kpi-card--urgent">
+            <span class="reprises-kpi-icon">🔴</span>
+            <span class="reprises-kpi-value" id="reprises-kpi-urgents">—</span>
+            <span class="reprises-kpi-label">En attente &gt; 7j</span>
+        </div>
+        <div class="reprises-kpi-card reprises-kpi-card--clos">
+            <span class="reprises-kpi-icon">✅</span>
+            <span class="reprises-kpi-value" id="reprises-kpi-clos">—</span>
+            <span class="reprises-kpi-label">Reprises closes</span>
+        </div>
+    </div>
+ 
+    <div class="card">
+        <!-- Toolbar recherche + filtres -->
+        <div class="reprises-toolbar">
+            <input
+                type="text"
+                id="reprises-search"
+                class="reprises-search"
+                placeholder="🔍 Rechercher un kit, emplacement…"
+                autocomplete="off"
+                spellcheck="false"
+            >
+            <div class="reprises-filter-group">
+                <button class="reprises-filter-btn active" id="reprises-filter-tous">Tous</button>
+                <button class="reprises-filter-btn" id="reprises-filter-urgent">Urgent (&gt;7j)</button>
+                <button class="reprises-filter-btn" id="reprises-filter-recents">Récents</button>
+                <button class="reprises-filter-btn" id="reprises-filter-clos">Clos</button>
+            </div>
+        </div>
+ 
+        <!-- Spinner -->
+        <div class="loading-wrap hidden" id="reprises-loading">
+            <div class="spinner"></div>
+            <span>Chargement des reprises…</span>
+        </div>
+ 
+        <!-- Compteur résultats -->
+        <p class="reprises-count" id="reprises-count"></p>
+ 
+        <!-- Message vide / erreur -->
+        <p class="reprises-empty hidden" id="reprises-empty"></p>
+ 
+        <!-- Liste des cartes -->
+        <div id="reprises-list"></div>
+    </div>
+ 
+</section>
 
             <!-- ════════════════════════════════════════════
                  SECTION IMPORT
@@ -785,6 +856,7 @@
             ['sidebar-admin',      'tab-admin'],
             ['sidebar-profil',     'tab-profil'],
             ['sidebar-stats',      'tab-stats'],
+            ['sidebar-reprises', 'tab-reprises'],
         ];
         pairs.forEach(([sbId, tabId]) => {
             const sbBtn  = document.getElementById(sbId);
