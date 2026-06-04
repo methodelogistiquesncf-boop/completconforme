@@ -76,7 +76,6 @@
     <hr class="login-divider">
     <p class="login-footer">Connexion sécurisée · Complet Conforme</p>
 
-    <!-- QR Code partage — dans la carte, aligné à gauche -->
     <div class="qr-share">
       <button class="qr-toggle" id="qr-toggle" onclick="toggleQR()">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -95,8 +94,9 @@
       </div>
     </div>
 
-  </div> 
-</div>   
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════════════════════
      APPLICATION (visible après auth)
      ══════════════════════════════════════════════════════ -->
@@ -112,11 +112,11 @@
             <nav>
                 <button class="tab-btn active" id="tab-terrain">📱 Terrain</button>
                 <button class="tab-btn" id="tab-historique">🕒 Historique</button>
+                <button class="tab-btn" id="tab-reprises">🔧 Reprises</button>
+                <button class="tab-btn" id="tab-stats">📊 Stats</button>
                 <button class="tab-btn" id="tab-profil">👤 Profil</button>
                 <button class="tab-btn" id="tab-import">📥 Import</button>
                 <button class="tab-btn" id="tab-admin">⚙️ Admin</button>
-                <button class="tab-btn" id="tab-stats">📊 Stats</button>
-                <button class="tab-btn" id="tab-reprises">🔧 Reprises</button>
 
                 <div class="header-user-chip" id="header-user" title="Utilisateur connecté"></div>
                 <button class="btn-logout" id="btn-logout" title="Se déconnecter">Déconnexion</button>
@@ -136,6 +136,12 @@
             <button class="sidebar-btn" id="sidebar-historique">
                 <span class="sb-icon">🕒</span> Historique
             </button>
+            <button class="sidebar-btn" id="sidebar-reprises">
+                <span class="sb-icon">🔧</span> Reprises
+            </button>
+            <button class="sidebar-btn" id="sidebar-stats">
+                <span class="sb-icon">📊</span> Statistiques
+            </button>
             <button class="sidebar-btn" id="sidebar-import">
                 <span class="sb-icon">📥</span> Import
             </button>
@@ -145,12 +151,6 @@
             <button class="sidebar-btn" id="sidebar-profil">
                 <span class="sb-icon">👤</span> Profil
             </button>
-            <button class="sidebar-btn" id="sidebar-stats">
-                <span class="sb-icon">📊</span> Statistiques
-            </button>
-             <button class="sidebar-btn" id="sidebar-reprises">
-                   <span class="sb-icon">🔧</span> Reprises
-               </button>
 
             <a href="https://methodelogistiquesncf-boop.github.io/completconforme/aide.html"
                target="_blank"
@@ -172,9 +172,7 @@
                     ⚠️ Mode hors-ligne — les modifications seront synchronisées au retour du réseau.
                 </div>
 
-                <!-- VUE CALENDRIER — niveau 1 -->
                 <div id="view-calendrier">
-
                     <div class="card" style="padding: 1.5rem 1.5rem 1.4rem;">
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                             <div style="display: flex; flex-direction: column; gap: .45rem; flex: 1; min-width: 160px;">
@@ -212,10 +210,8 @@
                         <div class="cal-kits-header" id="cal-kits-header"></div>
                         <div id="cal-kits-list" class="liste-kits"></div>
                     </div>
+                </div>
 
-                </div><!-- /view-calendrier -->
-
-                <!-- VUE KITS — niveau 2 -->
                 <div id="view-kits" class="hidden">
                     <div class="detail-nav">
                         <button class="btn-retour" id="btn-retour-cal">← Calendrier</button>
@@ -229,7 +225,6 @@
                     <div id="kits-emp-list" class="liste-kits"></div>
                 </div>
 
-                <!-- VUE DETAIL — niveau 3 -->
                 <div id="view-detail" class="hidden">
                     <div class="detail-nav">
                         <button class="btn-retour" id="btn-retour-cals">← Retour</button>
@@ -256,46 +251,38 @@
                         <p class="card-title">Composition théorique à valider</p>
                         <div class="comp-list" id="comp-list"></div>
 
-                        <!-- ── Observation libre ── -->
-<div class="obs-wrap">
- 
-    <div class="obs-label-row">
-        <label for="obs-textarea" class="obs-label">
-            <svg class="obs-label-icon" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 20h9"/>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
-            </svg>
-            Observation
-            <span class="obs-optional">— facultatif</span>
-        </label>
-        <span class="obs-counter" id="obs-counter">0 / 500</span>
-    </div>
- 
-    <div class="obs-field-wrap">
-        <textarea
-            id="obs-textarea"
-            class="obs-textarea"
-            rows="3"
-            maxlength="500"
-            placeholder="Remarque libre sur l'état du kit, contexte, anomalie…"
-            spellcheck="true"
-        ></textarea>
-        <div class="obs-footer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                 aria-hidden="true" class="obs-hint-icon"
-                 style="width:12px;height:12px;flex-shrink:0;color:#aaa;margin-right:5px;">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            <span class="obs-hint">Visible dans l'historique des contrôles</span>
-        </div>
-    </div>
- 
-</div>
+                        <div class="obs-wrap">
+                            <div class="obs-label-row">
+                                <label for="obs-textarea" class="obs-label">
+                                    <svg class="obs-label-icon" viewBox="0 0 24 24" fill="none"
+                                         stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M12 20h9"/>
+                                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                                    </svg>
+                                    Observation
+                                    <span class="obs-optional">— facultatif</span>
+                                </label>
+                                <span class="obs-counter" id="obs-counter">0 / 500</span>
+                            </div>
+                            <div class="obs-field-wrap">
+                                <textarea id="obs-textarea" class="obs-textarea" rows="3"
+                                          maxlength="500"
+                                          placeholder="Remarque libre sur l'état du kit, contexte, anomalie…"
+                                          spellcheck="true"></textarea>
+                                <div class="obs-footer">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                         aria-hidden="true" class="obs-hint-icon"
+                                         style="width:12px;height:12px;flex-shrink:0;color:#aaa;margin-right:5px;">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="12" y1="8" x2="12" y2="12"/>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                    </svg>
+                                    <span class="obs-hint">Visible dans l'historique des contrôles</span>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="btn-actions">
                             <button class="btn-action btn-conforme" id="btn-conforme">
@@ -316,8 +303,6 @@
             <section id="sec-historique" class="hidden">
                 <div class="card">
                     <p class="card-title">Historique des contrôles</p>
-
-                    <!-- Barre de recherche avec sélection manuelle du mode -->
                     <div class="histo-toolbar">
                         <div class="histo-search-wrap">
                             <select id="histo-mode" class="histo-mode-select">
@@ -326,17 +311,9 @@
                                 <option value="nom_du_kit">🧰 Nom de kit</option>
                                 <option value="code_kit">🔑 Code kit</option>
                             </select>
-                            <input
-                                type="text"
-                                id="histo-search"
-                                class="histo-search-input"
-                                placeholder="Ex : ETKI.0070301"
-                                autocomplete="off"
-                                spellcheck="false"
-                            >
-                            <button class="histo-search-btn" id="histo-search-btn">
-                                🔍
-                            </button>
+                            <input type="text" id="histo-search" class="histo-search-input"
+                                   placeholder="Ex : ETKI.0070301" autocomplete="off" spellcheck="false">
+                            <button class="histo-search-btn" id="histo-search-btn">🔍</button>
                         </div>
                         <select id="histo-filter" class="histo-filter-select">
                             <option value="tous">Tous les statuts</option>
@@ -344,142 +321,99 @@
                             <option value="Incomplet">Incomplet</option>
                         </select>
                     </div>
-
-                    <!-- Invite initiale -->
                     <div class="histo-invite" id="histo-invite">
                         <span class="histo-invite-icon">🔍</span>
                         <p class="histo-invite-title">Choisissez un mode puis lancez la recherche</p>
                         <div class="histo-invite-examples">
                             <div class="histo-example-item">
                                 <span class="histo-example-badge">📍</span>
-                                <div>
-                                    <strong>Emplacement</strong>
-                                    <code>ETKI.0070301</code>
-                                </div>
+                                <div><strong>Emplacement</strong><code>ETKI.0070301</code></div>
                             </div>
                             <div class="histo-example-item">
                                 <span class="histo-example-badge">🚂</span>
-                                <div>
-                                    <strong>Engin</strong>
-                                    <code>B82551 4C TRANSILIEN1 (2e série)</code>
-                                </div>
+                                <div><strong>Engin</strong><code>B82551 4C TRANSILIEN1 (2e série)</code></div>
                             </div>
                             <div class="histo-example-item">
                                 <span class="histo-example-badge">🧰</span>
-                                <div>
-                                    <strong>Nom de kit</strong>
-                                    <code>KIT TRAIT MEC PORTE SIMPLE</code>
-                                </div>
+                                <div><strong>Nom de kit</strong><code>KIT TRAIT MEC PORTE SIMPLE</code></div>
                             </div>
                             <div class="histo-example-item">
                                 <span class="histo-example-badge">🔑</span>
-                                <div>
-                                    <strong>Code kit</strong>
-                                    <code>K21 OO990648</code>
-                                </div>
+                                <div><strong>Code kit</strong><code>K21 OO990648</code></div>
                             </div>
                         </div>
                         <p class="histo-invite-sub"><kbd>Entrée</kbd> pour lancer · 50 résultats max</p>
                     </div>
-
-                    <!-- Spinner -->
                     <div class="loading-wrap hidden" id="histo-loading">
                         <div class="spinner"></div>
                         <span>Chargement…</span>
                     </div>
-
-                    <!-- Message vide / erreur -->
                     <p class="histo-empty hidden" id="histo-empty"></p>
-
-                    <!-- Compteur -->
                     <p class="histo-counter" id="histo-counter"></p>
-
-                    <!-- Résultats -->
                     <div id="histo-list" class="histo-list"></div>
                 </div>
             </section>
 
-             <!-- ════════════════════════════════════════════
-     SECTION REPRISES
-     ════════════════════════════════════════════ -->
-<section id="sec-reprises" class="hidden">
- 
-    <!-- KPI -->
-    <div class="reprises-kpi-row">
-        <div class="reprises-kpi-card reprises-kpi-card--accent">
-            <span class="reprises-kpi-icon">❌</span>
-            <span class="reprises-kpi-value" id="reprises-kpi-total">—</span>
-            <span class="reprises-kpi-label">Non conformes</span>
-        </div>
-        <div class="reprises-kpi-card">
-            <span class="reprises-kpi-icon">📅</span>
-            <span class="reprises-kpi-value" id="reprises-kpi-semaine">—</span>
-            <span class="reprises-kpi-label">Récents (≤ 7j)</span>
-        </div>
-        <div class="reprises-kpi-card reprises-kpi-card--urgent">
-            <span class="reprises-kpi-icon">🔴</span>
-            <span class="reprises-kpi-value" id="reprises-kpi-urgents">—</span>
-            <span class="reprises-kpi-label">En attente &gt; 7j</span>
-        </div>
-        <div class="reprises-kpi-card reprises-kpi-card--clos">
-            <span class="reprises-kpi-icon">✅</span>
-            <span class="reprises-kpi-value" id="reprises-kpi-clos">—</span>
-            <span class="reprises-kpi-label">Reprises closes</span>
-        </div>
-    </div>
- 
-    <div class="card">
-        <!-- Toolbar recherche + filtres -->
-        <div class="reprises-toolbar">
-            <input
-                type="text"
-                id="reprises-search"
-                class="reprises-search"
-                placeholder="🔍 Rechercher un kit, emplacement…"
-                autocomplete="off"
-                spellcheck="false"
-            >
-            <div class="reprises-filter-group">
-                <button class="reprises-filter-btn active" id="reprises-filter-tous">Tous</button>
-                <button class="reprises-filter-btn" id="reprises-filter-urgent">Urgent (&gt;7j)</button>
-                <button class="reprises-filter-btn" id="reprises-filter-recents">Récents</button>
-                <button class="reprises-filter-btn" id="reprises-filter-clos">Clos</button>
-            </div>
-        </div>
- 
-        <!-- Spinner -->
-        <div class="loading-wrap hidden" id="reprises-loading">
-            <div class="spinner"></div>
-            <span>Chargement des reprises…</span>
-        </div>
- 
-        <!-- Compteur résultats -->
-        <p class="reprises-count" id="reprises-count"></p>
- 
-        <!-- Message vide / erreur -->
-        <p class="reprises-empty hidden" id="reprises-empty"></p>
- 
-        <!-- Liste des cartes -->
-        <div id="reprises-list"></div>
-    </div>
- 
-</section>
+            <!-- ════════════════════════════════════════════
+                 SECTION REPRISES
+                 ════════════════════════════════════════════ -->
+            <section id="sec-reprises" class="hidden">
+
+                <div class="reprises-kpi-row">
+                    <div class="reprises-kpi-card reprises-kpi-card--accent">
+                        <span class="reprises-kpi-icon">❌</span>
+                        <span class="reprises-kpi-value" id="reprises-kpi-total">—</span>
+                        <span class="reprises-kpi-label">Non conformes</span>
+                    </div>
+                    <div class="reprises-kpi-card">
+                        <span class="reprises-kpi-icon">📅</span>
+                        <span class="reprises-kpi-value" id="reprises-kpi-semaine">—</span>
+                        <span class="reprises-kpi-label">Récents (≤ 7j)</span>
+                    </div>
+                    <div class="reprises-kpi-card reprises-kpi-card--urgent">
+                        <span class="reprises-kpi-icon">🔴</span>
+                        <span class="reprises-kpi-value" id="reprises-kpi-urgents">—</span>
+                        <span class="reprises-kpi-label">En attente &gt; 7j</span>
+                    </div>
+                    <div class="reprises-kpi-card reprises-kpi-card--clos">
+                        <span class="reprises-kpi-icon">✅</span>
+                        <span class="reprises-kpi-value" id="reprises-kpi-clos">—</span>
+                        <span class="reprises-kpi-label">Reprises closes</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="reprises-toolbar">
+                        <input type="text" id="reprises-search" class="reprises-search"
+                               placeholder="🔍 Rechercher un kit, emplacement…"
+                               autocomplete="off" spellcheck="false">
+                        <div class="reprises-filter-group">
+                            <button class="reprises-filter-btn active" id="reprises-filter-tous">Tous</button>
+                            <button class="reprises-filter-btn" id="reprises-filter-urgent">Urgent (&gt;7j)</button>
+                            <button class="reprises-filter-btn" id="reprises-filter-recents">Récents</button>
+                            <button class="reprises-filter-btn" id="reprises-filter-clos">Clos</button>
+                        </div>
+                    </div>
+                    <div class="loading-wrap hidden" id="reprises-loading">
+                        <div class="spinner"></div>
+                        <span>Chargement des reprises…</span>
+                    </div>
+                    <p class="reprises-count" id="reprises-count"></p>
+                    <p class="reprises-empty hidden" id="reprises-empty"></p>
+                    <div id="reprises-list"></div>
+                </div>
+
+            </section>
 
             <!-- ════════════════════════════════════════════
                  SECTION IMPORT
                  ════════════════════════════════════════════ -->
             <section id="sec-import" class="hidden">
-
-                <!-- Contenu directement accessible (pas de PIN) -->
                 <div id="import-content" style="display:none;flex-direction:column;gap:1rem;">
-
-                    <!-- Onglets import -->
                     <div class="admin-tabs">
                         <button class="admin-tab-btn active" data-tab="emplacements">📄 Emplacements</button>
                         <button class="admin-tab-btn" data-tab="kits">📊 Import kits</button>
                     </div>
-
-                    <!-- ── Panneau 1 : Emplacements autorisés ── -->
                     <div class="admin-tab-panel" id="import-tab-emplacements">
                         <div class="card">
                             <p class="card-title">Emplacements autorisés</p>
@@ -489,8 +423,6 @@
                                 pour <strong style="color:var(--text-soft)">écraser</strong> le fichier présent.
                                 Un identifiant par ligne.
                             </p>
-
-                            <!-- Liste actuelle -->
                             <div style="margin-bottom:1.5rem;">
                                 <p class="card-title" style="margin-bottom:.75rem;">Liste actuelle</p>
                                 <div id="emp-current-loading" class="loading-wrap" style="padding:1.25rem 0;">
@@ -505,8 +437,7 @@
                                                 border:1px solid var(--border);border-radius:var(--radius);
                                                 margin-bottom:.5rem;"></div>
                                     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-                                        <p id="emp-current-count"
-                                           style="font-family:var(--mono);font-size:.7rem;color:var(--muted);"></p>
+                                        <p id="emp-current-count" style="font-family:var(--mono);font-size:.7rem;color:var(--muted);"></p>
                                         <button id="btn-refresh-emp"
                                                 style="font-family:var(--sans);font-size:.75rem;font-weight:700;
                                                        color:var(--accent);background:none;
@@ -519,10 +450,7 @@
                                     </div>
                                 </div>
                             </div>
-
                             <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1.5rem;">
-
-                            <!-- Fichier exemple -->
                             <div class="emp-example-box">
                                 <div class="emp-example-header">
                                     <span class="emp-example-icon">📄</span>
@@ -535,26 +463,20 @@
                                     ⬇️ Télécharger le fichier exemple
                                 </button>
                             </div>
-
                             <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1.5rem;">
-
-                            <!-- Drop zone emplacements .txt -->
                             <div class="drop-zone" id="drop-zone-emp">
                                 <input type="file" id="file-input-emp" accept=".txt">
                                 <span class="drop-icon">📄</span>
                                 <p class="drop-title">Glisser-déposer emplacements_autorises.txt</p>
                                 <p class="drop-sub">Fichier .txt uniquement · 1 identifiant par ligne</p>
                             </div>
-
                             <div id="progress-area-emp" class="hidden" style="margin-top:1rem;">
                                 <div class="progress-wrap">
                                     <div class="progress-bar" id="progress-bar-emp"></div>
                                 </div>
                                 <p class="progress-label" id="progress-label-emp">Traitement…</p>
                             </div>
-
                             <div class="admin-status" id="admin-status-emp"></div>
-
                             <div id="emp-preview-wrap" class="hidden" style="margin-top:1.25rem;">
                                 <p class="card-title" style="margin-bottom:.6rem;">Contenu envoyé</p>
                                 <div id="emp-preview-list"
@@ -567,35 +489,25 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- ── Panneau 2 : Import kits Excel ── -->
                     <div class="admin-tab-panel hidden" id="import-tab-kits">
                         <div class="card">
                             <p class="card-title">Import fichier kits</p>
                             <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
                                 Déposez le fichier Excel pour l'envoyer dans la base de données.
                             </p>
-
-                            <!-- Input fichier Excel — hors de la drop zone -->
                             <input type="file" id="file-input-xls" accept=".xlsx,.xls,.csv" style="display:none;">
-
-                            <!-- Drop zone Excel -->
                             <div class="drop-zone" id="drop-zone-xls">
                                 <span class="drop-icon">📊</span>
                                 <p class="drop-title">Glisser-déposer le fichier Excel</p>
-                                <p class="drop-sub">Fichiers .xlsx, .xls ou .csv · a envoyer.</p>
+                                <p class="drop-sub">Fichiers .xlsx, .xls ou .csv · à envoyer.</p>
                             </div>
-
                             <div id="progress-area-xls" class="hidden" style="margin-top:1rem;">
                                 <div class="progress-wrap">
                                     <div class="progress-bar" id="progress-bar-xls"></div>
                                 </div>
                                 <p class="progress-label" id="progress-label-xls">Traitement…</p>
                             </div>
-
                             <div class="admin-status" id="admin-status-xls"></div>
-
-                            <!-- Suivi workflow GitHub Actions -->
                             <div id="workflow-panel" class="hidden" style="margin-top:1.5rem;">
                                 <div style="display:flex;align-items:center;justify-content:space-between;
                                             margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem;">
@@ -606,8 +518,7 @@
                                             background:var(--input-bg);border:1.5px solid var(--border);
                                             border-radius:var(--radius);margin-bottom:1rem;">
                                     <div class="spinner" id="workflow-spinner" style="flex-shrink:0;"></div>
-                                    <span id="workflow-run-label"
-                                          style="font-size:.85rem;font-weight:600;color:var(--text);">
+                                    <span id="workflow-run-label" style="font-size:.85rem;font-weight:600;color:var(--text);">
                                         En attente du démarrage du pipeline…
                                     </span>
                                 </div>
@@ -616,20 +527,15 @@
                                    style="font-family:var(--mono);font-size:.7rem;color:var(--muted);
                                           margin-top:.65rem;text-align:right;display:none;"></p>
                             </div>
-
                         </div>
-                    </div><!-- /import-tab-kits -->
-
-                </div><!-- /import-content -->
-
+                    </div>
+                </div>
             </section>
 
             <!-- ════════════════════════════════════════════
                  SECTION ADMIN
                  ════════════════════════════════════════════ -->
             <section id="sec-admin" class="hidden">
-
-                <!-- Verrou PIN -->
                 <div class="card" id="admin-auth">
                     <div class="auth-gate">
                         <span class="auth-icon">🔐</span>
@@ -645,16 +551,10 @@
                         <button class="btn-pin-validate" id="btn-pin">Déverrouiller</button>
                     </div>
                 </div>
-
-                <!-- Contenu admin (déverrouillé) -->
                 <div id="admin-content" class="hidden" style="display:none;flex-direction:column;gap:1rem;">
-
-                    <!-- Onglets admin -->
                     <div class="admin-tabs">
                         <button class="admin-tab-btn active" data-tab="github">⚙️ Config GitHub</button>
                     </div>
-
-                    <!-- ── Panneau : Config GitHub ──────── -->
                     <div class="admin-tab-panel" id="admin-tab-github">
                         <div class="card">
                             <p class="card-title">Configuration GitHub</p>
@@ -678,7 +578,6 @@
                             <div class="admin-status" id="token-status"></div>
                         </div>
                     </div>
-
                     <hr style="border:none;border-top:1px solid var(--border);margin:1.5rem 0;">
                     <div class="card">
                         <p class="card-title">Initialisation des statistiques</p>
@@ -691,16 +590,13 @@
                         </button>
                         <div class="admin-status" id="init-stats-status"></div>
                     </div>
-
-                </div><!-- /admin-content -->
-
+                </div>
             </section>
 
             <!-- ════════════════════════════════════════════
                  SECTION PROFIL
                  ════════════════════════════════════════════ -->
             <section id="sec-profil" class="hidden">
-
                 <div class="card profil-identity-card">
                     <div class="profil-avatar" id="profil-initial">—</div>
                     <div class="profil-info">
@@ -722,7 +618,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="card">
                     <p class="card-title">Modifier le mot de passe</p>
                     <div class="profil-pwd-form">
@@ -763,82 +658,67 @@
                         </button>
                     </div>
                 </div>
-
             </section>
 
-<!-- ════════════════════════════════════════════
-     SECTION STATISTIQUES
-     ════════════════════════════════════════════ -->
-<section id="sec-stats" class="hidden">
-
-    <div class="loading-wrap" id="stats-loading">
-        <div class="spinner"></div>
-        <span>Chargement des statistiques…</span>
-    </div>
-
-    <div id="stats-content" class="hidden">
-
-        <!-- KPI -->
-        <div class="stats-kpi-row">
-            <div class="stats-kpi-card">
-                <span class="stats-kpi-icon">📋</span>
-                <span class="stats-kpi-value" id="kpi-total">—</span>
-                <span class="stats-kpi-label">Total contrôles</span>
-            </div>
-            <div class="stats-kpi-card" id="kpi-taux-card">
-                <span class="stats-kpi-icon">✅</span>
-                <span class="stats-kpi-value" id="kpi-taux">—</span>
-                <span class="stats-kpi-label">Taux conformité</span>
-            </div>
-            <div class="stats-kpi-card stats-kpi-red">
-                <span class="stats-kpi-icon">❌</span>
-                <span class="stats-kpi-value" id="kpi-incomplets">—</span>
-                <span class="stats-kpi-label">Non conformes</span>
-            </div>
-            <div class="stats-kpi-card stats-kpi-blue">
-                <span class="stats-kpi-icon">📅</span>
-                <span class="stats-kpi-value" id="kpi-semaine">—</span>
-                <span class="stats-kpi-label">Cette semaine</span>
-            </div>
-        </div>
-
-        <!-- Évolution + Top composants -->
-        <div class="stats-grid">
-            <div class="card">
-                <p class="card-title">Évolution — 8 dernières semaines</p>
-                <div id="chart-evolution"></div>
-            </div>
-            <div class="card">
-                <p class="card-title">Symbole le plus souvent en écart</p>
-                <div id="stats-top-composants"></div>
-            </div>
-        </div>
-
-        <!-- Kits les plus souvent non conformes -->
-        <div class="card">
-            <p class="card-title">Kits les plus souvent non conformes</p>
-            
-            <div id="stats-top-kits"></div>
-        </div>
-
-        <!-- Par engin -->
-        <div class="card">
-            <p class="card-title">Taux de conformité par engin</p>
-            <div id="stats-par-engin"></div>
-        </div>
-
-    </div>
-
-    <div class="stats-export-row">
-        <button id="btn-export-histo" class="btn-export btn-export-primary">
-            <span class="btn-export-icon">⬇</span> Exporter l'historique
-        </button>
-        <button id="btn-export-engin" class="btn-export">
-            <span class="btn-export-icon">⬇</span> Exporter par engin
-        </button>
-    </div>
-
-</section>
+            <!-- ════════════════════════════════════════════
+                 SECTION STATISTIQUES
+                 ════════════════════════════════════════════ -->
+            <section id="sec-stats" class="hidden">
+                <div class="loading-wrap" id="stats-loading">
+                    <div class="spinner"></div>
+                    <span>Chargement des statistiques…</span>
+                </div>
+                <div id="stats-content" class="hidden">
+                    <div class="stats-kpi-row">
+                        <div class="stats-kpi-card">
+                            <span class="stats-kpi-icon">📋</span>
+                            <span class="stats-kpi-value" id="kpi-total">—</span>
+                            <span class="stats-kpi-label">Total contrôles</span>
+                        </div>
+                        <div class="stats-kpi-card" id="kpi-taux-card">
+                            <span class="stats-kpi-icon">✅</span>
+                            <span class="stats-kpi-value" id="kpi-taux">—</span>
+                            <span class="stats-kpi-label">Taux conformité</span>
+                        </div>
+                        <div class="stats-kpi-card stats-kpi-red">
+                            <span class="stats-kpi-icon">❌</span>
+                            <span class="stats-kpi-value" id="kpi-incomplets">—</span>
+                            <span class="stats-kpi-label">Non conformes</span>
+                        </div>
+                        <div class="stats-kpi-card stats-kpi-blue">
+                            <span class="stats-kpi-icon">📅</span>
+                            <span class="stats-kpi-value" id="kpi-semaine">—</span>
+                            <span class="stats-kpi-label">Cette semaine</span>
+                        </div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="card">
+                            <p class="card-title">Évolution — 8 dernières semaines</p>
+                            <div id="chart-evolution"></div>
+                        </div>
+                        <div class="card">
+                            <p class="card-title">Symbole le plus souvent en écart</p>
+                            <div id="stats-top-composants"></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <p class="card-title">Kits les plus souvent non conformes</p>
+                        <div id="stats-top-kits"></div>
+                    </div>
+                    <div class="card">
+                        <p class="card-title">Taux de conformité par engin</p>
+                        <div id="stats-par-engin"></div>
+                    </div>
+                </div>
+                <div class="stats-export-row">
+                    <button id="btn-export-histo" class="btn-export btn-export-primary">
+                        <span class="btn-export-icon">⬇</span> Exporter l'historique
+                    </button>
+                    <button id="btn-export-engin" class="btn-export">
+                        <span class="btn-export-icon">⬇</span> Exporter par engin
+                    </button>
+                </div>
+            </section>
 
         </main>
     </div><!-- /.app-body -->
@@ -846,36 +726,11 @@
 
 <script type="module" src="app.js"></script>
 
-<script>
-    /* ── Sync sidebar desktop ↔ onglets header mobile ── */
-    (function () {
-        const pairs = [
-            ['sidebar-terrain',    'tab-terrain'],
-            ['sidebar-historique', 'tab-historique'],
-            ['sidebar-import',     'tab-import'],
-            ['sidebar-admin',      'tab-admin'],
-            ['sidebar-profil',     'tab-profil'],
-            ['sidebar-stats',      'tab-stats'],
-            ['sidebar-reprises', 'tab-reprises'],
-        ];
-        pairs.forEach(([sbId, tabId]) => {
-            const sbBtn  = document.getElementById(sbId);
-            const tabBtn = document.getElementById(tabId);
-            if (!sbBtn || !tabBtn) return;
-            sbBtn.addEventListener('click', () => {
-                tabBtn.click();
-                pairs.forEach(([id]) => document.getElementById(id)?.classList.remove('active'));
-                sbBtn.classList.add('active');
-            });
-        });
-        pairs.forEach(([sbId, tabId]) => {
-            document.getElementById(tabId)?.addEventListener('click', () => {
-                pairs.forEach(([id]) => document.getElementById(id)?.classList.remove('active'));
-                document.getElementById(sbId)?.classList.add('active');
-            });
-        });
-    })();
-</script>
+<!--
+    ⚠️  Le script de sync sidebar inline a été SUPPRIMÉ intentionnellement.
+    C'est désormais _initTabNav() dans app.js qui câble tous les boutons
+    sidebar ET header en une seule passe, évitant les doubles listeners.
+-->
 
 <script>
     /* ── Enregistrement du Service Worker ── */
