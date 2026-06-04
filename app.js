@@ -74,19 +74,9 @@ export function showTab(tab) {
 function _initTabNav() {
     TABS.forEach(t => {
         $(`tab-${t}`)?.addEventListener('click', () => showTab(t));
-    });
-
-    const pairs = [
-        ['sidebar-terrain',    'tab-terrain'],
-        ['sidebar-historique', 'tab-historique'],
-        ['sidebar-import',     'tab-import'],
-        ['sidebar-admin',      'tab-admin'],
-        ['sidebar-profil',     'tab-profil'],
-        ['sidebar-stats',      'tab-stats'],
-        ['sidebar-reprises',   'tab-reprises'],
-    ];
-    pairs.forEach(([sbId, tabId]) => {
-        $(`${sbId}`)?.addEventListener('click', () => $(`${tabId}`)?.click());
+        // Câble aussi le bouton sidebar directement ici — sans passer par tabBtn.click()
+        // pour éviter la double exécution du script inline en bas du HTML
+        $(`sidebar-${t}`)?.addEventListener('click', () => showTab(t));
     });
 }
 
