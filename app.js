@@ -8,9 +8,10 @@ import { initImport }                                      from "./modules/impor
 import { initProfil, afficherProfil }                      from "./modules/profil.js";
 import { $ }                                               from "./modules/utils.js";
 import { initStats, chargerStatistiques, arreterStats }    from "./modules/stats.js";
-import { initTerrain, activerTerrain, desactiverTerrain, ouvrirDetailKit } from "./modules/terrain.js";
-
-
+import { initTerrain, activerTerrain, desactiverTerrain,
+         ouvrirDetailKit }                                 from "./modules/terrain.js";
+import { initReprises, chargerReprises,
+         setReprisesOnOpenKit }                            from "./modules/reprises.js";
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,14 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initAdmin();
     initImport();
     initProfil();
+    initStats();
+    initReprises();
     _initTabNav();
     _initOfflineBanner();
     _detectAppVersion();
-    initStats();
-    initReprises();
 
-
-        // Clic sur "Ouvrir le kit" depuis Reprises → ouvre dans Terrain
+    // Clic sur "Ouvrir le kit" depuis Reprises → ouvre dans Terrain
     setReprisesOnOpenKit((empId, kitId) => {
         showTab('terrain');
         ouvrirDetailKit(empId, kitId);
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // NAVIGATION ONGLETS
 // ═══════════════════════════════════════════════════════════════════════════════
-const TABS = ['terrain', 'historique', 'import', 'admin', 'profil', 'stats'];
+const TABS = ['terrain', 'historique', 'import', 'admin', 'profil', 'stats', 'reprises'];
 
 export function showTab(tab) {
     if (tab !== 'terrain') desactiverTerrain();
@@ -67,7 +67,7 @@ export function showTab(tab) {
         case 'historique': chargerHistorique();   break;
         case 'profil':     afficherProfil();      break;
         case 'stats':      chargerStatistiques(); break;
-        case 'reprises': chargerReprises(); break;
+        case 'reprises':   chargerReprises();     break;
     }
 }
 
@@ -83,7 +83,7 @@ function _initTabNav() {
         ['sidebar-admin',      'tab-admin'],
         ['sidebar-profil',     'tab-profil'],
         ['sidebar-stats',      'tab-stats'],
-        ['sidebar-reprises', 'tab-reprises'],
+        ['sidebar-reprises',   'tab-reprises'],
     ];
     pairs.forEach(([sbId, tabId]) => {
         $(`${sbId}`)?.addEventListener('click', () => $(`${tabId}`)?.click());
