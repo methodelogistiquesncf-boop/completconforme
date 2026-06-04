@@ -23,6 +23,14 @@ document.addEventListener('DOMContentLoaded', () => {
     _initOfflineBanner();
     _detectAppVersion();
     initStats();
+    initReprises();
+
+
+        // Clic sur "Ouvrir le kit" depuis Reprises → ouvre dans Terrain
+    setReprisesOnOpenKit((empId, kitId) => {
+        showTab('terrain');
+        ouvrirDetailKit(empId, kitId);
+    });
 
     // Clic sur une carte historique → ouvre le détail dans Terrain
     setOnOpenKit((empId, kitId) => {
@@ -59,6 +67,7 @@ export function showTab(tab) {
         case 'historique': chargerHistorique();   break;
         case 'profil':     afficherProfil();      break;
         case 'stats':      chargerStatistiques(); break;
+        case 'reprises': chargerReprises(); break;
     }
 }
 
@@ -74,6 +83,7 @@ function _initTabNav() {
         ['sidebar-admin',      'tab-admin'],
         ['sidebar-profil',     'tab-profil'],
         ['sidebar-stats',      'tab-stats'],
+        ['sidebar-reprises', 'tab-reprises'],
     ];
     pairs.forEach(([sbId, tabId]) => {
         $(`${sbId}`)?.addEventListener('click', () => $(`${tabId}`)?.click());
