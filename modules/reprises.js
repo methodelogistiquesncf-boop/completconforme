@@ -1,32 +1,21 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// modules/reprises.js — Vue "Reprises" : liste des kits non conformes à traiter
-//
-// Collection cible : historique_controles
-// Filtre           : statut == "Incomplet" ET reprise_close != true
-// Tri              : timestamp desc
-// Limit            : 100
-//
-// Actions disponibles :
-//   • "Ouvrir le kit"      → navigue vers terrain.js / ouvrirDetailKit()
-//   • "Marquer comme repris" → setDoc reprise_close: true sur le doc historique
+// modules/reprises.js
 // ─────────────────────────────────────────────────────────────────────────────
 import {
     collection, query, where, orderBy, limit,
     getDocs, doc, updateDoc,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-import { db }           from "./firebase.js";
-import { $, showToast, showConfirmToast } from "./utils.js";
+import { db }                              from "./firebase.js";
+import { $, showToast, showConfirmToast }  from "./utils.js";
 
-// ─── Callback externe : ouvrir le kit dans Terrain ───────────────────────────
-let _onOpenKit = null;
+let _onOpenKit   = null;
+let _cache       = null;
+let _filterActif = "tous";
+
 export function setReprisesOnOpenKit(fn) { _onOpenKit = fn; }
 
-// ─── Cache session ────────────────────────────────────────────────────────────
-let _cache        = null;
-let _filterActif  = "tous";   // "tous" | "urgent" | "recents" | "clos"
-
-// ─── Init & câblage ───────────────────────────────────────────────────────────
+// ─── Init ─────────────────────────────────────────────────────────────────────
 export function initReprises() {
     $("reprises-filter-tous"   )?.addEventListener("click", () => _setFilter("tous"));
     $("reprises-filter-urgent" )?.addEventListener("click", () => _setFilter("urgent"));
@@ -35,22 +24,20 @@ export function initReprises() {
     $("reprises-search")?.addEventListener("input", () => _renderListe());
 }
 
-// ─── Chargement principal (appelé à chaque activation de l'onglet) ────────────
+// ─── Chargement ───────────────────────────────────────────────────────────────
 export async function chargerReprises() {
-    _cache = null;           // invalide le cache à chaque ouverture d'onglet
+    _cache       = null;
     _filterActif = "tous";
     _syncFilterBtns();
     _setLoading(true);
 
     try {
-        // Récupère les Incomplets non clos
         const qIncomplets = query(
             collection(db, "historique_controles"),
             where("statut", "==", "Incomplet"),
             orderBy("timestamp", "desc"),
             limit(100)
         );
-        // Récupère les clos récents (reprise_close == true) séparément
         const qClos = query(
             collection(db, "historique_controles"),
             where("statut",        "==", "Incomplet"),
@@ -64,7 +51,6 @@ export async function chargerReprises() {
             getDocs(qClos),
         ]);
 
-        // Fusionne et déduplique (les clos peuvent apparaître dans les deux)
         const docsMap = new Map();
         snapIncomplets.docs.forEach(d => docsMap.set(d.id, { id: d.id, ...d.data() }));
         snapClos.docs.forEach(d => {
@@ -85,62 +71,53 @@ export async function chargerReprises() {
 
 // ─── KPIs ─────────────────────────────────────────────────────────────────────
 function _renderKPIs(docs) {
-    const maintenant  = Date.now();
-    const SEUIL_7J    = 7 * 24 * 60 * 60 * 1000;
+    const now      = Date.now();
+    const SEUIL7J  = 7 * 24 * 60 * 60 * 1000;
+    const ouverts  = docs.filter(d => !d.reprise_close);
+    const urgents  = ouverts.filter(d => d.timestamp && (now - new Date(d.timestamp).getTime()) > SEUIL7J);
+    const recents  = ouverts.filter(d => d.timestamp && (now - new Date(d.timestamp).getTime()) <= SEUIL7J);
+    const clos     = docs.filter(d => d.reprise_close);
 
-    const ouverts     = docs.filter(d => !d.reprise_close);
-    const urgents     = ouverts.filter(d => d.timestamp && (maintenant - new Date(d.timestamp).getTime()) > SEUIL_7J);
-    const recents     = ouverts.filter(d => d.timestamp && (maintenant - new Date(d.timestamp).getTime()) <= SEUIL_7J);
-    const clos        = docs.filter(d => d.reprise_close);
-
-    _setText("reprises-kpi-total",    ouverts.length);
-    _setText("reprises-kpi-semaine",  recents.length);
-    _setText("reprises-kpi-urgents",  urgents.length);
-    _setText("reprises-kpi-clos",     clos.length);
+    _setText("reprises-kpi-total",   ouverts.length);
+    _setText("reprises-kpi-semaine", recents.length);
+    _setText("reprises-kpi-urgents", urgents.length);
+    _setText("reprises-kpi-clos",    clos.length);
 }
 
-// ─── Filtrage & rendu liste ────────────────────────────────────────────────────
+// ─── Filtrage & rendu ─────────────────────────────────────────────────────────
 function _renderListe() {
     if (!_cache) return;
 
-    const recherche  = ($("reprises-search")?.value || "").trim().toLowerCase();
-    const maintenant = Date.now();
-    const SEUIL_7J   = 7 * 24 * 60 * 60 * 1000;
+    const recherche = ($("reprises-search")?.value || "").trim().toLowerCase();
+    const now       = Date.now();
+    const SEUIL7J   = 7 * 24 * 60 * 60 * 1000;
 
     let docs = _cache;
 
-    // Filtre onglets
     switch (_filterActif) {
         case "urgent":
-            docs = docs.filter(d =>
-                !d.reprise_close &&
-                d.timestamp &&
-                (maintenant - new Date(d.timestamp).getTime()) > SEUIL_7J
-            );
+            docs = docs.filter(d => !d.reprise_close && d.timestamp &&
+                (now - new Date(d.timestamp).getTime()) > SEUIL7J);
             break;
         case "recents":
-            docs = docs.filter(d =>
-                !d.reprise_close &&
-                d.timestamp &&
-                (maintenant - new Date(d.timestamp).getTime()) <= SEUIL_7J
-            );
+            docs = docs.filter(d => !d.reprise_close && d.timestamp &&
+                (now - new Date(d.timestamp).getTime()) <= SEUIL7J);
             break;
         case "clos":
             docs = docs.filter(d => d.reprise_close);
             break;
-        default: // "tous" = ouverts uniquement
+        default:
             docs = docs.filter(d => !d.reprise_close);
             break;
     }
 
-    // Filtre recherche
     if (recherche) {
         docs = docs.filter(d =>
-            (d.empId         || "").toLowerCase().includes(recherche) ||
-            (d.engin         || "").toLowerCase().includes(recherche) ||
-            (d.nom_du_kit    || "").toLowerCase().includes(recherche) ||
-            (d.code_kit      || "").toLowerCase().includes(recherche) ||
-            (d.code_contenant|| "").toLowerCase().includes(recherche)
+            (d.empId          || "").toLowerCase().includes(recherche) ||
+            (d.engin          || "").toLowerCase().includes(recherche) ||
+            (d.nom_du_kit     || "").toLowerCase().includes(recherche) ||
+            (d.code_kit       || "").toLowerCase().includes(recherche) ||
+            (d.code_contenant || "").toLowerCase().includes(recherche)
         );
     }
 
@@ -170,138 +147,152 @@ function _renderListe() {
     docs.forEach(d => listEl.appendChild(_buildCard(d)));
 }
 
-// ─── Construction d'une carte ─────────────────────────────────────────────────
+// ─── Construction carte (DOM pur — pas de innerHTML pour les boutons) ──────────
 function _buildCard(entry) {
-    const maintenant  = Date.now();
-    const SEUIL_7J    = 7 * 24 * 60 * 60 * 1000;
-    const ts          = entry.timestamp ? new Date(entry.timestamp) : null;
-    const anciennete  = ts ? maintenant - ts.getTime() : 0;
-    const estUrgent   = anciennete > SEUIL_7J && !entry.reprise_close;
-    const estClos     = !!entry.reprise_close;
+    const now     = Date.now();
+    const SEUIL7J = 7 * 24 * 60 * 60 * 1000;
+    const ts      = entry.timestamp ? new Date(entry.timestamp) : null;
+    const age     = ts ? now - ts.getTime() : 0;
+    const estClos   = !!entry.reprise_close;
+    const estUrgent = age > SEUIL7J && !estClos;
 
-    // Libellé délai
-    const delaiLabel  = ts ? _formatDelai(anciennete) : "—";
-    const delaiClass  = estClos ? "delai-clos"
-                      : anciennete > SEUIL_7J                ? "delai-urgent"
-                      : anciennete > 3 * 24 * 60 * 60 * 1000 ? "delai-moyen"
-                      : "delai-recent";
+    const delaiClass = estClos      ? "delai-clos"
+                     : age > SEUIL7J                    ? "delai-urgent"
+                     : age > 3 * 24 * 60 * 60 * 1000   ? "delai-moyen"
+                     : "delai-recent";
 
-    // Date formatée
     const dateStr = ts ? ts.toLocaleString("fr-FR", {
         day: "2-digit", month: "2-digit", year: "numeric",
         hour: "2-digit", minute: "2-digit",
     }) : "—";
 
-    // Écarts composants
-    const ecarts = (entry.detail_verification || []).filter(c =>
-        c.quantite_comptee !== null &&
-        c.quantite_comptee !== undefined &&
-        c.quantite_comptee !== c.quantite_requise
-    );
+    const ecarts   = (entry.detail_verification || []).filter(c =>
+        c.quantite_comptee != null && c.quantite_comptee !== c.quantite_requise);
     const conformes = (entry.detail_verification || []).filter(c =>
-        c.quantite_comptee !== null &&
-        c.quantite_comptee !== undefined &&
-        c.quantite_comptee === c.quantite_requise
-    );
+        c.quantite_comptee != null && c.quantite_comptee === c.quantite_requise);
 
+    // ── Carte ────────────────────────────────────────────────────────────────
     const card = document.createElement("div");
     card.className = "reprise-card"
         + (estClos   ? " reprise-card--clos"   : "")
         + (estUrgent ? " reprise-card--urgent" : "");
-    card.dataset.id = entry.id;
 
-    card.innerHTML = `
-        <div class="reprise-card__header">
-            <div class="reprise-card__badges">
-                <span class="reprise-badge reprise-badge--emp">${entry.empId || "—"}</span>
-                ${entry.engin         ? `<span class="reprise-badge reprise-badge--engin">${entry.engin}</span>` : ""}
-                ${entry.code_contenant? `<span class="reprise-badge reprise-badge--cnt">📦 ${entry.code_contenant}</span>` : ""}
-            </div>
-            <div class="reprise-card__meta">
-                <span class="reprise-delai ${delaiClass}">
-                    ${estClos ? "✓ Repris" : "⏱ " + delaiLabel}
-                </span>
-                <span class="reprise-date">${dateStr}</span>
-            </div>
-        </div>
+    // Header
+    const header = document.createElement("div");
+    header.className = "reprise-card__header";
 
-        <div class="reprise-card__body">
-            <p class="reprise-kit-nom">${entry.nom_du_kit || entry.kitId || "—"}</p>
-            <p class="reprise-kit-code">${entry.code_kit || entry.kitId || ""}</p>
+    const badges = document.createElement("div");
+    badges.className = "reprise-card__badges";
+    badges.innerHTML =
+        `<span class="reprise-badge reprise-badge--emp">${entry.empId || "—"}</span>`
+        + (entry.engin          ? `<span class="reprise-badge reprise-badge--engin">${entry.engin}</span>` : "")
+        + (entry.code_contenant ? `<span class="reprise-badge reprise-badge--cnt">📦 ${entry.code_contenant}</span>` : "");
 
-            ${ecarts.length ? `
-            <div class="reprise-ecarts">
-                ${ecarts.map(c => `
-                    <span class="reprise-ecart-badge reprise-ecart-badge--ko"
-                          title="${c.nom || ""}">
-                        ${c.code_piece || c.nom || "?"} :
-                        <strong>${c.quantite_comptee}</strong>/${c.quantite_requise}
-                    </span>
-                `).join("")}
-                ${conformes.map(c => `
-                    <span class="reprise-ecart-badge reprise-ecart-badge--ok"
-                          title="${c.nom || ""}">
-                        ${c.code_piece || c.nom || "?"} : ✓
-                    </span>
-                `).join("")}
-            </div>
-            ` : `<p class="reprise-no-detail">Aucun détail de vérification enregistré.</p>`}
+    const meta = document.createElement("div");
+    meta.className = "reprise-card__meta";
+    meta.innerHTML =
+        `<span class="reprise-delai ${delaiClass}">${estClos ? "✓ Repris" : "⏱ " + _formatDelai(age)}</span>`
+        + `<span class="reprise-date">${dateStr}</span>`;
 
-            ${entry.observation ? `
-            <div class="reprise-obs">
-                <span class="reprise-obs-icon">💬</span>
-                <em>${entry.observation}</em>
-            </div>
-            ` : ""}
+    header.appendChild(badges);
+    header.appendChild(meta);
 
-            <p class="reprise-agent">👤 ${entry.verificateur_email || "—"}</p>
-        </div>
+    // Body
+    const body = document.createElement("div");
+    body.className = "reprise-card__body";
 
-        ${!estClos ? `
-        <div class="reprise-card__actions">
-            <button class="reprise-btn reprise-btn--ouvrir" data-id="${entry.id}"
-                    data-emp="${entry.empId || ""}" data-kit="${entry.kitId || ""}">
-                Ouvrir le kit
-            </button>
-            <button class="reprise-btn reprise-btn--clore" data-id="${entry.id}">
-                Marquer comme repris
-            </button>
-        </div>
-        ` : `
-        <div class="reprise-card__actions reprise-card__actions--clos">
-            <span class="reprise-clos-label">✓ Non-conformité close</span>
-        </div>
-        `}
-    `;
+    const nom  = document.createElement("p"); nom.className  = "reprise-kit-nom";  nom.textContent  = entry.nom_du_kit || entry.kitId || "—";
+    const code = document.createElement("p"); code.className = "reprise-kit-code"; code.textContent = entry.code_kit  || entry.kitId || "";
+    body.appendChild(nom);
+    body.appendChild(code);
 
-    // Événements boutons
-    card.querySelector(".reprise-btn--ouvrir")?.addEventListener("click", e => {
-        const emp = e.currentTarget.dataset.emp;
-        const kit = e.currentTarget.dataset.kit;
-        if (_onOpenKit && emp && kit) _onOpenKit(emp, kit);
-        else showToast("⚠️ Impossible d'ouvrir ce kit.", "error");
-    });
+    if (ecarts.length || conformes.length) {
+        const ecartDiv = document.createElement("div");
+        ecartDiv.className = "reprise-ecarts";
+        ecarts.forEach(c => {
+            const s = document.createElement("span");
+            s.className = "reprise-ecart-badge reprise-ecart-badge--ko";
+            s.title     = c.nom || "";
+            s.innerHTML = `${c.code_piece || c.nom || "?"} : <strong>${c.quantite_comptee}</strong>/${c.quantite_requise}`;
+            ecartDiv.appendChild(s);
+        });
+        conformes.forEach(c => {
+            const s = document.createElement("span");
+            s.className = "reprise-ecart-badge reprise-ecart-badge--ok";
+            s.title     = c.nom || "";
+            s.textContent = `${c.code_piece || c.nom || "?"} : ✓`;
+            ecartDiv.appendChild(s);
+        });
+        body.appendChild(ecartDiv);
+    } else {
+        const nd = document.createElement("p");
+        nd.className   = "reprise-no-detail";
+        nd.textContent = "Aucun détail de vérification enregistré.";
+        body.appendChild(nd);
+    }
 
-    card.querySelector(".reprise-btn--clore")?.addEventListener("click", async e => {
-        const id = e.currentTarget.dataset.id;
-        await _marquerRepris(id, card);
-    });
+    if (entry.observation) {
+        const obs = document.createElement("div");
+        obs.className = "reprise-obs";
+        obs.innerHTML = `<span class="reprise-obs-icon">💬</span><em>${entry.observation}</em>`;
+        body.appendChild(obs);
+    }
+
+    const agent = document.createElement("p");
+    agent.className   = "reprise-agent";
+    agent.textContent = "👤 " + (entry.verificateur_email || "—");
+    body.appendChild(agent);
+
+    // Actions
+    const actions = document.createElement("div");
+    actions.className = "reprise-card__actions" + (estClos ? " reprise-card__actions--clos" : "");
+
+    if (!estClos) {
+        const btnOuvrir = document.createElement("button");
+        btnOuvrir.className   = "reprise-btn reprise-btn--ouvrir";
+        btnOuvrir.textContent = "Ouvrir le kit";
+        btnOuvrir.addEventListener("click", () => {
+            const emp = entry.empId  || "";
+            const kit = entry.kitId  || "";
+            if (_onOpenKit && emp && kit) {
+                _onOpenKit(emp, kit);
+            } else {
+                showToast("⚠️ Impossible d'ouvrir ce kit.", "error");
+            }
+        });
+
+        const btnClore = document.createElement("button");
+        btnClore.className   = "reprise-btn reprise-btn--clore";
+        btnClore.textContent = "Marquer comme repris";
+        btnClore.addEventListener("click", () => _marquerRepris(entry.id, card));
+
+        actions.appendChild(btnOuvrir);
+        actions.appendChild(btnClore);
+    } else {
+        const label = document.createElement("span");
+        label.className   = "reprise-clos-label";
+        label.textContent = "✓ Non-conformité close";
+        actions.appendChild(label);
+    }
+
+    card.appendChild(header);
+    card.appendChild(body);
+    card.appendChild(actions);
 
     return card;
 }
 
-// ─── Action : marquer comme repris ───────────────────────────────────────────
+// ─── Marquer comme repris ─────────────────────────────────────────────────────
 async function _marquerRepris(docId, cardEl) {
     const ok = await showConfirmToast("Marquer cette non-conformité comme reprise ?");
     if (!ok) return;
 
     try {
         await updateDoc(doc(db, "historique_controles", docId), {
-            reprise_close:    true,
-            reprise_date:     new Date().toISOString(),
+            reprise_close: true,
+            reprise_date:  new Date().toISOString(),
         });
 
-        // Mise à jour du cache local
         if (_cache) {
             const entry = _cache.find(d => d.id === docId);
             if (entry) {
@@ -310,7 +301,6 @@ async function _marquerRepris(docId, cardEl) {
             }
         }
 
-        // Animation de sortie de la carte
         cardEl.style.transition = "opacity .35s, transform .35s";
         cardEl.style.opacity    = "0";
         cardEl.style.transform  = "translateX(24px)";
@@ -342,7 +332,7 @@ function _syncFilterBtns() {
 
 function _setLoading(on) {
     $("reprises-loading")?.classList.toggle("hidden", !on);
-    $("reprises-list")   && ($("reprises-list").innerHTML = on ? "" : $("reprises-list").innerHTML);
+    if (on && $("reprises-list")) $("reprises-list").innerHTML = "";
 }
 
 function _showError(msg) {
@@ -355,10 +345,9 @@ function _setText(id, val) {
 }
 
 function _formatDelai(ms) {
-    const heures = Math.floor(ms / (1000 * 60 * 60));
-    if (heures < 24) return `Il y a ${heures}h`;
-    const jours = Math.floor(heures / 24);
-    if (jours < 7)   return `Il y a ${jours}j`;
-    const semaines = Math.floor(jours / 7);
-    return `Il y a ${semaines} sem.`;
+    const h = Math.floor(ms / 3600000);
+    if (h < 24)  return `Il y a ${h}h`;
+    const j = Math.floor(h / 24);
+    if (j < 7)   return `Il y a ${j}j`;
+    return `Il y a ${Math.floor(j / 7)} sem.`;
 }
