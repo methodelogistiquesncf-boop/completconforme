@@ -142,3 +142,18 @@
 .admin-status.info    { background: var(--blue-soft);  color: var(--blue);  border: 1.5px solid rgba(0,49,137,.18);  display: block; }
 .admin-status.success { background: var(--green-soft); color: var(--green); border: 1.5px solid rgba(26,138,90,.2);  display: block; }
 .admin-status.error   { background: var(--red-soft);   color: var(--red);   border: 1.5px solid rgba(226,0,26,.2);   display: block; }
+.acces-name-input {
+    font-family: var(--sans);
+    font-size: .82rem;
+    padding: .3rem .6rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--input-bg);
+    color: var(--text);
+    width: 110px;
+    transition: border-color .15s;
+}
+.acces-name-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
