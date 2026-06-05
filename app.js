@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const TABS = ['terrain', 'historique', 'import', 'admin', 'profil', 'stats', 'reprises'];
 
 // Onglets soumis au contrôle d'accès (terrain et profil toujours visibles)
-const TABS_PROTEGES = ['reprises', 'historique', 'stats', 'admin', 'import'];
+const TABS_PROTEGES = ['terrain', 'reprises', 'historique', 'stats', 'admin', 'import'];
 
 export function showTab(tab) {
     if (tab !== 'terrain') desactiverTerrain();
