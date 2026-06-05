@@ -8,6 +8,7 @@ import {
 
 import { db }                              from "./firebase.js";
 import { $, showToast, showConfirmToast }  from "./utils.js";
+import { aAcces }                          from "./acces.js";
 
 let _onOpenKit   = null;
 let _cache       = null;
@@ -26,6 +27,14 @@ export function initReprises() {
 
 // ─── Chargement ───────────────────────────────────────────────────────────────
 export async function chargerReprises() {
+
+    // ── Vérification d'accès ──────────────────────────────────────────────────
+    if (!aAcces("reprises")) {
+        _setLoading(false);
+        _showAccesDenied();
+        return;
+    }
+
     _cache       = null;
     _filterActif = "tous";
     _syncFilterBtns();
@@ -156,9 +165,9 @@ function _buildCard(entry) {
     const estClos   = !!entry.reprise_close;
     const estUrgent = age > SEUIL7J && !estClos;
 
-    const delaiClass = estClos      ? "delai-clos"
-                     : age > SEUIL7J                    ? "delai-urgent"
-                     : age > 3 * 24 * 60 * 60 * 1000   ? "delai-moyen"
+    const delaiClass = estClos                                ? "delai-clos"
+                     : age > SEUIL7J                          ? "delai-urgent"
+                     : age > 3 * 24 * 60 * 60 * 1000         ? "delai-moyen"
                      : "delai-recent";
 
     const dateStr = ts ? ts.toLocaleString("fr-FR", {
@@ -177,7 +186,7 @@ function _buildCard(entry) {
         + (estClos   ? " reprise-card--clos"   : "")
         + (estUrgent ? " reprise-card--urgent" : "");
 
-    // Header
+    // ── Header ────────────────────────────────────────────────────────────────
     const header = document.createElement("div");
     header.className = "reprise-card__header";
 
@@ -197,18 +206,25 @@ function _buildCard(entry) {
     header.appendChild(badges);
     header.appendChild(meta);
 
-    // Body
+    // ── Body ──────────────────────────────────────────────────────────────────
     const body = document.createElement("div");
     body.className = "reprise-card__body";
 
-    const nom  = document.createElement("p"); nom.className  = "reprise-kit-nom";  nom.textContent  = entry.nom_du_kit || entry.kitId || "—";
-    const code = document.createElement("p"); code.className = "reprise-kit-code"; code.textContent = entry.code_kit  || entry.kitId || "";
+    const nom  = document.createElement("p");
+    nom.className  = "reprise-kit-nom";
+    nom.textContent = entry.nom_du_kit || entry.kitId || "—";
+
+    const code = document.createElement("p");
+    code.className  = "reprise-kit-code";
+    code.textContent = entry.code_kit || entry.kitId || "";
+
     body.appendChild(nom);
     body.appendChild(code);
 
     if (ecarts.length || conformes.length) {
         const ecartDiv = document.createElement("div");
         ecartDiv.className = "reprise-ecarts";
+
         ecarts.forEach(c => {
             const s = document.createElement("span");
             s.className = "reprise-ecart-badge reprise-ecart-badge--ko";
@@ -218,11 +234,12 @@ function _buildCard(entry) {
         });
         conformes.forEach(c => {
             const s = document.createElement("span");
-            s.className = "reprise-ecart-badge reprise-ecart-badge--ok";
-            s.title     = c.nom || "";
+            s.className   = "reprise-ecart-badge reprise-ecart-badge--ok";
+            s.title       = c.nom || "";
             s.textContent = `${c.code_piece || c.nom || "?"} : ✓`;
             ecartDiv.appendChild(s);
         });
+
         body.appendChild(ecartDiv);
     } else {
         const nd = document.createElement("p");
@@ -243,7 +260,7 @@ function _buildCard(entry) {
     agent.textContent = "👤 " + (entry.verificateur_email || "—");
     body.appendChild(agent);
 
-    // Actions
+    // ── Actions ───────────────────────────────────────────────────────────────
     const actions = document.createElement("div");
     actions.className = "reprise-card__actions" + (estClos ? " reprise-card__actions--clos" : "");
 
@@ -252,8 +269,8 @@ function _buildCard(entry) {
         btnOuvrir.className   = "reprise-btn reprise-btn--ouvrir";
         btnOuvrir.textContent = "Ouvrir le kit";
         btnOuvrir.addEventListener("click", () => {
-            const emp = entry.empId  || "";
-            const kit = entry.kitId  || "";
+            const emp = entry.empId || "";
+            const kit = entry.kitId || "";
             if (_onOpenKit && emp && kit) {
                 _onOpenKit(emp, kit);
             } else {
@@ -340,8 +357,36 @@ function _showError(msg) {
     if (el) { el.textContent = msg; el.classList.remove("hidden"); }
 }
 
+function _showAccesDenied() {
+    const listEl  = $("reprises-list");
+    const emptyEl = $("reprises-empty");
+    const cntEl   = $("reprises-count");
+
+    if (listEl)  listEl.innerHTML = "";
+    if (cntEl)   cntEl.textContent = "";
+
+    // Réinitialise les KPIs à zéro
+    ["reprises-kpi-total", "reprises-kpi-semaine", "reprises-kpi-urgents", "reprises-kpi-clos"]
+        .forEach(id => _setText(id, "—"));
+
+    if (emptyEl) {
+        emptyEl.innerHTML = `
+            <div style="text-align:center;padding:2.5rem 1rem;">
+                <div style="font-size:2.5rem;margin-bottom:.75rem;">🔒</div>
+                <p style="font-weight:600;margin-bottom:.35rem;">Accès restreint</p>
+                <p style="font-size:.85rem;opacity:.6;">
+                    Vous n'êtes pas autorisé à consulter les reprises.<br>
+                    Contactez un administrateur pour obtenir l'accès.
+                </p>
+            </div>
+        `;
+        emptyEl.classList.remove("hidden");
+    }
+}
+
 function _setText(id, val) {
-    const el = $(id); if (el) el.textContent = val;
+    const el = $(id);
+    if (el) el.textContent = val;
 }
 
 function _formatDelai(ms) {
