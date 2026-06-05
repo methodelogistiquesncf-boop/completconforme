@@ -135,3 +135,6 @@ async function _sauvegarder() {
         if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer'; }
     }
 }
+function _buildRow(email, droits) {
+    const tr = document.createElement('tr');
+    tr.style.borderTop = '1px solid var(--border)';
