@@ -52,7 +52,7 @@ function _renderTable() {
 
 function _buildRow(email, droits) {
     const tr = document.createElement('tr');
-
+        tr.style.borderTop = '1px solid var(--border)';
     // Colonne email
     const tdEmail = document.createElement('td');
     tdEmail.textContent = email;
@@ -135,6 +135,3 @@ async function _sauvegarder() {
         if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer'; }
     }
 }
-function _buildRow(email, droits) {
-    const tr = document.createElement('tr');
-    tr.style.borderTop = '1px solid var(--border)';
