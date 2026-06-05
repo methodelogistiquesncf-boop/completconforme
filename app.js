@@ -12,6 +12,7 @@ import { initTerrain, activerTerrain, desactiverTerrain,
          ouvrirDetailKit }                                 from "./modules/terrain.js";
 import { initReprises, chargerReprises,
          setReprisesOnOpenKit }                            from "./modules/reprises.js";
+import { chargerAcces, aAcces }                            from "./modules/acces.js";
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -38,9 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
         ouvrirDetailKit(empId, kitId);
     });
 
-    // Quand l'utilisateur se connecte → aller sur l'onglet Terrain
     setAuthCallbacks({
-        onLogin:  () => showTab('terrain'),
+        onLogin:  async () => {
+            // Charge les droits une seule fois, puis applique la visibilité des onglets
+            await chargerAcces();
+            _appliquerVisibiliteOnglets();
+            showTab('terrain');
+        },
         onLogout: () => { /* login page gérée dans auth.js */ },
     });
 
@@ -52,13 +57,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 const TABS = ['terrain', 'historique', 'import', 'admin', 'profil', 'stats', 'reprises'];
 
+// Onglets soumis au contrôle d'accès (terrain et profil toujours visibles)
+const TABS_PROTEGES = ['reprises', 'historique', 'stats', 'admin', 'import'];
+
 export function showTab(tab) {
     if (tab !== 'terrain') desactiverTerrain();
     if (tab !== 'stats')   arreterStats();
 
     TABS.forEach(t => {
-        $(`tab-${t}`)?.classList.toggle('active',   t === tab);
-        $(`sec-${t}`)?.classList.toggle('hidden',   t !== tab);
+        $(`tab-${t}`)?.classList.toggle('active',    t === tab);
+        $(`sec-${t}`)?.classList.toggle('hidden',    t !== tab);
         $(`sidebar-${t}`)?.classList.toggle('active', t === tab);
     });
 
@@ -74,9 +82,18 @@ export function showTab(tab) {
 function _initTabNav() {
     TABS.forEach(t => {
         $(`tab-${t}`)?.addEventListener('click', () => showTab(t));
-        // Câble aussi le bouton sidebar directement ici — sans passer par tabBtn.click()
-        // pour éviter la double exécution du script inline en bas du HTML
         $(`sidebar-${t}`)?.addEventListener('click', () => showTab(t));
+    });
+}
+
+// ─── Masquage des onglets selon les droits ────────────────────────────────────
+function _appliquerVisibiliteOnglets() {
+    TABS_PROTEGES.forEach(mod => {
+        const ok = aAcces(mod);
+        // Bouton barre de navigation principale
+        $(`tab-${mod}`)?.classList.toggle('hidden', !ok);
+        // Bouton sidebar (menu latéral)
+        $(`sidebar-${mod}`)?.classList.toggle('hidden', !ok);
     });
 }
 
