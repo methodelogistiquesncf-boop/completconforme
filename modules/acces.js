@@ -1,7 +1,7 @@
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { db, auth } from "./firebase.js";
 
-const MODULES = ['terrain', 'reprises', 'historique', 'stats', 'admin'];
+const MODULES = ['terrain', 'reprises', 'historique', 'stats', 'admin', 'import'];
 let _cache = null;
 
 // Charge et met en cache toute la config d'accès
