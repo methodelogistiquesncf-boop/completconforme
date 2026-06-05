@@ -1,13 +1,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // modules/admin.js — Verrou PIN, onglets admin, toggles mot de passe
 // ─────────────────────────────────────────────────────────────────────────────
-import { $, showToast }                         from "./utils.js";
-import { initGithubConfig, initDropZoneEmplacements,
-         initImportGithubXls, chargerListeEmplacementsAutorises }
-                                                from "./github.js";
-import { initialiserDocumentStats }             from "./init_stats_kpi.js";
+import { $, showToast }                from "./utils.js";
+import { initGithubConfig }            from "./github.js";
+import { initialiserDocumentStats }    from "./init_stats_kpi.js";
+import { initAdminAcces }              from "./admin_acces.js";
 
 const ADMIN_PIN = "8184";
+
+// ─── Garde : initAdminAcces n'est appelé qu'une seule fois après unlock ───────
+let _accesPanelInit = false;
 
 // ─── Init & câblage ───────────────────────────────────────────────────────────
 export function initAdmin() {
@@ -16,15 +18,17 @@ export function initAdmin() {
     _initTogglesPwd();
 
     $('btn-init-stats')?.addEventListener('click', async () => {
-        $('btn-init-stats').disabled = true;
+        const btn = $('btn-init-stats');
+        btn.disabled = true;
         await initialiserDocumentStats();
-        $('btn-init-stats').disabled = false;
+        btn.disabled = false;
     });
 }
 
 // ─── Verrou PIN ───────────────────────────────────────────────────────────────
 function _initPin() {
     const pinInputs = document.querySelectorAll('.pin-input');
+
     pinInputs.forEach((input, i) => {
         input.addEventListener('input', () => {
             input.value = input.value.replace(/\D/g, '').slice(0, 1);
@@ -35,17 +39,35 @@ function _initPin() {
         });
     });
 
+    // Valider aussi sur Entrée depuis n'importe quel champ PIN
+    pinInputs.forEach(input => {
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') $('btn-pin')?.click();
+        });
+    });
+
     $('btn-pin')?.addEventListener('click', () => {
         const saisi = [...pinInputs].map(i => i.value).join('');
+
         if (saisi === ADMIN_PIN) {
             $('admin-auth').classList.add('hidden');
+
             const content = $('admin-content');
             content.classList.remove('hidden');
             content.style.display = 'flex';
-            $('pin-error').textContent = '';
+
+            if ($('pin-error')) $('pin-error').textContent = '';
+
+            // Initialisation des outils admin (une seule fois)
             initGithubConfig();
+
+            if (!_accesPanelInit) {
+                initAdminAcces();
+                _accesPanelInit = true;
+            }
+
         } else {
-            $('pin-error').textContent = 'Code incorrect. Réessayez.';
+            if ($('pin-error')) $('pin-error').textContent = 'Code incorrect. Réessayez.';
             pinInputs.forEach(i => i.value = '');
             pinInputs[0].focus();
         }
@@ -54,25 +76,28 @@ function _initPin() {
 
 // ─── Navigation onglets admin ─────────────────────────────────────────────────
 function _initAdminTabs() {
-    document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+    const btns   = document.querySelectorAll('.admin-tab-btn');
+    const panels = document.querySelectorAll('.admin-tab-panel');
+
+    btns.forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.add('hidden'));
+            btns.forEach(b   => b.classList.remove('active'));
+            panels.forEach(p => p.classList.add('hidden'));
             btn.classList.add('active');
             document.getElementById('admin-tab-' + btn.dataset.tab)?.classList.remove('hidden');
         });
     });
 }
 
-// ─── Toggles affichage mot de passe (tous les boutons [data-target]) ─────────
+// ─── Toggles affichage mot de passe (tous les boutons [data-target]) ──────────
 function _initTogglesPwd() {
     document.querySelectorAll('.btn-toggle-pwd[data-target]').forEach(btn => {
         btn.addEventListener('click', () => {
             const input = $(btn.dataset.target);
             if (!input) return;
             const isPassword = input.type === 'password';
-            input.type       = isPassword ? 'text' : 'password';
-            btn.textContent  = isPassword ? '🙈' : '👁';
+            input.type      = isPassword ? 'text' : 'password';
+            btn.textContent = isPassword ? '🙈' : '👁';
         });
     });
 }
