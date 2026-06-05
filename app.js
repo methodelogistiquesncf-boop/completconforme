@@ -87,7 +87,7 @@ function _initTabNav() {
 }
 
 // ─── Masquage des onglets selon les droits ────────────────────────────────────
-function _appliquerVisibiliteOnglets() {
+export function _appliquerVisibiliteOnglets() {
     TABS_PROTEGES.forEach(mod => {
         const ok = aAcces(mod);
         // Bouton barre de navigation principale
