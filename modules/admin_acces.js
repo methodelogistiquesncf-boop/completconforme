@@ -1,6 +1,7 @@
 import { $ } from "./utils.js";
 import { chargerAcces, sauvegarderAcces, MODULES } from "./acces.js";
 import { showToast } from "./utils.js";
+import { _appliquerVisibiliteOnglets } from "../app.js";
 
 const LABELS = {
     terrain:    'Terrain',
@@ -127,6 +128,7 @@ async function _sauvegarder() {
     if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
     try {
         await sauvegarderAcces(_config);
+        _appliquerVisibiliteOnglets(); // ← ajoutez cette ligne
         showToast('✅ Droits enregistrés.', 'success');
         _changed = false;
     } catch (err) {
